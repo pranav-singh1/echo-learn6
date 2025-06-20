@@ -1,5 +1,6 @@
 new github repo, using lovable frontend + separate backend created by me and cursor
 
+in backend goes to my-conversational-agent. kind of useless but will fix later
 
 # Welcome to your Lovable project
 
