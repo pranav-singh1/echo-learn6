@@ -1,3 +1,6 @@
+new github repo, using lovable frontend + separate backend created by me and cursor
+
+
 # Welcome to your Lovable project
 
 ## Project info
