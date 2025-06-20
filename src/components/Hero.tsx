@@ -2,12 +2,21 @@
 import React from 'react';
 import { Mic, Sparkles, MessageCircle, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import RotatingText from './RotatingText';
 
 interface HeroProps {
   onStartSpeaking: () => void;
 }
 
 const Hero: React.FC<HeroProps> = ({ onStartSpeaking }) => {
+  const benefits = [
+    'active recall',
+    'deeper understanding', 
+    'better retention',
+    'catch mistakes',
+    'build confidence'
+  ];
+
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-12">
       <div className="max-w-4xl mx-auto text-center">
@@ -19,12 +28,20 @@ const Hero: React.FC<HeroProps> = ({ onStartSpeaking }) => {
           <h1 className="text-3xl font-bold text-gray-900">EchoLearn</h1>
         </div>
 
-        {/* Main Tagline */}
+        {/* Main Tagline with Rotating Text */}
         <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-          Learn better by
-          <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            {" "}teaching aloud
-          </span>
+          Learn better through{" "}
+          <RotatingText
+            texts={benefits}
+            mainClassName="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent inline-block"
+            rotationInterval={3000}
+            transition={{ type: "spring", damping: 30, stiffness: 400 }}
+            staggerDuration={0.025}
+            staggerFrom="last"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "-120%" }}
+          />
         </h2>
 
         {/* Subtext */}
