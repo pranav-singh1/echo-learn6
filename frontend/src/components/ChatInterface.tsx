@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 
 export const ChatInterface: React.FC = () => {
@@ -14,6 +14,9 @@ export const ChatInterface: React.FC = () => {
     isListening,
     conversationError,
     messages,
+    activeSession,
+    createNewSession,
+    updateSessionTitle,
     startConversation,
     stopConversation,
     sendTextMessage,
@@ -23,6 +26,8 @@ export const ChatInterface: React.FC = () => {
 
   const [textInput, setTextInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +57,34 @@ export const ChatInterface: React.FC = () => {
       await stopConversation();
     } else {
       await startConversation();
+    }
+  };
+
+  const handleStartEditTitle = () => {
+    if (activeSession) {
+      setIsEditingTitle(true);
+      setEditTitle(activeSession.title);
+    }
+  };
+
+  const handleSaveTitle = () => {
+    if (activeSession && editTitle.trim()) {
+      updateSessionTitle(activeSession.id, editTitle.trim());
+      setIsEditingTitle(false);
+      setEditTitle('');
+    }
+  };
+
+  const handleCancelTitle = () => {
+    setIsEditingTitle(false);
+    setEditTitle('');
+  };
+
+  const handleTitleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      handleCancelTitle();
     }
   };
 
@@ -85,11 +118,73 @@ export const ChatInterface: React.FC = () => {
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Conversation
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyPress}
+                    onBlur={handleSaveTitle}
+                    className="text-lg font-semibold h-8 w-48"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSaveTitle}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Check className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCancelTitle}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="cursor-pointer hover:text-blue-600 transition-colors"
+                    onDoubleClick={handleStartEditTitle}
+                  >
+                    {activeSession?.title || 'New Conversation'}
+                  </span>
+                  {activeSession && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleStartEditTitle}
+                      className="h-6 w-6 p-0 opacity-0 hover:opacity-100 transition-opacity"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardTitle>
+            {activeSession?.isActive && (
+              <Badge variant="secondary" className="text-xs">
+                Active
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={createNewSession}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Chat
+            </Button>
             <Button
               variant={isConnected ? "destructive" : "default"}
               size="sm"
