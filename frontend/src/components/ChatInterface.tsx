@@ -1,111 +1,217 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { ScrollArea } from './ui/scroll-area';
+import { Badge } from './ui/badge';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
 
-import React from 'react';
-import { Menu, Bot, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+export const ChatInterface: React.FC = () => {
+  const {
+    isConnected,
+    isListening,
+    conversationError,
+    messages,
+    startConversation,
+    stopConversation,
+    sendTextMessage,
+    generateQuiz,
+    isGeneratingQuiz
+  } = useAppContext();
 
-interface ChatInterfaceProps {
-  onToggleSidebar: () => void;
-}
+  const [textInput, setTextInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleSidebar }) => {
-  const messages = [
-    {
-      id: 1,
-      type: 'user',
-      content: "I'm studying photosynthesis and I want to explain how plants convert sunlight into energy.",
-      timestamp: '2:34 PM'
-    },
-    {
-      id: 2,
-      type: 'ai',
-      content: "Great topic! I'd love to hear your explanation of photosynthesis. Start by telling me what you know about how plants capture sunlight and what happens next in the process.",
-      timestamp: '2:34 PM'
-    },
-    {
-      id: 3,
-      type: 'user',
-      content: "So plants have chlorophyll in their leaves that absorbs light energy. This energy is used to split water molecules and combine carbon dioxide from the air to make glucose.",
-      timestamp: '2:35 PM'
-    },
-    {
-      id: 4,
-      type: 'ai',
-      content: "Excellent start! You've identified the key components. Can you walk me through the two main stages of photosynthesis? What happens in the light-dependent reactions versus the light-independent reactions?",
-      timestamp: '2:35 PM'
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!textInput.trim()) return;
+    
+    setIsTyping(true);
+    await sendTextMessage(textInput);
+    setTextInput('');
+    setIsTyping(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
-  ];
+  };
+
+  const handleVoiceToggle = async () => {
+    if (isConnected) {
+      await stopConversation();
+    } else {
+      await startConversation();
+    }
+  };
+
+  const getSpeakerColor = (speaker: string) => {
+    switch (speaker) {
+      case 'user':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'ai':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'system':
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getSpeakerIcon = (speaker: string) => {
+    switch (speaker) {
+      case 'user':
+        return '👤';
+      case 'ai':
+        return '🤖';
+      case 'system':
+        return '⚙️';
+      default:
+        return '💬';
+    }
+  };
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleSidebar}
-            className="mr-3"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="font-semibold text-gray-900">Study Session</h1>
-            <p className="text-sm text-gray-500">Photosynthesis Topic</p>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Conversation
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={isConnected ? "destructive" : "default"}
+              size="sm"
+              onClick={handleVoiceToggle}
+              disabled={isTyping}
+              className="flex items-center gap-2"
+            >
+              {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isConnected ? 'Stop' : 'Start'} Voice
+            </Button>
+            {messages.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateQuiz}
+                disabled={isGeneratingQuiz}
+                className="flex items-center gap-2"
+              >
+                {isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-sm text-gray-600">Listening</span>
+        
+        {/* Connection Status */}
+        <div className="flex items-center gap-2 text-sm">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+          <span className={isConnected ? 'text-green-600' : 'text-gray-500'}>
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          {isListening && (
+            <>
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-red-600">Listening...</span>
+            </>
+          )}
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex max-w-3xl ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              {/* Avatar */}
-              <div className={`flex-shrink-0 ${message.type === 'user' ? 'ml-3' : 'mr-3'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {message.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+      <CardContent className="flex-1 flex flex-col gap-4">
+        {/* Error Alert */}
+        {conversationError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{conversationError}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Messages */}
+        <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Start a conversation to begin learning!</p>
+                <p className="text-sm mt-2">Use voice or text to interact with EchoLearn.</p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex gap-3 ${
+                    message.speaker === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 border ${
+                      message.speaker === 'user'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : message.speaker === 'ai'
+                        ? 'bg-blue-50 border-blue-200 text-blue-800'
+                        : 'bg-gray-50 border-gray-200 text-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">{getSpeakerIcon(message.speaker)}</span>
+                      <Badge variant="outline" className={`text-xs ${getSpeakerColor(message.speaker)}`}>
+                        {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
+                      </Badge>
+                      <span className="text-xs text-gray-500">{message.timestamp}</span>
+                    </div>
+                    <p className="text-sm">{message.text}</p>
+                  </div>
+                </div>
+              ))
+            )}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span>🤖</span>
+                    <Badge variant="outline" className="text-blue-600 bg-blue-50 border-blue-200">
+                      EchoLearn
+                    </Badge>
+                    <span className="text-xs text-gray-500">Typing...</span>
+                  </div>
                 </div>
               </div>
-
-              {/* Message Bubble */}
-              <div className={`rounded-2xl px-4 py-3 ${
-                message.type === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-md'
-                  : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md shadow-sm'
-              }`}>
-                <p className="text-sm leading-relaxed">{message.content}</p>
-                <p className={`text-xs mt-2 ${
-                  message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {message.timestamp}
-                </p>
-              </div>
-            </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        ))}
-      </div>
+        </ScrollArea>
 
-      {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-6 py-4">
-        <div className="flex items-center space-x-3">
-          <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-            <p className="text-gray-500 text-sm">Speak your thoughts or type here...</p>
-          </div>
-          <Button size="sm" variant="outline" className="px-4">
-            Send
+        {/* Input Area */}
+        <div className="flex gap-2 pt-4 border-t">
+          <Input
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            disabled={!isConnected && !textInput}
+            className="flex-1"
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={!textInput.trim() || isTyping}
+            size="sm"
+          >
+            <Send className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default ChatInterface;

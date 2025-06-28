@@ -1,75 +1,57 @@
+import React, { useState, useEffect } from 'react';
+import { useAppContext } from '../contexts/AppContext';
+import { Button } from './ui/button';
+import { Mic, MicOff, Volume2 } from 'lucide-react';
+import { cn } from '../lib/utils';
 
-import React, { useState } from 'react';
-import { Mic, MicOff, HelpCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+export const FloatingMic: React.FC = () => {
+  const { isConnected, isListening, startConversation, stopConversation } = useAppContext();
+  const [isVisible, setIsVisible] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-interface FloatingMicProps {
-  onQuizToggle: () => void;
-}
+  // Show mic when not connected, hide when connected (since ChatInterface has controls)
+  useEffect(() => {
+    setIsVisible(!isConnected);
+  }, [isConnected]);
 
-const FloatingMic: React.FC<FloatingMicProps> = ({ onQuizToggle }) => {
-  const [isListening, setIsListening] = useState(false);
-
-  const toggleListening = () => {
-    setIsListening(!isListening);
+  const handleMicClick = async () => {
+    if (isConnected) {
+      await stopConversation();
+    } else {
+      await startConversation();
+    }
   };
 
+  if (!isVisible) return null;
+
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 z-40">
-      {/* Quiz Button */}
+    <div className="fixed bottom-6 right-6 z-50">
       <Button
-        onClick={onQuizToggle}
-        variant="outline"
-        size="sm"
-        className="bg-white shadow-lg border-gray-200 hover:bg-gray-50"
+        size="lg"
+        onClick={handleMicClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={cn(
+          "h-16 w-16 rounded-full shadow-lg transition-all duration-300",
+          "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700",
+          "text-white border-0",
+          isHovered && "scale-110 shadow-xl",
+          isListening && "animate-pulse bg-gradient-to-r from-red-500 to-pink-600"
+        )}
       >
-        <HelpCircle className="w-4 h-4 mr-2" />
-        Quiz Me
+        {isListening ? (
+          <Volume2 className="h-6 w-6" />
+        ) : (
+          <Mic className="h-6 w-6" />
+        )}
       </Button>
-
-      {/* Main Mic Button */}
-      <div className="relative">
-        <Button
-          onClick={toggleListening}
-          size="lg"
-          className={`
-            w-16 h-16 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105
-            ${isListening 
-              ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-            }
-            text-white
-          `}
-        >
-          {isListening ? (
-            <MicOff className="w-7 h-7" />
-          ) : (
-            <Mic className="w-7 h-7" />
-          )}
-        </Button>
-
-        {/* Listening Indicator */}
-        {isListening && (
-          <div className="absolute -top-2 -right-2">
-            <div className="w-4 h-4 bg-red-500 rounded-full animate-ping" />
-            <div className="absolute top-0 w-4 h-4 bg-red-600 rounded-full" />
-          </div>
-        )}
-
-        {/* Pulse Ring */}
-        {isListening && (
-          <div className="absolute inset-0 rounded-full border-4 border-red-300 animate-ping" />
-        )}
-      </div>
-
-      {/* Status Text */}
-      <div className="bg-white px-3 py-1 rounded-full shadow-lg border border-gray-200">
-        <span className="text-xs font-medium text-gray-600">
-          {isListening ? 'Listening...' : 'Tap to speak'}
-        </span>
-      </div>
+      
+      {/* Tooltip */}
+      {isHovered && (
+        <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap">
+          {isListening ? 'Stop Voice Chat' : 'Start Voice Chat'}
+        </div>
+      )}
     </div>
   );
 };
-
-export default FloatingMic;
