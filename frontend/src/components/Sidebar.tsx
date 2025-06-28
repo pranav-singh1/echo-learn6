@@ -1,135 +1,160 @@
-
 import React from 'react';
-import { X, MessageSquare, Clock, BookOpen } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useAppContext } from '../contexts/AppContext';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
+import { 
+  MessageCircle, 
+  Clock, 
+  TrendingUp, 
+  BookOpen, 
+  FileText,
+  X
+} from 'lucide-react';
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+export const Sidebar: React.FC = () => {
+  const { 
+    messages, 
+    isConnected, 
+    activePanel, 
+    setActivePanel,
+    quizSummary,
+    quizQuestions 
+  } = useAppContext();
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const chatHistory = [
-    {
-      id: 1,
-      title: "Photosynthesis Deep Dive",
-      timestamp: "2 hours ago",
-      preview: "Discussing light-dependent and independent reactions..."
-    },
-    {
-      id: 2,
-      title: "Cell Membrane Structure",
-      timestamp: "Yesterday",
-      preview: "Exploring phospholipid bilayer and transport proteins..."
-    },
-    {
-      id: 3,
-      title: "Mitochondria Function",
-      timestamp: "2 days ago",
-      preview: "ATP synthesis and cellular respiration process..."
-    },
-    {
-      id: 4,
-      title: "DNA Replication",
-      timestamp: "3 days ago",
-      preview: "Helicase, primase, and DNA polymerase roles..."
-    }
-  ];
+  // Calculate conversation stats
+  const userMessages = messages.filter(m => m.speaker === 'user').length;
+  const aiMessages = messages.filter(m => m.speaker === 'ai').length;
+  const totalMessages = messages.length;
+  const conversationDuration = messages.length > 0 
+    ? Math.round((new Date().getTime() - new Date(messages[0].timestamp).getTime()) / 60000)
+    : 0;
 
   return (
-    <>
-      {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={onClose}
-        />
-      )}
+    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Study Session</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActivePanel(null)}
+            className="h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Connection Status */}
+        <div className="mt-3 flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+          <span className="text-sm text-gray-600">
+            {isConnected ? 'Active Session' : 'Not Connected'}
+          </span>
+        </div>
+      </div>
 
-      {/* Sidebar */}
-      <div className={`
-        fixed md:static inset-y-0 left-0 z-50
-        w-80 bg-white border-r border-gray-200 
-        transform transition-transform duration-200 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        ${!isOpen && 'md:w-0 md:border-r-0'}
-      `}>
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">Chat History</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="md:hidden"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+      {/* Stats */}
+      <div className="p-6 border-b border-gray-200">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Session Stats</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">{totalMessages}</span>
+            </div>
+            <p className="text-xs text-blue-700 mt-1">Total Messages</p>
           </div>
-
-          {/* Search */}
-          <div className="px-6 py-3 border-b border-gray-200">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          <div className="bg-green-50 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-900">{conversationDuration}</span>
             </div>
+            <p className="text-xs text-green-700 mt-1">Minutes</p>
           </div>
-
-          {/* Chat List */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-6 py-3">
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Recent Sessions</h3>
-              <div className="space-y-3">
-                {chatHistory.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <MessageSquare className="w-4 h-4 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 truncate">
-                          {chat.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                          {chat.preview}
-                        </p>
-                        <div className="flex items-center mt-2 text-xs text-gray-400">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {chat.timestamp}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Study Topics */}
-            <div className="px-6 py-3 border-t border-gray-200">
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Study Topics</h3>
-              <div className="space-y-2">
-                {['Biology', 'Chemistry', 'Physics', 'Mathematics'].map((topic) => (
-                  <div key={topic} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <BookOpen className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-700">{topic}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        </div>
+        
+        <div className="mt-3 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Your Messages:</span>
+            <span className="font-medium">{userMessages}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">AI Responses:</span>
+            <span className="font-medium">{aiMessages}</span>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Quick Actions */}
+      <div className="p-6 border-b border-gray-200">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Actions</h3>
+        <div className="space-y-2">
+          {quizSummary && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActivePanel('summary')}
+              className="w-full justify-start"
+              disabled={activePanel === 'summary'}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              View Summary
+            </Button>
+          )}
+          {quizQuestions.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActivePanel('quiz')}
+              className="w-full justify-start"
+              disabled={activePanel === 'quiz'}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Take Quiz ({quizQuestions.length} questions)
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Messages */}
+      <div className="flex-1 p-6">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Messages</h3>
+        <ScrollArea className="h-full">
+          <div className="space-y-3">
+            {messages.slice(-5).reverse().map((message, index) => (
+              <Card key={index} className="text-sm">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${
+                        message.speaker === 'user' 
+                          ? 'text-green-600 bg-green-50 border-green-200' 
+                          : 'text-blue-600 bg-blue-50 border-blue-200'
+                      }`}
+                    >
+                      {message.speaker === 'user' ? 'You' : 'EchoLearn'}
+                    </Badge>
+                    <span className="text-xs text-gray-500">{message.timestamp}</span>
+                  </div>
+                  <p className="text-gray-700 line-clamp-2">{message.text}</p>
+                </CardContent>
+              </Card>
+            ))}
+            {messages.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No messages yet</p>
+                <p className="text-xs">Start a conversation to see messages here</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
   );
 };
 
-export default Sidebar;

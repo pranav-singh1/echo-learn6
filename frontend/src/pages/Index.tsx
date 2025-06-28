@@ -1,49 +1,55 @@
-
 import React, { useState } from 'react';
-import Hero from '../components/Hero';
-import ChatInterface from '../components/ChatInterface';
-import Sidebar from '../components/Sidebar';
-import QuizPanel from '../components/QuizPanel';
-import FloatingMic from '../components/FloatingMic';
-import Footer from '../components/Footer';
+import { LandingPage } from '../components/LandingPage';
+import { ChatInterface } from '../components/ChatInterface';
+import { QuizPanel } from '../components/QuizPanel';
+import { SummaryPanel } from '../components/SummaryPanel';
+import { Sidebar } from '../components/Sidebar';
+import { FloatingMic } from '../components/FloatingMic';
+import { useAppContext } from '../contexts/AppContext';
 
-const Index = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [quizOpen, setQuizOpen] = useState(false);
-  const [chatStarted, setChatStarted] = useState(false);
+export const Index: React.FC = () => {
+  const { activePanel, setActivePanel } = useAppContext();
+  const [showConversation, setShowConversation] = useState(false);
 
+  const handleStartConversation = () => {
+    setShowConversation(true);
+  };
+
+  // Show landing page if conversation hasn't started
+  if (!showConversation) {
+    return <LandingPage onStartConversation={handleStartConversation} />;
+  }
+
+  // Show conversation interface
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col">
-      <div className="flex-1 flex relative">
-        {/* Sidebar */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          {!chatStarted ? (
-            <Hero onStartSpeaking={() => setChatStarted(true)} />
-          ) : (
-            <ChatInterface onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <Sidebar />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex">
+          {/* Chat Interface - Always visible */}
+          <div className="flex-1 p-6">
+            <ChatInterface />
+          </div>
+          
+          {/* Right Panel - Conditional */}
+          {activePanel && (
+            <div className="w-96 border-l border-gray-200 bg-white">
+              {activePanel === 'quiz' && (
+                <QuizPanel onClose={() => setActivePanel(null)} />
+              )}
+              {activePanel === 'summary' && (
+                <SummaryPanel onClose={() => setActivePanel(null)} />
+              )}
+            </div>
           )}
         </div>
-
-        {/* Quiz Panel */}
-        <QuizPanel 
-          isOpen={quizOpen} 
-          onClose={() => setQuizOpen(false)} 
-        />
       </div>
-
-      {/* Floating Microphone */}
-      {chatStarted && (
-        <FloatingMic 
-          onQuizToggle={() => setQuizOpen(!quizOpen)} 
-        />
-      )}
-
-      <Footer />
+      
+      {/* Floating Mic */}
+      <FloatingMic />
     </div>
   );
 };
-
-export default Index;
