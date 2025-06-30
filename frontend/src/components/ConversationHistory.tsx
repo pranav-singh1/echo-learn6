@@ -78,8 +78,8 @@ export const ConversationHistory: React.FC = () => {
     return session.messages.length;
   };
 
-  const handleDeleteSession = (sessionId: string) => {
-    deleteSession(sessionId);
+  const handleDeleteSession = async (sessionId: string) => {
+    await deleteSession(sessionId);
     setShowDeleteDialog(null);
   };
 
@@ -88,9 +88,9 @@ export const ConversationHistory: React.FC = () => {
     setEditTitle(session.title);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingSessionId && editTitle.trim()) {
-      updateSessionTitle(editingSessionId, editTitle.trim());
+      await updateSessionTitle(editingSessionId, editTitle.trim());
       setEditingSessionId(null);
       setEditTitle('');
     }
@@ -101,9 +101,9 @@ export const ConversationHistory: React.FC = () => {
     setEditTitle('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSaveEdit();
+      await handleSaveEdit();
     } else if (e.key === 'Escape') {
       handleCancelEdit();
     }
