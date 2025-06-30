@@ -1,12 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -21,8 +30,13 @@ export const ChatInterface: React.FC = () => {
     stopConversation,
     sendTextMessage,
     generateQuiz,
-    isGeneratingQuiz
+    toggleQuiz,
+    isGeneratingQuiz,
+    quizQuestions,
+    activePanel
   } = useAppContext();
+
+  const { user, signOut } = useAuth();
 
   const [textInput, setTextInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -67,9 +81,9 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleSaveTitle = () => {
+  const handleSaveTitle = async () => {
     if (activeSession && editTitle.trim()) {
-      updateSessionTitle(activeSession.id, editTitle.trim());
+      await updateSessionTitle(activeSession.id, editTitle.trim());
       setIsEditingTitle(false);
       setEditTitle('');
     }
@@ -80,9 +94,9 @@ export const ChatInterface: React.FC = () => {
     setEditTitle('');
   };
 
-  const handleTitleKeyPress = (e: React.KeyboardEvent) => {
+  const handleTitleKeyPress = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSaveTitle();
+      await handleSaveTitle();
     } else if (e.key === 'Escape') {
       handleCancelTitle();
     }
@@ -115,7 +129,7 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full w-full flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -199,13 +213,36 @@ export const ChatInterface: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={generateQuiz}
+                onClick={toggleQuiz}
                 disabled={isGeneratingQuiz}
                 className="flex items-center gap-2"
               >
-                {isGeneratingQuiz ? 'Generating...' : 'Generate Quiz'}
+                {isGeneratingQuiz ? 'Generating...' : 
+                 activePanel === 'quiz' ? 'Close Quiz' :
+                 quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {user?.email?.split('@')[0] || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{user?.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
@@ -224,7 +261,7 @@ export const ChatInterface: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col gap-4">
+      <CardContent className="flex-1 w-full flex flex-col gap-4">
         {/* Error Alert */}
         {conversationError && (
           <Alert variant="destructive">

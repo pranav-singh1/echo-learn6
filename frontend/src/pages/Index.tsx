@@ -7,7 +7,7 @@ import { ConversationHistory } from '../components/ConversationHistory';
 import { FloatingMic } from '../components/FloatingMic';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Home } from 'lucide-react';
 
 export const Index: React.FC = () => {
   const { activePanel, setActivePanel } = useAppContext();
@@ -18,6 +18,11 @@ export const Index: React.FC = () => {
     setShowConversation(true);
   };
 
+  const handleGoHome = () => {
+    setShowConversation(false);
+    setActivePanel(null);
+  };
+
   // Show landing page if conversation hasn't started
   if (!showConversation) {
     return <LandingPage onStartConversation={handleStartConversation} />;
@@ -26,10 +31,12 @@ export const Index: React.FC = () => {
   // Show conversation interface
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Conversation History Sidebar - Hidden on mobile when not shown */}
-      <div className={`${showHistory ? 'block' : 'hidden'} md:block`}>
-        <ConversationHistory />
-      </div>
+      {/* Conversation History Sidebar - Controlled by showHistory state */}
+      {showHistory && (
+        <div className="block">
+          <ConversationHistory />
+        </div>
+      )}
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -57,26 +64,34 @@ export const Index: React.FC = () => {
             >
               {showHistory ? 'Hide History' : 'Show History'}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGoHome}
+              className="flex items-center gap-2"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Button>
           </div>
         </div>
         
-        <div className="flex-1 flex">
+        <div className="flex-1 flex min-w-0">
           {/* Chat Interface - Always visible */}
-          <div className="flex-1 p-4 md:p-6">
+          <div className="flex-1 p-4 md:p-6 transition-all duration-300">
             <ChatInterface />
           </div>
           
-          {/* Right Panel - Conditional */}
-          {activePanel && (
-            <div className="w-full md:w-96 border-l border-gray-200 bg-white">
-              {activePanel === 'quiz' && (
-                <QuizPanel onClose={() => setActivePanel(null)} />
-              )}
-              {activePanel === 'summary' && (
-                <SummaryPanel onClose={() => setActivePanel(null)} />
-              )}
-            </div>
-          )}
+          {/* Right Panel - Always rendered, only shows content if activePanel is set */}
+          <div className="md:w-96 border-l border-gray-200 bg-white flex-shrink-0">
+            {activePanel === 'quiz' && (
+              <QuizPanel onClose={() => setActivePanel(null)} />
+            )}
+            {activePanel === 'summary' && (
+              <SummaryPanel onClose={() => setActivePanel(null)} />
+            )}
+            {/* Leave blank or add a placeholder if desired */}
+          </div>
         </div>
       </div>
       

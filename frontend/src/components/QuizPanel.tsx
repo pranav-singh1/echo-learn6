@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAppContext } from '../contexts/AppContext';
 import { evaluateAnswer } from '../lib/api';
 import { useToast } from '../hooks/use-toast';
+import { Textarea } from './ui/textarea';
 
 interface QuizPanelProps {
   onClose: () => void;
@@ -14,16 +15,20 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   const { toast } = useToast();
   const {
     quizQuestions: questions,
+    quizAnswers: answers,
+    quizEvaluations: evaluations,
+    quizShowAnswers: showAnswers,
+    updateQuizAnswer,
+    updateQuizEvaluation,
+    saveQuizShowAnswers,
+    resetQuiz,
     setActivePanel
   } = useAppContext();
 
-  const [answers, setAnswers] = useState<{ [key: number]: string }>({});
-  const [evaluations, setEvaluations] = useState<{ [key: number]: any }>({});
-  const [showAnswers, setShowAnswers] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
   const handleAnswerChange = (questionIndex: number, answer: string) => {
-    setAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+    updateQuizAnswer(questionIndex, answer);
   };
 
   const evaluateShortAnswer = async (questionIndex: number) => {
@@ -39,10 +44,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
         question: question.question
       });
 
-      setEvaluations(prev => ({
-        ...prev,
-        [questionIndex]: evaluation
-      }));
+      updateQuizEvaluation(questionIndex, evaluation);
     } catch (error) {
       console.error('Error evaluating answer:', error);
       toast({
@@ -64,7 +66,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     }
 
     setIsEvaluating(true);
-    setShowAnswers(true);
+    saveQuizShowAnswers(true);
 
     // Evaluate all short answer questions
     const shortAnswerPromises = questions
@@ -85,9 +87,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   };
 
   const handleReset = () => {
-    setShowAnswers(false);
-    setAnswers({});
-    setEvaluations({});
+    saveQuizShowAnswers(false);
+    resetQuiz();
     toast({
       title: "Quiz Reset",
       description: "Quiz has been reset. You can start over.",
@@ -172,7 +173,11 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                   {question.options.map((option, optionIndex) => (
                     <label
                       key={optionIndex}
-                      className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50"
+                      className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
+                        answers[index] === option
+                          ? 'bg-blue-50 border-blue-300 shadow-sm'
+                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                      }`}
                     >
                       <input
                         type="radio"
@@ -188,6 +193,10 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                           <CheckCircle className="w-5 h-5 text-green-500" />
                         ) : showAnswers && answers[index] === option && option !== question.answer ? (
                           <Circle className="w-5 h-5 text-red-500" />
+                        ) : answers[index] === option ? (
+                          <div className="w-5 h-5 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          </div>
                         ) : (
                           <Circle className="w-5 h-5 text-gray-300" />
                         )}
@@ -197,6 +206,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                           ? 'text-green-700 font-medium' 
                           : showAnswers && answers[index] === option && option !== question.answer
                           ? 'text-red-700 font-medium'
+                          : answers[index] === option
+                          ? 'text-blue-700 font-medium'
                           : 'text-gray-700'
                       }`}>
                         {option}
@@ -223,7 +234,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                           {evaluations[index].isCorrect ? 'Correct!' : 'Incorrect'}
                         </span>
                         <span className="text-sm text-gray-600">
-                          Score: {evaluations[index].score}/10
+                          Score: {evaluations[index].score}/100
                         </span>
                       </div>
                       <p className="text-sm text-gray-700 mb-2">{evaluations[index].feedback}</p>

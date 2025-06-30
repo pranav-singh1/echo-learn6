@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { conversationService, ConversationState } from '../lib/conversation';
-import { conversationStorage, ConversationSession } from '../lib/conversationStorage';
+import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
 import { ElevenLabsConversation, ConversationMessage } from '../components/ElevenLabsConversation';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   // Conversation state
@@ -13,10 +14,10 @@ interface AppContextType {
   // Session management
   activeSession: ConversationSession | null;
   allSessions: ConversationSession[];
-  createNewSession: () => void;
-  switchToSession: (sessionId: string) => void;
-  deleteSession: (sessionId: string) => void;
-  updateSessionTitle: (sessionId: string, newTitle: string) => void;
+  createNewSession: () => Promise<void>;
+  switchToSession: (sessionId: string) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
+  updateSessionTitle: (sessionId: string, newTitle: string) => Promise<void>;
   
   // Conversation actions
   startConversation: () => Promise<void>;
@@ -28,6 +29,14 @@ interface AppContextType {
   quizSummary: string | null;
   isGeneratingQuiz: boolean;
   generateQuiz: () => Promise<void>;
+  toggleQuiz: () => Promise<void>;
+  quizAnswers: { [key: number]: string };
+  quizEvaluations: { [key: number]: any };
+  quizShowAnswers: boolean;
+  updateQuizAnswer: (questionIndex: number, answer: string) => void;
+  updateQuizEvaluation: (questionIndex: number, evaluation: any) => void;
+  saveQuizShowAnswers: (show: boolean) => void;
+  resetQuiz: () => void;
   
   // UI state
   activePanel: 'chat' | 'quiz' | 'summary' | null;
@@ -49,6 +58,8 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+  const { user } = useAuth();
+  
   // Conversation state
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -63,42 +74,84 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [quizSummary, setQuizSummary] = useState<string | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: string }>({});
+  const [quizEvaluations, setQuizEvaluations] = useState<{ [key: number]: any }>({});
+  const [quizShowAnswers, setQuizShowAnswers] = useState(false);
   
   // UI state
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>('chat');
 
-  // Load conversations on mount
+  // Load conversations when user changes
   useEffect(() => {
-    loadConversations();
-  }, []);
-
-  // Load conversations from storage
-  const loadConversations = () => {
-    const sessions = conversationStorage.getAllSessions();
-    const active = conversationStorage.getActiveSession();
-    
-    setAllSessions(sessions);
-    setActiveSession(active);
-    
-    // Load messages from active session
-    if (active) {
-      setMessages(active.messages);
-      setQuizSummary(active.summary || null);
-      setQuizQuestions(active.quizQuestions || []);
+    if (user) {
+      loadConversations();
     } else {
+      // Clear data when user logs out
+      setAllSessions([]);
+      setActiveSession(null);
       setMessages([]);
       setQuizSummary(null);
       setQuizQuestions([]);
+    }
+  }, [user]);
+
+  // Load conversations from Supabase storage
+  const loadConversations = async () => {
+    if (!user) return;
+    
+    try {
+      const storage = await supabaseConversationStorage.getConversations();
+      const active = await supabaseConversationStorage.getActiveSession();
+      
+      setAllSessions(storage.sessions);
+      setActiveSession(active);
+      
+      // Load messages from active session
+      if (active) {
+        setMessages(active.messages);
+        setQuizSummary(active.summary || null);
+        setQuizQuestions(active.quizQuestions || []);
+        
+        // Load quiz answers and evaluations if they exist
+        if (active.quizAnswers) {
+          setQuizAnswers(active.quizAnswers);
+        } else {
+          setQuizAnswers({});
+        }
+        if (active.quizEvaluations) {
+          setQuizEvaluations(active.quizEvaluations);
+        } else {
+          setQuizEvaluations({});
+        }
+        if (active.quizShowAnswers !== undefined) {
+          setQuizShowAnswers(active.quizShowAnswers);
+        } else {
+          setQuizShowAnswers(false);
+        }
+      } else {
+        setMessages([]);
+        setQuizSummary(null);
+        setQuizQuestions([]);
+        setQuizAnswers({});
+        setQuizEvaluations({});
+        setQuizShowAnswers(false);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
     }
   };
 
   // Subscribe to conversation service events
   useEffect(() => {
-    const unsubscribeMessages = conversationService.onMessage((message) => {
+    const unsubscribeMessages = conversationService.onMessage(async (message) => {
       setMessages(prev => [...prev, message]);
       
-      // Save message to storage
-      conversationStorage.addMessage(message);
+      // Save message to Supabase storage with session ID
+      if (activeSession) {
+        await supabaseConversationStorage.addMessage(message, activeSession.id);
+      } else {
+        console.warn('No active session to save message to');
+      }
     });
 
     const unsubscribeState = conversationService.onStateChange((state) => {
@@ -112,57 +165,97 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       unsubscribeMessages();
       unsubscribeState();
     };
-  }, []);
+  }, [activeSession]);
 
   // Session management functions
-  const createNewSession = () => {
-    // Stop current conversation if active
-    if (isConnected) {
-      stopConversation();
+  const createNewSession = async () => {
+    console.log('createNewSession called, user:', user);
+    if (!user) {
+      console.log('No user found, returning early');
+      return;
     }
     
-    // Create new session
-    const newSession = conversationStorage.createSession();
-    setActiveSession(newSession);
-    setMessages([]);
-    setQuizSummary(null);
-    setQuizQuestions([]);
-    setActivePanel('chat');
-    
-    // Reload all sessions
-    loadConversations();
-  };
-
-  const switchToSession = (sessionId: string) => {
-    // Stop current conversation if active
-    if (isConnected) {
-      stopConversation();
-    }
-    
-    // Switch to session
-    const session = conversationStorage.switchToSession(sessionId);
-    if (session) {
-      setActiveSession(session);
-      setMessages(session.messages);
-      setQuizSummary(session.summary || null);
-      setQuizQuestions(session.quizQuestions || []);
+    try {
+      console.log('Stopping current conversation if active...');
+      // Stop current conversation if active
+      if (isConnected) {
+        stopConversation();
+      }
+      
+      console.log('Creating new session in Supabase...');
+      // Create new session
+      const newSession = await supabaseConversationStorage.createSession();
+      console.log('New session created:', newSession);
+      
+      setActiveSession(newSession);
+      setMessages([]);
+      setQuizSummary(null);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizEvaluations({});
+      setQuizShowAnswers(false);
       setActivePanel('chat');
       
+      console.log('Reloading conversations...');
       // Reload all sessions
-      loadConversations();
+      await loadConversations();
+      console.log('createNewSession completed successfully');
+    } catch (error) {
+      console.error('Error creating new session:', error);
     }
   };
 
-  const deleteSession = (sessionId: string) => {
-    const success = conversationStorage.deleteSession(sessionId);
-    if (success) {
-      loadConversations();
+  const switchToSession = async (sessionId: string) => {
+    if (!user) return;
+    
+    try {
+      // Stop current conversation if active
+      if (isConnected) {
+        stopConversation();
+      }
+      
+      // Switch to session
+      const session = await supabaseConversationStorage.switchToSession(sessionId);
+      if (session) {
+        setActiveSession(session);
+        setMessages(session.messages);
+        setQuizSummary(session.summary || null);
+        setQuizQuestions(session.quizQuestions || []);
+        setQuizAnswers(session.quizAnswers || {});
+        setQuizEvaluations(session.quizEvaluations || {});
+        setQuizShowAnswers(session.quizShowAnswers || false);
+        setActivePanel('chat');
+        
+        // Reload all sessions
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error switching session:', error);
     }
   };
 
-  const updateSessionTitle = (sessionId: string, newTitle: string) => {
-    conversationStorage.updateSession(sessionId, { title: newTitle });
-    loadConversations();
+  const deleteSession = async (sessionId: string) => {
+    if (!user) return;
+    
+    try {
+      const success = await supabaseConversationStorage.deleteSession(sessionId);
+      if (success) {
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    }
+  };
+
+  const updateSessionTitle = async (sessionId: string, newTitle: string) => {
+    if (!user) return;
+    
+    try {
+      await supabaseConversationStorage.updateSession(sessionId, { title: newTitle });
+      await loadConversations();
+    } catch (error) {
+      console.error('Error updating session title:', error);
+    }
   };
 
   // Conversation actions
@@ -172,7 +265,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Create new session if none exists
       if (!activeSession) {
-        createNewSession();
+        await createNewSession();
+      }
+      
+      // Ensure we have an active session before starting
+      if (!activeSession) {
+        throw new Error('Failed to create or load active session');
       }
       
       await conversationService.startConversation();
@@ -227,18 +325,83 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setActivePanel('quiz');
       
       // Save to session
-      conversationStorage.updateSession(activeSession.id, {
+      await supabaseConversationStorage.updateSession(activeSession.id, {
         summary: data.summary,
         quizQuestions: data.questions
       });
       
       // Reload sessions to update UI
-      loadConversations();
+      await loadConversations();
     } catch (error) {
       console.error('Error generating quiz:', error);
       setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
     } finally {
       setIsGeneratingQuiz(false);
+    }
+  };
+
+  const toggleQuiz = async () => {
+    // If quiz panel is currently open, close it
+    if (activePanel === 'quiz') {
+      setActivePanel(null);
+    } 
+    // If we have quiz questions already, just open the quiz panel
+    else if (quizQuestions.length > 0) {
+      setActivePanel('quiz');
+    } 
+    // If no quiz exists, generate a new one
+    else {
+      await generateQuiz();
+    }
+  };
+
+  const updateQuizAnswer = async (questionIndex: number, answer: string) => {
+    setQuizAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+    
+    // Save to Supabase
+    if (activeSession) {
+      const updatedAnswers = { ...quizAnswers, [questionIndex]: answer };
+      await supabaseConversationStorage.updateSession(activeSession.id, {
+        quizAnswers: updatedAnswers
+      });
+    }
+  };
+
+  const updateQuizEvaluation = async (questionIndex: number, evaluation: any) => {
+    setQuizEvaluations(prev => ({ ...prev, [questionIndex]: evaluation }));
+    
+    // Save to Supabase
+    if (activeSession) {
+      const updatedEvaluations = { ...quizEvaluations, [questionIndex]: evaluation };
+      await supabaseConversationStorage.updateSession(activeSession.id, {
+        quizEvaluations: updatedEvaluations
+      });
+    }
+  };
+
+  const saveQuizShowAnswers = async (show: boolean) => {
+    setQuizShowAnswers(show);
+    
+    // Save to Supabase
+    if (activeSession) {
+      await supabaseConversationStorage.updateSession(activeSession.id, {
+        quizShowAnswers: show
+      });
+    }
+  };
+
+  const resetQuiz = async () => {
+    setQuizAnswers({});
+    setQuizEvaluations({});
+    setQuizShowAnswers(false);
+    
+    // Save to Supabase
+    if (activeSession) {
+      await supabaseConversationStorage.updateSession(activeSession.id, {
+        quizAnswers: {},
+        quizEvaluations: {},
+        quizShowAnswers: false
+      });
     }
   };
 
@@ -267,6 +430,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     quizSummary,
     isGeneratingQuiz,
     generateQuiz,
+    toggleQuiz,
+    quizAnswers,
+    quizEvaluations,
+    quizShowAnswers,
+    updateQuizAnswer,
+    updateQuizEvaluation,
+    saveQuizShowAnswers,
+    resetQuiz,
     
     // UI state
     activePanel,
