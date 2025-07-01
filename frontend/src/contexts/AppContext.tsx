@@ -84,6 +84,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Load conversations when user changes
   useEffect(() => {
     if (user) {
+      setActivePanel(null);
       loadConversations();
     } else {
       // Clear data when user logs out
@@ -224,8 +225,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setQuizAnswers(session.quizAnswers || {});
         setQuizEvaluations(session.quizEvaluations || {});
         setQuizShowAnswers(session.quizShowAnswers || false);
-        setActivePanel('chat');
-        
+        setActivePanel(null);
         // Reload all sessions
         await loadConversations();
       }

@@ -34,8 +34,17 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   const evaluateShortAnswer = async (questionIndex: number) => {
     const question = questions[questionIndex];
     const userAnswer = answers[questionIndex];
-    
-    if (!userAnswer || question.type !== 'short-answer') return;
+
+    if (!userAnswer || userAnswer.trim() === "") {
+      // Auto feedback for empty answer
+      updateQuizEvaluation(questionIndex, {
+        score: 0,
+        isCorrect: false,
+        feedback: "No answer provided.",
+        explanation: "You did not provide an answer for this question."
+      });
+      return;
+    }
 
     try {
       const evaluation = await evaluateAnswer({
@@ -71,7 +80,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     // Evaluate all short answer questions
     const shortAnswerPromises = questions
       .map((q, idx) => {
-        if (q.type === 'short-answer' && answers[idx]) {
+        if (q.type === 'short-answer') {
           return evaluateShortAnswer(idx);
         }
         return Promise.resolve();
@@ -97,27 +106,27 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
 
   if (questions.length === 0) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-background text-foreground">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Knowledge Check</h2>
-            <p className="text-sm text-gray-600">No quiz available yet</p>
+            <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
+            <p className="text-sm text-muted-foreground">No quiz available yet</p>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Empty State */}
-        <div className="flex-1 flex items-center justify-center px-6">
-          <div className="text-center text-gray-500">
-            <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+        <div className="flex-1 flex items-center justify-center px-6 bg-background text-foreground">
+          <div className="text-center text-muted-foreground">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No Quiz Available</h3>
             <p className="text-sm mb-4">
               Start a conversation and generate a quiz to test your knowledge.
@@ -125,7 +134,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
             <Button
               onClick={() => setActivePanel('chat')}
               variant="outline"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              className="text-primary border-border hover:bg-muted"
             >
               Start Conversation
             </Button>
@@ -136,12 +145,12 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Knowledge Check</h2>
-          <p className="text-sm text-gray-600">
+          <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
+          <p className="text-sm text-muted-foreground">
             {questions.length} questions • {Object.keys(answers).length} answered
           </p>
         </div>
@@ -149,25 +158,59 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-muted-foreground hover:text-foreground"
         >
           <X className="w-5 h-5" />
         </Button>
       </div>
 
+      {/* Quiz Summary/Score */}
+      {showAnswers && (
+        <div className="px-6 py-4 border-b border-border bg-background flex items-center gap-4">
+          {(() => {
+            let sum = 0;
+            let count = 0;
+            questions.forEach((q, idx) => {
+              if (q.type === 'multiple-choice') {
+                // Check if user's answer matches the correct answer
+                const userAnswer = answers[idx];
+                if (userAnswer && userAnswer === q.answer) {
+                  sum += 1;
+                }
+                count++;
+              } else if (q.type === 'short-answer') {
+                const evalObj = evaluations[idx];
+                if (evalObj && typeof evalObj.score === 'number') {
+                  sum += evalObj.score / 100;
+                }
+                count++;
+              }
+            });
+            const percent = count > 0 ? Math.round((sum / count) * 100) : 0;
+            return (
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">Quiz Score:</span>
+                <span className="text-lg font-bold text-green-700 dark:text-green-300">{percent}%</span>
+                <span className="text-md font-medium text-gray-500 dark:text-gray-400">({sum.toFixed(2)} / {count})</span>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Quiz Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-background text-foreground">
         {questions.map((question, index) => (
-          <Card key={index} className="border border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-900 flex items-start">
-                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full mr-3 flex-shrink-0">
+          <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
+            <CardHeader className="pb-3 bg-card text-card-foreground">
+              <CardTitle className="text-sm font-medium flex items-start text-card-foreground">
+                <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full mr-3 flex-shrink-0">
                   {index + 1}
                 </span>
                 <span>{question.question}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 bg-card text-card-foreground">
               {question.type === 'multiple-choice' && question.options ? (
                 <div className="space-y-3">
                   {question.options.map((option, optionIndex) => (
@@ -175,8 +218,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                       key={optionIndex}
                       className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
                         answers[index] === option
-                          ? 'bg-blue-50 border-blue-300 shadow-sm'
-                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                          ? 'bg-blue-50 border-blue-300 shadow-sm text-blue-700 dark:bg-primary/20 dark:border-primary dark:text-white'
+                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 dark:bg-muted dark:border-border dark:text-white'
                       }`}
                     >
                       <input
@@ -201,15 +244,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                           <Circle className="w-5 h-5 text-gray-300" />
                         )}
                       </div>
-                      <span className={`text-sm ${
-                        showAnswers && option === question.answer 
-                          ? 'text-green-700 font-medium' 
-                          : showAnswers && answers[index] === option && option !== question.answer
-                          ? 'text-red-700 font-medium'
-                          : answers[index] === option
-                          ? 'text-blue-700 font-medium'
-                          : 'text-gray-700'
-                      }`}>
+                      <span className="text-sm text-gray-700 dark:text-white font-medium">
                         {option}
                       </span>
                     </label>
@@ -222,7 +257,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                     onChange={(e) => handleAnswerChange(index, e.target.value)}
                     placeholder="Type your answer here..."
                     disabled={showAnswers}
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400 dark:bg-card dark:text-white dark:placeholder:text-muted-foreground dark:border-border"
                     rows={3}
                   />
                   {showAnswers && evaluations[index] && (
@@ -249,13 +284,13 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div className="px-6 py-4 border-t border-border bg-background">
         <div className="flex gap-3">
           {!showAnswers ? (
             <Button
               onClick={checkAnswers}
               disabled={isEvaluating || Object.keys(answers).length === 0}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:bg-background dark:text-foreground"
             >
               {isEvaluating ? (
                 <>

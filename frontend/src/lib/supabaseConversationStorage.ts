@@ -97,7 +97,7 @@ class SupabaseConversationStorageService {
         .from('conversations')
         .insert({
           user_id: user.id,
-          title: title || `Conversation ${Date.now()}`,
+          title: title || 'New Conversation',
           messages: [],
           is_active: true
         })

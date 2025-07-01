@@ -9,7 +9,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-6 text-gray-900">
       <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
@@ -31,7 +31,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <Card className="text-center hover:shadow-lg transition-shadow">
+          <Card className="text-center hover:shadow-lg transition-shadow bg-white text-gray-900">
             <CardHeader>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mic className="w-6 h-6 text-blue-600" />
@@ -45,7 +45,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </CardContent>
           </Card>
 
-          <Card className="text-center hover:shadow-lg transition-shadow">
+          <Card className="text-center hover:shadow-lg transition-shadow bg-white text-gray-900">
             <CardHeader>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-6 h-6 text-purple-600" />
@@ -59,7 +59,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </CardContent>
           </Card>
 
-          <Card className="text-center hover:shadow-lg transition-shadow">
+          <Card className="text-center hover:shadow-lg transition-shadow bg-white text-gray-900">
             <CardHeader>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-6 h-6 text-green-600" />
