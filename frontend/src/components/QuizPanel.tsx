@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, CheckCircle, Circle, FileText, Sparkles, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -28,6 +28,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   } = useAppContext();
 
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleAnswerChange = (questionIndex: number, answer: string) => {
     updateQuizAnswer(questionIndex, answer);
@@ -314,7 +315,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
         )}
 
         {/* Quiz Content */}
-        <div className="px-6 py-6 space-y-6 bg-background text-foreground">
+        <div ref={contentRef} className="flex-1 min-h-0 px-6 py-6 space-y-6 bg-background text-foreground">
           {questions.map((question, index) => (
             <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
               <CardHeader className="pb-3 bg-card text-card-foreground">

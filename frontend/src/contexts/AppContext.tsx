@@ -41,6 +41,8 @@ interface AppContextType {
   // UI state
   activePanel: 'chat' | 'quiz' | 'summary' | null;
   setActivePanel: (panel: 'chat' | 'quiz' | 'summary' | null) => void;
+  highlightTerm: string;
+  setHighlightTerm: (term: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -80,6 +82,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   
   // UI state
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>('chat');
+  // Search highlight state
+  const [highlightTerm, setHighlightTerm] = useState<string>('');
 
   // Debug effect to track quizSummary changes
   useEffect(() => {
@@ -502,6 +506,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // UI state
     activePanel,
     setActivePanel,
+    highlightTerm,
+    setHighlightTerm,
   };
 
   return (
