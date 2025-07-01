@@ -17,12 +17,16 @@ import {
   TrendingUp,
   Quote
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LandingPageProps {
   onStartConversation: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-hidden">
       {/* Animated Background Elements */}
@@ -79,7 +83,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-fade-in-up animation-delay-600">
               <Button
-                onClick={onStartConversation}
+                onClick={() => {
+                  if (user) {
+                    onStartConversation();
+                  } else {
+                    navigate('/auth');
+                  }
+                }}
                 size="lg"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 group"
               >
@@ -289,7 +299,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </p>
             
             <Button
-              onClick={onStartConversation}
+              onClick={() => {
+                if (user) {
+                  onStartConversation();
+                } else {
+                  navigate('/auth');
+                }
+              }}
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-xl font-semibold rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group"
             >
