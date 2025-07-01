@@ -1,4 +1,4 @@
-// Real ElevenLabs conversation service - matches backend exactly
+// Real ElevenLabs conversation service - simplified for reliability with streaming support
 import { ConversationMessage } from '../components/ElevenLabsConversation';
 
 export interface ConversationState {
@@ -11,6 +11,7 @@ export interface ConversationState {
 // This service connects to the real ElevenLabs conversation component
 export class ConversationService {
   private messageCallbacks: ((message: ConversationMessage) => void)[] = [];
+  private messageUpdateCallbacks: ((messageId: string, text: string, isComplete: boolean) => void)[] = [];
   private stateCallbacks: ((state: Partial<ConversationState>) => void)[] = [];
   private messages: ConversationMessage[] = [];
 
@@ -29,6 +30,17 @@ export class ConversationService {
     };
   }
 
+  // Subscribe to message updates
+  onMessageUpdate(callback: (messageId: string, text: string, isComplete: boolean) => void) {
+    this.messageUpdateCallbacks.push(callback);
+    return () => {
+      const index = this.messageUpdateCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.messageUpdateCallbacks.splice(index, 1);
+      }
+    };
+  }
+
   // Subscribe to state changes
   onStateChange(callback: (state: Partial<ConversationState>) => void) {
     this.stateCallbacks.push(callback);
@@ -40,19 +52,20 @@ export class ConversationService {
     };
   }
 
-  // Start conversation with ElevenLabs - same as backend
+  // Simplified start conversation - remove complex audio setup
   async startConversation(): Promise<void> {
     try {
-      // Request microphone permission first
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('ConversationService: Starting conversation...');
       
       // Update state to connecting
       this.updateState({ isConnected: false, isListening: true, error: null });
 
-      // Start the ElevenLabs session using the component
+      // Start the ElevenLabs session directly
       const elevenLabs = (window as any).elevenLabsConversation;
       if (elevenLabs && elevenLabs.start) {
+        console.log('Starting ElevenLabs session...');
         await elevenLabs.start();
+        console.log('ElevenLabs session started successfully');
       } else {
         throw new Error('ElevenLabs conversation not initialized');
       }
@@ -93,15 +106,14 @@ export class ConversationService {
   async sendTextMessage(text: string): Promise<void> {
     if (!text.trim()) return;
 
-    // Add user message
     this.addMessage({
       speaker: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      messageId: `msg_${Date.now()}_${Math.random()}`
     });
 
-    // In a real implementation, this would go through ElevenLabs
-    // For now, we'll simulate a response until we get the hook working
+    // Create a streaming response for text messages too
     setTimeout(() => {
       const responses = [
         "That's interesting! Can you tell me more about that?",
@@ -112,18 +124,55 @@ export class ConversationService {
       ];
       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
       
-      this.addMessage({
+      // Start streaming the response
+      const messageId = `msg_${Date.now()}_${Math.random()}`;
+      const streamingMessage: ConversationMessage = {
         speaker: 'ai',
-        text: randomResponse,
-        timestamp: new Date().toLocaleTimeString()
-      });
+        text: '',
+        timestamp: new Date().toLocaleTimeString(),
+        isStreaming: true,
+        messageId
+      };
+      
+      this.addMessage(streamingMessage);
+      this.streamText(randomResponse, messageId);
     }, 1000);
+  }
+
+  private streamText(fullText: string, messageId: string) {
+    let currentIndex = 0;
+    const streamInterval = setInterval(() => {
+      if (currentIndex < fullText.length) {
+        const currentText = fullText.substring(0, currentIndex + 1);
+        this.updateMessage(messageId, currentText, false);
+        currentIndex++;
+      } else {
+        clearInterval(streamInterval);
+        this.updateMessage(messageId, fullText, true);
+      }
+    }, 30);
   }
 
   // Add a message and notify subscribers
   addMessage(message: ConversationMessage) {
     this.messages.push(message);
     this.messageCallbacks.forEach(callback => callback(message));
+  }
+
+  // Update message and notify subscribers
+  updateMessage(messageId: string, text: string, isComplete: boolean) {
+    // Update the message in the messages array
+    const messageIndex = this.messages.findIndex(msg => msg.messageId === messageId);
+    if (messageIndex !== -1) {
+      this.messages[messageIndex] = {
+        ...this.messages[messageIndex],
+        text,
+        isStreaming: !isComplete
+      };
+    }
+    
+    // Notify callbacks
+    this.messageUpdateCallbacks.forEach(callback => callback(messageId, text, isComplete));
   }
 
   // Update state and notify subscribers
@@ -139,6 +188,7 @@ export class ConversationService {
   // Cleanup
   destroy() {
     this.messageCallbacks = [];
+    this.messageUpdateCallbacks = [];
     this.stateCallbacks = [];
     this.messages = [];
   }

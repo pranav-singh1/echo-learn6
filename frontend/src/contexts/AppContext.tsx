@@ -157,11 +157,31 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
       setMessages(prev => [...prev, message]);
       
-      // Save message to Supabase storage with session ID
-      if (activeSession) {
+      // Save message to Supabase storage with session ID (only for complete messages)
+      if (activeSession && !message.isStreaming) {
         await supabaseConversationStorage.addMessage(message, activeSession.id);
+      } else if (activeSession && message.isStreaming) {
+        // For streaming messages, we'll save them when they're complete
+        console.log('Streaming message started, will save when complete');
       } else {
         console.warn('No active session to save message to');
+      }
+    });
+
+    const unsubscribeMessageUpdates = conversationService.onMessageUpdate((messageId, text, isComplete) => {
+      setMessages(prev => prev.map(msg => 
+        msg.messageId === messageId 
+          ? { ...msg, text, isStreaming: !isComplete }
+          : msg
+      ));
+      
+      // Save to Supabase when streaming is complete
+      if (isComplete && activeSession) {
+        const message = messages.find(msg => msg.messageId === messageId);
+        if (message) {
+          const completeMessage = { ...message, text, isStreaming: false };
+          supabaseConversationStorage.addMessage(completeMessage, activeSession.id);
+        }
       }
     });
 
@@ -174,9 +194,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Cleanup on unmount
     return () => {
       unsubscribeMessages();
+      unsubscribeMessageUpdates();
       unsubscribeState();
     };
-  }, [activeSession]);
+  }, [activeSession, messages]);
 
   // Session management functions
   const createNewSession = async () => {
@@ -488,6 +509,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       {/* Hidden ElevenLabs conversation component */}
       <ElevenLabsConversation
         onMessage={(message) => conversationService.addMessage(message)}
+        onMessageUpdate={(messageId, text, isComplete) => conversationService.updateMessage(messageId, text, isComplete)}
         onStateChange={(state) => conversationService.updateState(state)}
         onStart={() => console.log('Conversation started')}
         onStop={() => console.log('Conversation stopped')}
