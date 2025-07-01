@@ -153,4 +153,20 @@
   .hover-glow:hover {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 20px rgba(59, 130, 246, 0.3);
   }
+  
+  /* Progress bar animation for quiz loading */
+  @keyframes progress-bar {
+    0% { 
+      width: 20%; 
+      opacity: 0.8;
+    }
+    50% { 
+      width: 80%; 
+      opacity: 1;
+    }
+    100% { 
+      width: 60%; 
+      opacity: 0.8;
+    }
+  }
 }

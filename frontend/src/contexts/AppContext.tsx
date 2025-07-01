@@ -81,6 +81,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // UI state
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>('chat');
 
+  // Debug effect to track quizSummary changes
+  useEffect(() => {
+    console.log('quizSummary state changed to:', quizSummary);
+  }, [quizSummary]);
+
+  // Debug effect to track quizQuestions changes
+  useEffect(() => {
+    console.log('quizQuestions state changed to:', quizQuestions);
+  }, [quizQuestions]);
+
   // Load conversations when user changes
   useEffect(() => {
     if (user) {
@@ -308,18 +318,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return `${speaker}: ${msg.text}`;
       });
 
+      console.log('Sending quiz generation request with log:', conversationLog);
+
       const response = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ log: conversationLog }),
       });
 
+      console.log('Quiz API response status:', response.status);
+      console.log('Quiz API response ok:', response.ok);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate quiz');
+        // Try to parse the error response, but have a fallback.
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        } catch (e) {
+            // If the error response is not JSON, use the status text.
+            throw new Error(response.statusText || `Request failed with status ${response.status}`);
+        }
       }
 
       const data = await response.json();
+      console.log('Quiz API response data:', data);
+      console.log('Summary from API:', data.summary);
+      console.log('Questions from API:', data.questions);
+      
       setQuizSummary(data.summary);
       setQuizQuestions(data.questions);
       setActivePanel('quiz');
@@ -330,8 +355,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         quizQuestions: data.questions
       });
       
+      console.log('Successfully saved summary and questions to session');
+      
       // Reload sessions to update UI
       await loadConversations();
+      
+      console.log('Quiz generation completed successfully');
+      console.log('Current quizSummary state:', data.summary);
+      console.log('Current quizQuestions state:', data.questions);
     } catch (error) {
       console.error('Error generating quiz:', error);
       setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
@@ -341,16 +372,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const toggleQuiz = async () => {
+    console.log('toggleQuiz called');
+    console.log('activePanel:', activePanel);
+    console.log('quizQuestions.length:', quizQuestions.length);
+    console.log('Current quizSummary:', quizSummary);
+    
     // If quiz panel is currently open, close it
     if (activePanel === 'quiz') {
+      console.log('Closing quiz panel');
       setActivePanel(null);
     } 
     // If we have quiz questions already, just open the quiz panel
     else if (quizQuestions.length > 0) {
+      console.log('Opening existing quiz');
       setActivePanel('quiz');
     } 
     // If no quiz exists, generate a new one
     else {
+      console.log('Generating new quiz');
       await generateQuiz();
     }
   };
