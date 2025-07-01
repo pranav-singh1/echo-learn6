@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
@@ -26,15 +26,22 @@ import {
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { formatDistanceToNow } from 'date-fns';
 
-export const ConversationHistory: React.FC = () => {
+// Add prop for onHide
+interface ConversationHistoryProps {
+  onHide?: () => void;
+}
+
+export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide }) => {
   const { 
     activeSession, 
     allSessions, 
     createNewSession, 
     switchToSession, 
     deleteSession,
-    updateSessionTitle
+    updateSessionTitle,
+    setActivePanel
   } = useAppContext();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +88,16 @@ export const ConversationHistory: React.FC = () => {
   const handleDeleteSession = async (sessionId: string) => {
     await deleteSession(sessionId);
     setShowDeleteDialog(null);
+    // Wait a short moment for sessions to update, then switch to the most recent session
+    setTimeout(() => {
+      const sessions = allSessions.filter(s => s.id !== sessionId);
+      if (sessions.length > 0) {
+        const sorted = [...sessions].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        if (sorted[0]?.id) {
+          switchToSession(sorted[0].id);
+        }
+      }
+    }, 400); // Slightly longer delay to ensure state is updated
   };
 
   const handleStartEdit = (session: any) => {
@@ -109,218 +126,97 @@ export const ConversationHistory: React.FC = () => {
     }
   };
 
-  return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Conversations</h2>
-          <Button
-            onClick={createNewSession}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            New Chat
-          </Button>
-        </div>
-        
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Search conversations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+  function getLastMessageTime(session) {
+    if (!Array.isArray(session.messages) || session.messages.length === 0) return null;
+    const lastMsg = session.messages[session.messages.length - 1];
+    return lastMsg && lastMsg.timestamp ? new Date(lastMsg.timestamp) : null;
+  }
 
-      {/* Conversation List */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-2">
-          {filteredSessions.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm">No conversations found</p>
-              {searchTerm && (
-                <p className="text-xs mt-1">Try adjusting your search terms</p>
-              )}
-            </div>
-          ) : (
-            filteredSessions.map((session) => (
-              <Card
+  return (
+    <aside className="h-full w-64 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border bg-sidebar">
+        <h2 className="text-lg font-semibold text-sidebar-foreground">History</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto bg-sidebar text-sidebar-foreground">
+        {filteredSessions.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">No conversations yet.</div>
+        ) : (
+          <ul className="divide-y divide-sidebar-border">
+            {filteredSessions.map((session) => (
+              <li
                 key={session.id}
-                className={`cursor-pointer transition-all hover:shadow-md group ${
-                  activeSession?.id === session.id
-                    ? 'ring-2 ring-blue-500 bg-blue-50'
-                    : 'hover:bg-gray-50'
+                className={`px-4 py-3 cursor-pointer flex items-center justify-between transition-colors duration-200 hover:scale-[1.02] active:scale-95 ${
+                  session.id === activeSession?.id
+                    ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white'
+                    : 'hover:bg-blue-50 hover:text-blue-900 dark:hover:bg-blue-900 dark:hover:text-blue-100'
                 }`}
+                style={{ transition: 'background 0.2s, color 0.2s, transform 0.15s' }}
                 onClick={() => switchToSession(session.id)}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      {/* Title with edit functionality */}
-                      <div className="flex items-center gap-2 mb-2">
-                        {editingSessionId === session.id ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <Input
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onKeyDown={handleKeyPress}
-                              onBlur={handleSaveEdit}
-                              className="text-sm font-medium h-8"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSaveEdit();
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Check className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCancelEdit();
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 flex-1">
-                            <h3 
-                              className="font-medium text-gray-900 truncate flex-1"
-                              onDoubleClick={(e) => {
-                                e.stopPropagation();
-                                handleStartEdit(session);
-                              }}
-                            >
-                              {session.title}
-                            </h3>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartEdit(session);
-                              }}
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        )}
-                        {session.isActive && (
-                          <Badge variant="secondary" className="text-xs">
-                            Active
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Preview */}
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {getConversationPreview(session)}
-                      </p>
-                      
-                      {/* Metadata */}
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="w-3 h-3" />
-                          {getMessageCount(session)} messages
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatDate(session.updatedAt)}
-                        </div>
-                        {session.summary && (
-                          <div className="flex items-center gap-1">
-                            <BookOpen className="w-3 h-3" />
-                            Summary
-                          </div>
-                        )}
-                        {session.quizQuestions && session.quizQuestions.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <FileText className="w-3 h-3" />
-                            Quiz
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartEdit(session);
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowDeleteDialog(session.id);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate font-medium relative group" style={{ maxWidth: '140px' }}>
+                      {session.title}
+                      <span className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block bg-gray-900 text-white dark:bg-gray-200 dark:text-gray-900 px-2 py-1 rounded shadow text-xs whitespace-nowrap max-w-xs overflow-hidden overflow-ellipsis" style={{ minWidth: '80px' }}>
+                        {session.title}
+                      </span>
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!showDeleteDialog} onOpenChange={() => setShowDeleteDialog(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this conversation? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => showDeleteDialog && handleDeleteSession(showDeleteDialog)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+                  <span className="text-xs text-muted-foreground mt-0.5">
+                    {(() => {
+                      const lastMsgTime = getLastMessageTime(session);
+                      if (!lastMsgTime || isNaN(lastMsgTime.getTime())) return '';
+                      const now = new Date();
+                      const diffMs = now.getTime() - lastMsgTime.getTime();
+                      const diffHrs = diffMs / (1000 * 60 * 60);
+                      if (diffHrs < 24) {
+                        return formatDistanceToNow(lastMsgTime, { addSuffix: true });
+                      } else {
+                        return lastMsgTime.toLocaleDateString();
+                      }
+                    })()}
+                  </span>
+                </div>
+                <button
+                  className="ml-2 p-1 rounded hover:bg-red-100 hover:text-red-600 transition-colors duration-150 active:scale-90"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(session.id);
+                  }}
+                  aria-label="Delete conversation"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                {/* Delete Confirmation Dialog */}
+                {showDeleteDialog === session.id && (
+                  <AlertDialog open={true} onOpenChange={() => setShowDeleteDialog(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this conversation? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setShowDeleteDialog(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            handleDeleteSession(session.id);
+                          }}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </aside>
   );
 }; 

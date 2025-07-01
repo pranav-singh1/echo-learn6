@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Logo from '../components/Logo';
 import { LandingPage } from '../components/LandingPage';
 import { ChatInterface } from '../components/ChatInterface';
 import { QuizPanel } from '../components/QuizPanel';
@@ -7,12 +8,14 @@ import { ConversationHistory } from '../components/ConversationHistory';
 import { FloatingMic } from '../components/FloatingMic';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
-import { Menu, X, Home } from 'lucide-react';
+import { Menu, X, Home, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const Index: React.FC = () => {
   const { activePanel, setActivePanel } = useAppContext();
   const [showConversation, setShowConversation] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
+  const { theme, toggleTheme } = useTheme();
 
   const handleStartConversation = () => {
     setShowConversation(true);
@@ -30,28 +33,31 @@ export const Index: React.FC = () => {
 
   // Show conversation interface
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-background text-foreground flex">
       {/* Conversation History Sidebar - Controlled by showHistory state */}
       {showHistory && (
         <div className="block">
-          <ConversationHistory />
+          <ConversationHistory onHide={() => setShowHistory(false)} />
         </div>
       )}
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-background text-foreground">
         {/* Header with toggle */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="bg-background border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3" style={{ height: '80px' }}>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
               className="md:hidden"
+              aria-label={showHistory ? 'Hide history' : 'Show history'}
             >
               {showHistory ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <h1 className="text-lg font-semibold text-gray-900">EchoLearn</h1>
+            <span className="h-full w-auto flex items-center text-black dark:text-white">
+              <Logo className="h-full w-auto" />
+            </span>
           </div>
           
           {/* Right side actions */}
@@ -63,6 +69,16 @@ export const Index: React.FC = () => {
               className="hidden md:flex"
             >
               {showHistory ? 'Hide History' : 'Show History'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="flex items-center gap-2"
+              aria-label="Toggle dark mode"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? 'Light' : 'Dark'}
             </Button>
             <Button
               variant="outline"
@@ -82,16 +98,17 @@ export const Index: React.FC = () => {
             <ChatInterface />
           </div>
           
-          {/* Right Panel - Always rendered, only shows content if activePanel is set */}
-          <div className="md:w-96 border-l border-gray-200 bg-white flex-shrink-0">
-            {activePanel === 'quiz' && (
-              <QuizPanel onClose={() => setActivePanel(null)} />
-            )}
-            {activePanel === 'summary' && (
-              <SummaryPanel onClose={() => setActivePanel(null)} />
-            )}
-            {/* Leave blank or add a placeholder if desired */}
-          </div>
+          {/* Right Panel - Conditional, only rendered when activePanel is set */}
+          {activePanel && (
+            <div className="md:w-96 border-l border-border bg-white dark:bg-background dark:text-foreground flex-shrink-0">
+              {activePanel === 'quiz' && (
+                <QuizPanel onClose={() => setActivePanel(null)} />
+              )}
+              {activePanel === 'summary' && (
+                <SummaryPanel onClose={() => setActivePanel(null)} />
+              )}
+            </div>
+          )}
         </div>
       </div>
       

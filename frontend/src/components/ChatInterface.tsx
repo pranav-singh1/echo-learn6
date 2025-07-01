@@ -129,11 +129,11 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <Card className="h-full w-full flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
+      <CardHeader className="flex flex-col gap-2 bg-background text-foreground border-b border-border shadow-sm dark:shadow dark:bg-background/80 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-card-foreground">
               <MessageCircle className="h-5 w-5" />
               {isEditingTitle ? (
                 <div className="flex items-center gap-2">
@@ -190,59 +190,71 @@ export const ChatInterface: React.FC = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={createNewSession}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              New Chat
-            </Button>
-            <Button
-              variant={isConnected ? "destructive" : "default"}
-              size="sm"
-              onClick={handleVoiceToggle}
-              disabled={isTyping}
-              className="flex items-center gap-2"
-            >
-              {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isConnected ? 'Stop' : 'Start'} Voice
-            </Button>
-            {messages.length > 0 && (
+            <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={toggleQuiz}
-                disabled={isGeneratingQuiz}
+                onClick={createNewSession}
                 className="flex items-center gap-2"
+                aria-label="Start a new chat"
               >
-                {isGeneratingQuiz ? 'Generating...' : 
-                 activePanel === 'quiz' ? 'Close Quiz' :
-                 quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                <Plus className="h-4 w-4" />
+                New Chat
               </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {user?.email?.split('@')[0] || 'User'}
+              <Button
+                size="sm"
+                onClick={handleVoiceToggle}
+                disabled={isTyping}
+                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
+                aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+              >
+                {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isConnected ? 'Stop' : 'Start'} Voice
+              </Button>
+              {messages.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleQuiz}
+                  disabled={isGeneratingQuiz}
+                  className="flex items-center gap-2"
+                  aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                >
+                  {isGeneratingQuiz ? 'Generating...' : 
+                   activePanel === 'quiz' ? 'Close Quiz' :
+                   quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem disabled>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>{user?.email}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign Out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
+            <div className="pl-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
+                    <User className="h-4 w-4" />
+                    {user?.email?.split('@')[0] || 'User'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>{user?.email}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
         
@@ -261,7 +273,7 @@ export const ChatInterface: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 w-full flex flex-col gap-4">
+      <CardContent className="flex-1 w-full flex flex-col gap-4 bg-background text-foreground">
         {/* Error Alert */}
         {conversationError && (
           <Alert variant="destructive">
@@ -271,7 +283,7 @@ export const ChatInterface: React.FC = () => {
         )}
 
         {/* Messages */}
-        <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
+        <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4 bg-background text-foreground">
           <div className="space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
@@ -285,15 +297,15 @@ export const ChatInterface: React.FC = () => {
                   key={index}
                   className={`flex gap-3 ${
                     message.speaker === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
+                  } my-4 animate-fade-in`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 border ${
+                    className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 relative ${
                       message.speaker === 'user'
-                        ? 'bg-green-50 border-green-200 text-green-800'
+                        ? 'bg-blue-50 border-blue-400 text-blue-900 font-semibold border-l-4 border-blue-600 dark:bg-blue-900 dark:border-blue-400 dark:text-blue-100'
                         : message.speaker === 'ai'
-                        ? 'bg-blue-50 border-blue-200 text-blue-800'
-                        : 'bg-gray-50 border-gray-200 text-gray-800'
+                        ? 'bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground'
+                        : 'bg-gray-100 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -301,23 +313,27 @@ export const ChatInterface: React.FC = () => {
                       <Badge variant="outline" className={`text-xs ${getSpeakerColor(message.speaker)}`}>
                         {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
                       </Badge>
-                      <span className="text-xs text-gray-500">{message.timestamp}</span>
                     </div>
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-sm mb-2">{message.text}</p>
+                    <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
+                      {message.timestamp}
+                    </span>
                   </div>
                 </div>
               ))
             )}
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span>🤖</span>
-                    <Badge variant="outline" className="text-blue-600 bg-blue-50 border-blue-200">
-                      EchoLearn
-                    </Badge>
-                    <span className="text-xs text-gray-500">Typing...</span>
-                  </div>
+              <div className="flex gap-3 justify-start my-4">
+                <div className="max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground flex items-center gap-2"
+                  role="status" aria-live="polite"
+                >
+                  <span className="text-sm">🤖</span>
+                  <span className="text-sm font-medium">EchoLearn is typing</span>
+                  <span className="ml-2 flex space-x-1">
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '100ms' }}></span>
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
+                  </span>
                 </div>
               </div>
             )}
@@ -326,7 +342,7 @@ export const ChatInterface: React.FC = () => {
         </ScrollArea>
 
         {/* Input Area */}
-        <div className="flex gap-2 pt-4 border-t">
+        <div className="flex gap-2 pt-4 border-t border-border bg-background">
           <Input
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
@@ -334,11 +350,13 @@ export const ChatInterface: React.FC = () => {
             placeholder="Type your message..."
             disabled={!isConnected && !textInput}
             className="flex-1"
+            aria-label="Type your message"
           />
           <Button
             onClick={handleSendMessage}
             disabled={!textInput.trim() || isTyping}
             size="sm"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4" />
           </Button>
