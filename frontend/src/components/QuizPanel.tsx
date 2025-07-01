@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, Circle, FileText, Sparkles, RefreshCw } from 'lucide-react';
+import { X, CheckCircle, Circle, FileText, Sparkles, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAppContext } from '../contexts/AppContext';
@@ -15,6 +15,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   const { toast } = useToast();
   const {
     quizQuestions: questions,
+    quizSummary,
     quizAnswers: answers,
     quizEvaluations: evaluations,
     quizShowAnswers: showAnswers,
@@ -22,7 +23,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     updateQuizEvaluation,
     saveQuizShowAnswers,
     resetQuiz,
-    setActivePanel
+    setActivePanel,
+    isGeneratingQuiz
   } = useAppContext();
 
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -38,7 +40,6 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     if (!userAnswer || userAnswer.trim() === "") {
       // Auto feedback for empty answer
       updateQuizEvaluation(questionIndex, {
-        score: 0,
         isCorrect: false,
         feedback: "No answer provided.",
         explanation: "You did not provide an answer for this question."
@@ -53,7 +54,12 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
         question: question.question
       });
 
-      updateQuizEvaluation(questionIndex, evaluation);
+      // Remove score from short answer evaluation - only keep written feedback
+      updateQuizEvaluation(questionIndex, {
+        isCorrect: evaluation.isCorrect,
+        feedback: evaluation.feedback,
+        explanation: evaluation.explanation
+      });
     } catch (error) {
       console.error('Error evaluating answer:', error);
       toast({
@@ -144,6 +150,110 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     );
   }
 
+  // Loading state for quiz generation
+  if (isGeneratingQuiz) {
+    return (
+      <div className="h-full flex flex-col bg-background text-foreground">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+          <div>
+            <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
+            <p className="text-sm text-muted-foreground">Generating your personalized quiz...</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Loading Content */}
+        <div className="flex-1 flex items-center justify-center px-6 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20">
+          <div className="max-w-md w-full text-center">
+            {/* Animated AI Icon */}
+            <div className="relative mb-8">
+              <div className="w-20 h-20 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-10 h-10 text-white animate-pulse" />
+              </div>
+              {/* Floating dots around the icon */}
+              <div className="absolute -top-2 -left-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce delay-0"></div>
+              <div className="absolute -top-2 -right-2 w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-300"></div>
+              <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-600"></div>
+              <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-pink-400 rounded-full animate-bounce delay-900"></div>
+            </div>
+
+            {/* Main Loading Text */}
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
+              AI is Creating Your Quiz
+            </h3>
+
+            {/* Animated Loading Steps */}
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm">
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Analyzing your conversation...</span>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm animate-pulse">
+                <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Generating summary and questions...</span>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-white/40 dark:bg-gray-800/40 rounded-lg backdrop-blur-sm">
+                <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                  <Circle className="w-4 h-4 text-gray-500" />
+                </div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">Preparing your personalized quiz...</span>
+              </div>
+            </div>
+
+            {/* Progress Animation */}
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                style={{
+                  width: '60%',
+                  animation: 'progress-bar 3s ease-in-out infinite'
+                }}
+              >
+              </div>
+            </div>
+
+            {/* Fun fact */}
+            <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+              💡 Did you know? Our AI analyzes your conversation to create questions that match your learning style!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate MCQ score only
+  const calculateMCQScore = () => {
+    let correct = 0;
+    let total = 0;
+    
+    questions.forEach((q, idx) => {
+      if (q.type === 'multiple-choice') {
+        total++;
+        const userAnswer = answers[idx];
+        if (userAnswer && userAnswer === q.answer) {
+          correct++;
+        }
+      }
+    });
+    
+    return { correct, total, percentage: total > 0 ? Math.round((correct / total) * 100) : 0 };
+  };
+
   return (
     <div className="h-full flex flex-col bg-background text-foreground">
       {/* Header */}
@@ -164,123 +274,136 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
         </Button>
       </div>
 
-      {/* Quiz Summary/Score */}
-      {showAnswers && (
-        <div className="px-6 py-4 border-b border-border bg-background flex items-center gap-4">
-          {(() => {
-            let sum = 0;
-            let count = 0;
-            questions.forEach((q, idx) => {
-              if (q.type === 'multiple-choice') {
-                // Check if user's answer matches the correct answer
-                const userAnswer = answers[idx];
-                if (userAnswer && userAnswer === q.answer) {
-                  sum += 1;
-                }
-                count++;
-              } else if (q.type === 'short-answer') {
-                const evalObj = evaluations[idx];
-                if (evalObj && typeof evalObj.score === 'number') {
-                  sum += evalObj.score / 100;
-                }
-                count++;
-              }
-            });
-            const percent = count > 0 ? Math.round((sum / count) * 100) : 0;
-            return (
-              <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">Quiz Score:</span>
-                <span className="text-lg font-bold text-green-700 dark:text-green-300">{percent}%</span>
-                <span className="text-md font-medium text-gray-500 dark:text-gray-400">({sum.toFixed(2)} / {count})</span>
+      <div className="flex-1 overflow-y-auto">
+        {/* Conversation Summary */}
+        {quizSummary && (
+          <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50">
+            <div className="flex items-start gap-3">
+              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Conversation Summary</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed whitespace-pre-wrap">
+                  {quizSummary}
+                </p>
               </div>
-            );
-          })()}
-        </div>
-      )}
+            </div>
+          </div>
+        )}
 
-      {/* Quiz Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-background text-foreground">
-        {questions.map((question, index) => (
-          <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
-            <CardHeader className="pb-3 bg-card text-card-foreground">
-              <CardTitle className="text-sm font-medium flex items-start text-card-foreground">
-                <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full mr-3 flex-shrink-0">
-                  {index + 1}
-                </span>
-                <span>{question.question}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 bg-card text-card-foreground">
-              {question.type === 'multiple-choice' && question.options ? (
-                <div className="space-y-3">
-                  {question.options.map((option, optionIndex) => (
-                    <label
-                      key={optionIndex}
-                      className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
-                        answers[index] === option
-                          ? 'bg-blue-50 border-blue-300 shadow-sm text-blue-700 dark:bg-primary/20 dark:border-primary dark:text-white'
-                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 dark:bg-muted dark:border-border dark:text-white'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${index}`}
-                        value={option}
-                        onChange={(e) => handleAnswerChange(index, e.target.value)}
-                        checked={answers[index] === option}
-                        disabled={showAnswers}
-                        className="hidden"
-                      />
-                      <div className="flex-shrink-0">
-                        {showAnswers && option === question.answer ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : showAnswers && answers[index] === option && option !== question.answer ? (
-                          <Circle className="w-5 h-5 text-red-500" />
-                        ) : answers[index] === option ? (
-                          <div className="w-5 h-5 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
-                          </div>
-                        ) : (
-                          <Circle className="w-5 h-5 text-gray-300" />
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-700 dark:text-white font-medium">
-                        {option}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <textarea
-                    value={answers[index] || ''}
-                    onChange={(e) => handleAnswerChange(index, e.target.value)}
-                    placeholder="Type your answer here..."
-                    disabled={showAnswers}
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400 dark:bg-card dark:text-white dark:placeholder:text-muted-foreground dark:border-border"
-                    rows={3}
-                  />
-                  {showAnswers && evaluations[index] && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-sm font-medium ${
-                          evaluations[index].isCorrect ? 'text-green-700' : 'text-red-700'
-                        }`}>
-                          {evaluations[index].isCorrect ? 'Correct!' : 'Incorrect'}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          Score: {evaluations[index].score}/100
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 mb-2">{evaluations[index].feedback}</p>
-                      <p className="text-xs text-gray-600">{evaluations[index].explanation}</p>
-                    </div>
+        {/* MCQ Score (only shown after answers are checked) */}
+        {showAnswers && (
+          <div className="px-6 py-4 border-b border-border bg-background">
+            {(() => {
+              const { correct, total, percentage } = calculateMCQScore();
+              return (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">Multiple Choice Score:</span>
+                    <span className="text-lg font-bold text-green-700 dark:text-green-300">{percentage}%</span>
+                    <span className="text-md font-medium text-gray-500 dark:text-gray-400">({correct} / {total})</span>
+                  </div>
+                  {questions.some(q => q.type === 'short-answer') && (
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      • Short answer questions receive written feedback only
+                    </span>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Quiz Content */}
+        <div className="px-6 py-6 space-y-6 bg-background text-foreground">
+          {questions.map((question, index) => (
+            <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
+              <CardHeader className="pb-3 bg-card text-card-foreground">
+                <CardTitle className="text-sm font-medium flex items-start text-card-foreground">
+                  <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full mr-3 flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <span>{question.question}</span>
+                    <span className="block text-xs text-muted-foreground mt-1">
+                      {question.type === 'multiple-choice' ? 'Multiple Choice' : 'Short Answer'}
+                    </span>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 bg-card text-card-foreground">
+                {question.type === 'multiple-choice' && question.options ? (
+                  <div className="space-y-3">
+                    {question.options.map((option, optionIndex) => (
+                      <label
+                        key={optionIndex}
+                        className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
+                          answers[index] === option
+                            ? 'bg-blue-50 border-blue-300 shadow-sm text-blue-700 dark:bg-primary/20 dark:border-primary dark:text-white'
+                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 dark:bg-muted dark:border-border dark:text-white'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`question-${index}`}
+                          value={option}
+                          onChange={(e) => handleAnswerChange(index, e.target.value)}
+                          checked={answers[index] === option}
+                          disabled={showAnswers}
+                          className="hidden"
+                        />
+                        <div className="flex-shrink-0">
+                          {showAnswers && option === question.answer ? (
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                          ) : showAnswers && answers[index] === option && option !== question.answer ? (
+                            <Circle className="w-5 h-5 text-red-500" />
+                          ) : answers[index] === option ? (
+                            <div className="w-5 h-5 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            </div>
+                          ) : (
+                            <Circle className="w-5 h-5 text-gray-300" />
+                          )}
+                        </div>
+                        <span className="text-sm text-gray-700 dark:text-white font-medium">
+                          {option}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <textarea
+                      value={answers[index] || ''}
+                      onChange={(e) => handleAnswerChange(index, e.target.value)}
+                      placeholder="Type your answer here..."
+                      disabled={showAnswers}
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400 dark:bg-card dark:text-white dark:placeholder:text-muted-foreground dark:border-border"
+                      rows={3}
+                    />
+                    {showAnswers && evaluations[index] && (
+                      <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg dark:from-purple-950/50 dark:to-blue-950/50 dark:border-purple-800">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          <span className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                            AI Feedback
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                            {evaluations[index].feedback}
+                          </p>
+                          <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                            {evaluations[index].explanation}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Action Buttons */}
