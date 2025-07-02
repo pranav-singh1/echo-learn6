@@ -12,12 +12,14 @@ import { Menu, X, Home, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const Index: React.FC = () => {
-  const { activePanel, setActivePanel } = useAppContext();
+  const { activePanel, setActivePanel, createFreshSession } = useAppContext();
   const [showConversation, setShowConversation] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const { theme, toggleTheme } = useTheme();
 
-  const handleStartConversation = () => {
+  const handleStartConversation = async () => {
+    // Create a fresh session when transitioning from landing page
+    await createFreshSession();
     setShowConversation(true);
   };
 
