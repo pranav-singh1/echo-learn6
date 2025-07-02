@@ -15,9 +15,11 @@ interface AppContextType {
   activeSession: ConversationSession | null;
   allSessions: ConversationSession[];
   createNewSession: () => Promise<void>;
+  createFreshSession: () => Promise<void>;
   switchToSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, newTitle: string) => Promise<void>;
+  generateConversationTitle: () => Promise<void>;
   
   // Conversation actions
   startConversation: () => Promise<void>;
@@ -95,7 +97,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   useEffect(() => {
     if (user) {
       setActivePanel(null);
-      loadConversations();
+      initializeUserSession();
     } else {
       // Clear data when user logs out
       setAllSessions([]);
@@ -105,6 +107,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setQuizQuestions([]);
     }
   }, [user]);
+
+  // Initialize user session - load existing session but don't create new one until user sends message
+  const initializeUserSession = async () => {
+    if (!user) return;
+    
+    try {
+      // Load existing sessions first
+      const storage = await supabaseConversationStorage.getConversations();
+      setAllSessions(storage.sessions);
+      
+      // Check if there's already an active session
+      const activeSession = await supabaseConversationStorage.getActiveSession();
+      
+      if (activeSession) {
+        // Load the existing active session
+        console.log('Loading existing active session:', activeSession);
+        setActiveSession(activeSession);
+        setMessages(activeSession.messages);
+        setQuizSummary(activeSession.summary || null);
+        setQuizQuestions(activeSession.quizQuestions || []);
+        setQuizAnswers(activeSession.quizAnswers || {});
+        setQuizEvaluations(activeSession.quizEvaluations || {});
+        setQuizShowAnswers(activeSession.quizShowAnswers || false);
+        setActivePanel('chat');
+      } else {
+        // Don't create a session yet - wait for user to send first message
+        console.log('No active session found, will create when user sends first message');
+        setActiveSession(null);
+        setMessages([]);
+        setQuizSummary(null);
+        setQuizQuestions([]);
+        setQuizAnswers({});
+        setQuizEvaluations({});
+        setQuizShowAnswers(false);
+        setActivePanel('chat');
+      }
+    } catch (error) {
+      console.error('Error initializing user session:', error);
+    }
+  };
 
   // Load conversations from Supabase storage
   const loadConversations = async () => {
@@ -160,11 +202,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Save message to Supabase storage with session ID (only for complete messages)
       if (activeSession && !message.isStreaming) {
         await supabaseConversationStorage.addMessage(message, activeSession.id);
+        
+        // Auto-generate title after first AI response if session has default title
+        if (message.speaker === 'ai' && 
+            activeSession.title === 'New Conversation' && 
+            messages.length >= 1) { // Ensure we have at least user message + this AI response
+          console.log('Triggering auto title generation after first AI response');
+          // Small delay to ensure message is saved first
+          setTimeout(() => {
+            generateConversationTitle();
+          }, 1000);
+        }
       } else if (activeSession && message.isStreaming) {
         // For streaming messages, we'll save them when they're complete
         console.log('Streaming message started, will save when complete');
-      } else {
-        console.warn('No active session to save message to');
+      } else if (!activeSession) {
+        console.log('No active session yet, message will be saved once session is created');
       }
     });
 
@@ -181,6 +234,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (message) {
           const completeMessage = { ...message, text, isStreaming: false };
           supabaseConversationStorage.addMessage(completeMessage, activeSession.id);
+          
+          // Auto-generate title after first AI response if session has default title
+          if (completeMessage.speaker === 'ai' && 
+              activeSession.title === 'New Conversation' && 
+              messages.length >= 2) { // Ensure we have user message + this AI response
+            console.log('Triggering auto title generation after first streaming AI response completed');
+            // Small delay to ensure message is saved first
+            setTimeout(() => {
+              generateConversationTitle();
+            }, 1000);
+          }
         }
       }
     });
@@ -234,6 +298,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('createNewSession completed successfully');
     } catch (error) {
       console.error('Error creating new session:', error);
+    }
+  };
+
+  // Force create a fresh session (used when transitioning from landing page)
+  const createFreshSession = async () => {
+    console.log('createFreshSession called - forcing new session creation');
+    if (!user) return;
+    
+    try {
+      // Stop current conversation if active
+      if (isConnected) {
+        stopConversation();
+      }
+      
+      // Always create a new session regardless of existing ones
+      const newSession = await supabaseConversationStorage.createSession();
+      console.log('Fresh session created:', newSession);
+      
+      setActiveSession(newSession);
+      setMessages([]);
+      setQuizSummary(null);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizEvaluations({});
+      setQuizShowAnswers(false);
+      setActivePanel('chat');
+      
+      // Reload all sessions
+      const updatedStorage = await supabaseConversationStorage.getConversations();
+      setAllSessions(updatedStorage.sessions);
+    } catch (error) {
+      console.error('Error creating fresh session:', error);
     }
   };
 
@@ -294,14 +390,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setConversationError(null);
       
-      // Create new session if none exists
+      // Create new session if none exists (when user actually starts conversation)
       if (!activeSession) {
-        await createNewSession();
-      }
-      
-      // Ensure we have an active session before starting
-      if (!activeSession) {
-        throw new Error('Failed to create or load active session');
+        console.log('Creating new session as user is starting conversation');
+        const newSession = await supabaseConversationStorage.createSession();
+        setActiveSession(newSession);
+        
+        // Reload all sessions to include the new one
+        const updatedStorage = await supabaseConversationStorage.getConversations();
+        setAllSessions(updatedStorage.sessions);
       }
       
       await conversationService.startConversation();
@@ -321,6 +418,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const sendTextMessage = async (text: string) => {
     try {
+      // Create new session if none exists (when user sends first message)
+      if (!activeSession) {
+        console.log('Creating new session as user is sending first message');
+        const newSession = await supabaseConversationStorage.createSession();
+        setActiveSession(newSession);
+        
+        // Reload all sessions to include the new one
+        const updatedStorage = await supabaseConversationStorage.getConversations();
+        setAllSessions(updatedStorage.sessions);
+      }
+      
       await conversationService.sendTextMessage(text);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -465,6 +573,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const generateConversationTitle = async () => {
+    if (messages.length === 0 || !activeSession) return;
+    
+    try {
+      console.log('Generating conversation title for session:', activeSession.id);
+
+      const response = await fetch('/api/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages }),
+      });
+
+      console.log('Title API response status:', response.status);
+
+      if (!response.ok) {
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        } catch (e) {
+            throw new Error(response.statusText || `Request failed with status ${response.status}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log('Generated title:', data.title);
+      
+      // Update session title
+      if (activeSession && data.title) {
+        await updateSessionTitle(activeSession.id, data.title);
+      }
+      
+      console.log('Conversation title updated successfully');
+    } catch (error) {
+      console.error('Error generating conversation title:', error);
+      // Don't show error to user for title generation failures
+    }
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
@@ -476,9 +622,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     activeSession,
     allSessions,
     createNewSession,
+    createFreshSession,
     switchToSession,
     deleteSession,
     updateSessionTitle,
+    generateConversationTitle,
     
     // Conversation actions
     startConversation,
@@ -506,7 +654,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={value}>
-      {/* Hidden ElevenLabs conversation component */}
+      {/* ElevenLabs conversation component */}
       <ElevenLabsConversation
         onMessage={(message) => conversationService.addMessage(message)}
         onMessageUpdate={(messageId, text, isComplete) => conversationService.updateMessage(messageId, text, isComplete)}

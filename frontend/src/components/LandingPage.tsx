@@ -136,10 +136,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Mic className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold text-center">Voice Conversations</CardTitle>
+                <CardTitle className="text-xl font-bold text-center text-gray-900">Voice Conversations</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-gray-600 mb-4 leading-relaxed">
+                <p className="text-gray-800 mb-4 leading-relaxed font-medium">
                   Speak naturally with your AI tutor using cutting-edge voice recognition and synthesis technology.
                 </p>
                 <div className="flex items-center justify-center space-x-2 text-sm text-blue-600">
@@ -154,10 +154,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <BookOpen className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold text-center">Smart Summaries</CardTitle>
+                <CardTitle className="text-xl font-bold text-center text-gray-900">Smart Summaries</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-gray-600 mb-4 leading-relaxed">
+                <p className="text-gray-800 mb-4 leading-relaxed font-medium">
                   Get AI-generated summaries of your conversations to reinforce key concepts and track progress.
                 </p>
                 <div className="flex items-center justify-center space-x-2 text-sm text-purple-600">
@@ -172,10 +172,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold text-center">Personalized Quizzes</CardTitle>
+                <CardTitle className="text-xl font-bold text-center text-gray-900">Personalized Quizzes</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-gray-600 mb-4 leading-relaxed">
+                <p className="text-gray-800 mb-4 leading-relaxed font-medium">
                   Test your understanding with AI-generated quizzes based on your unique conversations.
                 </p>
                 <div className="flex items-center justify-center space-x-2 text-sm text-green-600">
@@ -271,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                     {item.step}
                   </div>
                   <h3 className="font-bold text-lg mb-2 text-gray-800">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
+                  <p className="text-gray-800 leading-relaxed font-medium">{item.description}</p>
                 </div>
               );
             })}

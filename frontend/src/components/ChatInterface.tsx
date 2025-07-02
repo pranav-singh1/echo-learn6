@@ -183,11 +183,6 @@ export const ChatInterface: React.FC = () => {
                 </div>
               )}
             </CardTitle>
-            {activeSession?.isActive && (
-              <Badge variant="secondary" className="text-xs">
-                Active
-              </Badge>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
@@ -348,7 +343,7 @@ export const ChatInterface: React.FC = () => {
             onChange={(e) => setTextInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            disabled={!isConnected && !textInput}
+            disabled={isTyping}
             className="flex-1"
             aria-label="Type your message"
           />
