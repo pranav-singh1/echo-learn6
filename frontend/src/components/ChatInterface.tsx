@@ -215,6 +215,7 @@ export const ChatInterface: React.FC = () => {
                 disabled={isTyping}
                 className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
                 aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+                data-tour="start-voice"
               >
                 {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 {isConnected ? 'Stop' : 'Start'} Voice
@@ -227,6 +228,7 @@ export const ChatInterface: React.FC = () => {
                   disabled={isGeneratingQuiz}
                   className="flex items-center gap-2"
                   aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                  data-tour="quiz"
                 >
                   {isGeneratingQuiz ? 'Generating...' : 
                    activePanel === 'quiz' ? 'Close Quiz' :

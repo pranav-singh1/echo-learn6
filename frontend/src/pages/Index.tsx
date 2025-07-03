@@ -10,9 +10,12 @@ import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Menu, X, Home, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { OnboardingTour } from '../components/OnboardingTour';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Index: React.FC = () => {
-  const { activePanel, setActivePanel, startFreshConversation } = useAppContext();
+  const { activePanel, setActivePanel, startFreshConversation, allSessions } = useAppContext();
+  const { user, loading } = useAuth();
   const [showConversation, setShowConversation] = useState(() => {
     // Try to load from localStorage, default to false
     if (typeof window !== 'undefined') {
@@ -23,6 +26,12 @@ export const Index: React.FC = () => {
   });
   const [showHistory, setShowHistory] = useState(true);
   const { theme, toggleTheme } = useTheme();
+  const [showTour, setShowTour] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !localStorage.getItem('onboardingTourDismissed');
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -42,6 +51,13 @@ export const Index: React.FC = () => {
     setActivePanel(null);
   };
 
+  const handleCloseTour = () => {
+    setShowTour(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('onboardingTourDismissed', 'true');
+    }
+  };
+
   // Show landing page if conversation hasn't started
   if (!showConversation) {
     return <LandingPage onStartConversation={handleStartConversation} />;
@@ -49,7 +65,8 @@ export const Index: React.FC = () => {
 
   // Show conversation interface
   return (
-    <div className="h-screen bg-background text-foreground flex">
+    <div className="h-screen bg-background text-foreground flex relative">
+      {showTour && <div className="fixed inset-0 z-[20000]"><OnboardingTour onClose={handleCloseTour} /></div>}
       {/* Conversation History Sidebar - Controlled by showHistory state */}
       {showHistory && (
         <div className="block">
@@ -68,6 +85,7 @@ export const Index: React.FC = () => {
               onClick={() => setShowHistory(!showHistory)}
               className="md:hidden"
               aria-label={showHistory ? 'Hide history' : 'Show history'}
+              data-tour="history"
             >
               {showHistory ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
@@ -92,6 +110,7 @@ export const Index: React.FC = () => {
               onClick={toggleTheme}
               className="flex items-center gap-2"
               aria-label="Toggle dark mode"
+              data-tour="theme-toggle"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               {theme === 'dark' ? 'Light' : 'Dark'}
@@ -101,6 +120,7 @@ export const Index: React.FC = () => {
               size="sm"
               onClick={handleGoHome}
               className="flex items-center gap-2"
+              data-tour="home"
             >
               <Home className="w-4 h-4" />
               Home
