@@ -34,6 +34,7 @@ export const Index: React.FC = () => {
     // Start fresh conversation view (no session created until user sends message)
     startFreshConversation();
     setShowConversation(true);
+    setActivePanel(null); // Ensure right panel is closed for new chat
   };
 
   const handleGoHome = () => {
@@ -108,12 +109,9 @@ export const Index: React.FC = () => {
         </div>
         
         <div className="flex-1 flex min-w-0 h-full min-h-0">
-          {/* Chat Interface - Always visible */}
-          <div className="flex-1 h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
+          <div className="flex-1 min-w-0 w-full h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
             <ChatInterface />
           </div>
-          
-          {/* Right Panel - Conditional, only rendered when activePanel is set */}
           {activePanel && (
             <div className="md:w-96 border-l border-border bg-white dark:bg-background dark:text-foreground flex-shrink-0">
               {activePanel === 'quiz' && (
