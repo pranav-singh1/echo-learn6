@@ -86,9 +86,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
   
   // UI state
-  const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>('chat');
+  const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>(null);
   // Search highlight state
   const [highlightTerm, setHighlightTerm] = useState<string>('');
+
+  // Only persist quiz/summary panel state if open, otherwise always default to chat/null
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (activePanel === 'quiz' || activePanel === 'summary') {
+        localStorage.setItem('activePanel', activePanel);
+      } else {
+        localStorage.removeItem('activePanel');
+      }
+    }
+  }, [activePanel]);
 
   // Debug effect to track quizSummary changes
   useEffect(() => {
@@ -137,7 +148,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setQuizAnswers(activeSession.quizAnswers || {});
         setQuizEvaluations(activeSession.quizEvaluations || {});
         setQuizShowAnswers(activeSession.quizShowAnswers || false);
-        setActivePanel('chat');
+        setActivePanel(null); // Always default to chat panel (no right panel) on reload
       } else {
         // Don't create a session yet - wait for user to send first message
         console.log('No active session found, will create when user sends first message');
@@ -148,7 +159,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setQuizAnswers({});
         setQuizEvaluations({});
         setQuizShowAnswers(false);
-        setActivePanel('chat');
+        setActivePanel(null);
       }
     } catch (error) {
       console.error('Error initializing user session:', error);
