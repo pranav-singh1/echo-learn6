@@ -329,7 +329,7 @@ export const ChatInterface: React.FC = () => {
                           {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
                         </Badge>
                       </div>
-                      <p className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-lg md:text-xl font-normal leading-snug' : 'text-sm'}`}>{highlightText(message.text, highlightTerm)}</p>
+                      <p className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-sm font-normal leading-relaxed' : 'text-sm'}`}>{highlightText(message.text, highlightTerm)}</p>
                       {message.speaker !== 'system' && (
                         <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
                           {message.timestamp}

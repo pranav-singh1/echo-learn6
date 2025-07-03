@@ -16,6 +16,7 @@ interface AppContextType {
   allSessions: ConversationSession[];
   createNewSession: () => Promise<void>;
   createFreshSession: () => Promise<void>;
+  startFreshConversation: () => void;
   switchToSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, newTitle: string) => Promise<void>;
@@ -305,6 +306,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error creating new session:', error);
     }
+  };
+
+  // Start a fresh conversation view without creating a session
+  const startFreshConversation = () => {
+    console.log('Starting fresh conversation view (no session created yet)');
+    
+    // Stop current conversation if active
+    if (isConnected) {
+      stopConversation();
+    }
+    
+    // Clear all state to show fresh "New Conversation"
+    setActiveSession(null);
+    setMessages([]);
+    setQuizSummary(null);
+    setQuizQuestions([]);
+    setQuizAnswers({});
+    setQuizEvaluations({});
+    setQuizShowAnswers(false);
+    setActivePanel('chat');
   };
 
   // Force create a fresh session (used when transitioning from landing page)
@@ -648,6 +669,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     allSessions,
     createNewSession,
     createFreshSession,
+    startFreshConversation,
     switchToSession,
     deleteSession,
     updateSessionTitle,
