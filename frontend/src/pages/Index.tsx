@@ -12,7 +12,7 @@ import { Menu, X, Home, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 export const Index: React.FC = () => {
-  const { activePanel, setActivePanel, createFreshSession } = useAppContext();
+  const { activePanel, setActivePanel, startFreshConversation } = useAppContext();
   const [showConversation, setShowConversation] = useState(() => {
     // Try to load from localStorage, default to false
     if (typeof window !== 'undefined') {
@@ -30,9 +30,9 @@ export const Index: React.FC = () => {
     }
   }, [showConversation]);
 
-  const handleStartConversation = async () => {
-    // Create a fresh session when transitioning from landing page
-    await createFreshSession();
+  const handleStartConversation = () => {
+    // Start fresh conversation view (no session created until user sends message)
+    startFreshConversation();
     setShowConversation(true);
   };
 
