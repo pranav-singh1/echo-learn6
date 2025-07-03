@@ -24,7 +24,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     saveQuizShowAnswers,
     resetQuiz,
     setActivePanel,
-    isGeneratingQuiz
+    isGeneratingQuiz,
+    quizBlocked
   } = useAppContext();
 
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -111,6 +112,91 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     });
   };
 
+  if (isGeneratingQuiz) {
+    return (
+      <div className="h-full flex flex-col bg-background text-foreground">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+          <div>
+            <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
+            <p className="text-sm text-muted-foreground">Generating your personalized quiz...</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        {/* Loading Content */}
+        <div className="flex-1 flex items-center justify-center px-6 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20">
+          <div className="max-w-md w-full text-center">
+            {/* Animated AI Icon */}
+            <div className="relative mb-8">
+              <div className="w-20 h-20 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-10 h-10 text-white animate-pulse" />
+              </div>
+              {/* Floating dots around the icon */}
+              <div className="absolute -top-2 -left-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce delay-0"></div>
+              <div className="absolute -top-2 -right-2 w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-300"></div>
+              <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-600"></div>
+              <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-pink-400 rounded-full animate-bounce delay-900"></div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
+              AI is Creating Your Quiz
+            </h3>
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm">
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Analyzing your conversation...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (quizBlocked && !isGeneratingQuiz) {
+    return (
+      <div className="h-full flex flex-col bg-background text-foreground">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+          <div>
+            <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-6 bg-background text-foreground">
+          <div className="text-center text-muted-foreground">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-medium mb-2">Quiz Unavailable</h3>
+            <p className="text-sm mb-4">
+              {quizBlocked}
+            </p>
+            <Button
+              onClick={() => setActivePanel('chat')}
+              variant="outline"
+              className="text-primary border-border hover:bg-muted"
+            >
+              Start Conversation
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (questions.length === 0) {
     return (
       <div className="h-full flex flex-col bg-background text-foreground">
@@ -145,92 +231,6 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
             >
               Start Conversation
             </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state for quiz generation
-  if (isGeneratingQuiz) {
-    return (
-      <div className="h-full flex flex-col bg-background text-foreground">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
-          <div>
-            <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
-            <p className="text-sm text-muted-foreground">Generating your personalized quiz...</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Loading Content */}
-        <div className="flex-1 flex items-center justify-center px-6 bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20">
-          <div className="max-w-md w-full text-center">
-            {/* Animated AI Icon */}
-            <div className="relative mb-8">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Sparkles className="w-10 h-10 text-white animate-pulse" />
-              </div>
-              {/* Floating dots around the icon */}
-              <div className="absolute -top-2 -left-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce delay-0"></div>
-              <div className="absolute -top-2 -right-2 w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-300"></div>
-              <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-600"></div>
-              <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-pink-400 rounded-full animate-bounce delay-900"></div>
-            </div>
-
-            {/* Main Loading Text */}
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
-              AI is Creating Your Quiz
-            </h3>
-
-            {/* Animated Loading Steps */}
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm">
-                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-sm text-gray-700 dark:text-gray-300">Analyzing your conversation...</span>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm animate-pulse">
-                <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
-                </div>
-                <span className="text-sm text-gray-700 dark:text-gray-300">Generating summary and questions...</span>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-white/40 dark:bg-gray-800/40 rounded-lg backdrop-blur-sm">
-                <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                  <Circle className="w-4 h-4 text-gray-500" />
-                </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">Preparing your personalized quiz...</span>
-              </div>
-            </div>
-
-            {/* Progress Animation */}
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                style={{
-                  width: '60%',
-                  animation: 'progress-bar 3s ease-in-out infinite'
-                }}
-              >
-              </div>
-            </div>
-
-            {/* Fun fact */}
-            <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-              💡 Did you know? Our AI analyzes your conversation to create questions that match your learning style!
-            </p>
           </div>
         </div>
       </div>
