@@ -39,10 +39,13 @@ interface AppContextType {
   updateQuizEvaluation: (questionIndex: number, evaluation: any) => void;
   saveQuizShowAnswers: (show: boolean) => void;
   resetQuiz: () => void;
+  quizBlocked: string | null;
   
   // UI state
   activePanel: 'chat' | 'quiz' | 'summary' | null;
   setActivePanel: (panel: 'chat' | 'quiz' | 'summary' | null) => void;
+  highlightTerm: string;
+  setHighlightTerm: (term: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -79,9 +82,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: string }>({});
   const [quizEvaluations, setQuizEvaluations] = useState<{ [key: number]: any }>({});
   const [quizShowAnswers, setQuizShowAnswers] = useState(false);
+  const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
   
   // UI state
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>('chat');
+  // Search highlight state
+  const [highlightTerm, setHighlightTerm] = useState<string>('');
 
   // Debug effect to track quizSummary changes
   useEffect(() => {
@@ -390,6 +396,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       setConversationError(null);
       
+      // If the current session already has a completed conversation, create a new session
+      const hasEnded = messages.some(
+        (msg) => msg.speaker === 'system' && msg.text === 'Conversation ended'
+      );
+      if (activeSession && hasEnded) {
+        await createNewSession();
+      }
+      
       // Create new session if none exists (when user actually starts conversation)
       if (!activeSession) {
         console.log('Creating new session as user is starting conversation');
@@ -437,67 +451,78 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Quiz actions
   const generateQuiz = async () => {
-    if (messages.length === 0 || !activeSession) return;
-    
+    setActivePanel('quiz');
     setIsGeneratingQuiz(true);
-    try {
-      // Convert messages to the format expected by the backend
-      const conversationLog = messages.map(msg => {
-        const speaker = msg.speaker === 'user' ? 'You' : 'Echo Learn';
-        return `${speaker}: ${msg.text}`;
-      });
-
-      console.log('Sending quiz generation request with log:', conversationLog);
-
-      const response = await fetch('/api/quiz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ log: conversationLog }),
-      });
-
-      console.log('Quiz API response status:', response.status);
-      console.log('Quiz API response ok:', response.ok);
-
-      if (!response.ok) {
-        // Try to parse the error response, but have a fallback.
-        try {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Request failed with status ${response.status}`);
-        } catch (e) {
-            // If the error response is not JSON, use the status text.
-            throw new Error(response.statusText || `Request failed with status ${response.status}`);
-        }
+    setQuizBlocked(null);
+    // Wait 1 second before checking message count or making API call
+    setTimeout(async () => {
+      if (messages.length < 3 || !activeSession) {
+        setQuizQuestions([]);
+        setQuizSummary(null);
+        setQuizBlocked('You can only generate a quiz after actually conversing with the agent.');
+        setIsGeneratingQuiz(false);
+        return;
       }
+      setQuizBlocked(null);
+      try {
+        // Convert messages to the format expected by the backend
+        const conversationLog = messages.map(msg => {
+          const speaker = msg.speaker === 'user' ? 'You' : 'Echo Learn';
+          return `${speaker}: ${msg.text}`;
+        });
 
-      const data = await response.json();
-      console.log('Quiz API response data:', data);
-      console.log('Summary from API:', data.summary);
-      console.log('Questions from API:', data.questions);
-      
-      setQuizSummary(data.summary);
-      setQuizQuestions(data.questions);
-      setActivePanel('quiz');
-      
-      // Save to session
-      await supabaseConversationStorage.updateSession(activeSession.id, {
-        summary: data.summary,
-        quizQuestions: data.questions
-      });
-      
-      console.log('Successfully saved summary and questions to session');
-      
-      // Reload sessions to update UI
-      await loadConversations();
-      
-      console.log('Quiz generation completed successfully');
-      console.log('Current quizSummary state:', data.summary);
-      console.log('Current quizQuestions state:', data.questions);
-    } catch (error) {
-      console.error('Error generating quiz:', error);
-      setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
-    } finally {
-      setIsGeneratingQuiz(false);
-    }
+        console.log('Sending quiz generation request with log:', conversationLog);
+
+        const response = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log: conversationLog }),
+        });
+
+        console.log('Quiz API response status:', response.status);
+        console.log('Quiz API response ok:', response.ok);
+
+        if (!response.ok) {
+          // Try to parse the error response, but have a fallback.
+          try {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `Request failed with status ${response.status}`);
+          } catch (e) {
+              // If the error response is not JSON, use the status text.
+              throw new Error(response.statusText || `Request failed with status ${response.status}`);
+          }
+        }
+
+        const data = await response.json();
+        console.log('Quiz API response data:', data);
+        console.log('Summary from API:', data.summary);
+        console.log('Questions from API:', data.questions);
+        
+        setQuizSummary(data.summary);
+        setQuizQuestions(data.questions);
+        setActivePanel('quiz');
+        
+        // Save to session
+        await supabaseConversationStorage.updateSession(activeSession.id, {
+          summary: data.summary,
+          quizQuestions: data.questions
+        });
+        
+        console.log('Successfully saved summary and questions to session');
+        
+        // Reload sessions to update UI
+        await loadConversations();
+        
+        console.log('Quiz generation completed successfully');
+        console.log('Current quizSummary state:', data.summary);
+        console.log('Current quizQuestions state:', data.questions);
+      } catch (error) {
+        console.error('Error generating quiz:', error);
+        setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
+      } finally {
+        setIsGeneratingQuiz(false);
+      }
+    }, 1000);
   };
 
   const toggleQuiz = async () => {
@@ -646,10 +671,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateQuizEvaluation,
     saveQuizShowAnswers,
     resetQuiz,
+    quizBlocked,
     
     // UI state
     activePanel,
     setActivePanel,
+    highlightTerm,
+    setHighlightTerm,
   };
 
   return (

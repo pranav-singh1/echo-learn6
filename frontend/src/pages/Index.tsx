@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Logo from '../components/Logo';
 import { LandingPage } from '../components/LandingPage';
 import { ChatInterface } from '../components/ChatInterface';
@@ -13,9 +13,22 @@ import { useTheme } from '../contexts/ThemeContext';
 
 export const Index: React.FC = () => {
   const { activePanel, setActivePanel, createFreshSession } = useAppContext();
-  const [showConversation, setShowConversation] = useState(false);
+  const [showConversation, setShowConversation] = useState(() => {
+    // Try to load from localStorage, default to false
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('showConversation');
+      return stored === 'true';
+    }
+    return false;
+  });
   const [showHistory, setShowHistory] = useState(true);
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('showConversation', showConversation ? 'true' : 'false');
+    }
+  }, [showConversation]);
 
   const handleStartConversation = async () => {
     // Create a fresh session when transitioning from landing page
@@ -35,7 +48,7 @@ export const Index: React.FC = () => {
 
   // Show conversation interface
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="h-screen bg-background text-foreground flex">
       {/* Conversation History Sidebar - Controlled by showHistory state */}
       {showHistory && (
         <div className="block">
@@ -44,7 +57,7 @@ export const Index: React.FC = () => {
       )}
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-background text-foreground">
+      <div className="flex-1 flex flex-col h-full min-h-0 bg-background text-foreground">
         {/* Header with toggle */}
         <div className="bg-background border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3" style={{ height: '80px' }}>
@@ -94,9 +107,9 @@ export const Index: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex-1 flex min-w-0">
+        <div className="flex-1 flex min-w-0 h-full min-h-0">
           {/* Chat Interface - Always visible */}
-          <div className="flex-1 p-4 md:p-6 transition-all duration-300">
+          <div className="flex-1 h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
             <ChatInterface />
           </div>
           
