@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Separator } from './ui/separator';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -33,7 +34,8 @@ export const ChatInterface: React.FC = () => {
     toggleQuiz,
     isGeneratingQuiz,
     quizQuestions,
-    activePanel
+    activePanel,
+    highlightTerm
   } = useAppContext();
 
   const { user, signOut } = useAuth();
@@ -128,9 +130,20 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
+  // Helper to highlight search term in message text
+  function highlightText(text: string, term: string) {
+    if (!term) return text;
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.split(regex).map((part, i) =>
+      regex.test(part)
+        ? <span key={i} className="bg-yellow-200 text-yellow-900 rounded px-1 py-0.5 font-semibold">{part}</span>
+        : part
+    );
+  }
+
   return (
     <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
-      <CardHeader className="flex flex-col gap-2 bg-background text-foreground border-b border-border shadow-sm dark:shadow dark:bg-background/80 sticky top-0 z-10">
+      <CardHeader className="flex flex-col gap-1 bg-background text-foreground border-b border-border shadow-sm dark:shadow dark:bg-background/80 sticky top-0 z-10 p-2 md:p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <CardTitle className="flex items-center gap-2 text-card-foreground">
@@ -268,7 +281,7 @@ export const ChatInterface: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 w-full flex flex-col gap-4 bg-background text-foreground">
+      <CardContent className="flex-1 flex flex-col min-h-0 w-full gap-2 bg-background text-foreground p-2 md:p-3">
         {/* Error Alert */}
         {conversationError && (
           <Alert variant="destructive">
@@ -278,47 +291,57 @@ export const ChatInterface: React.FC = () => {
         )}
 
         {/* Messages */}
-        <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4 bg-background text-foreground">
-          <div className="space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 bg-background text-foreground scrollbar-hide">
+          <div className="space-y-3">
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 py-6">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Start a conversation to begin learning!</p>
                 <p className="text-sm mt-2">Use voice or text to interact with EchoLearn.</p>
               </div>
             ) : (
               messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex gap-3 ${
-                    message.speaker === 'user' ? 'justify-end' : 'justify-start'
-                  } my-4 animate-fade-in`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 relative ${
-                      message.speaker === 'user'
-                        ? 'bg-blue-50 border-blue-400 text-blue-900 font-semibold border-l-4 border-blue-600 dark:bg-blue-900 dark:border-blue-400 dark:text-blue-100'
-                        : message.speaker === 'ai'
-                        ? 'bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground'
-                        : 'bg-gray-100 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm">{getSpeakerIcon(message.speaker)}</span>
-                      <Badge variant="outline" className={`text-xs ${getSpeakerColor(message.speaker)}`}>
-                        {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm mb-2">{message.text}</p>
-                    <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
-                      {message.timestamp}
-                    </span>
+                message.speaker === 'system' && message.text === 'Conversation ended' ? (
+                  <div key={index} className="flex items-center my-6 w-full">
+                    <Separator className="flex-1" />
+                    <span className="mx-4 text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border shadow-sm whitespace-nowrap">Conversation Ended</span>
+                    <Separator className="flex-1" />
                   </div>
-                </div>
+                ) : (
+                  <div
+                    key={index}
+                    className={`flex gap-3 ${
+                      message.speaker === 'user' ? 'justify-end' : 'justify-start'
+                    } my-4 animate-fade-in`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 relative ${
+                        message.speaker === 'user'
+                          ? 'bg-blue-50 border-blue-400 text-blue-900 font-semibold border-l-4 border-blue-600 dark:bg-blue-900 dark:border-blue-400 dark:text-blue-100'
+                          : message.speaker === 'ai'
+                          ? 'bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground'
+                          : 'bg-gray-100 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">{getSpeakerIcon(message.speaker)}</span>
+                        <Badge variant="outline" className={`text-xs ${getSpeakerColor(message.speaker)}`}>
+                          {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
+                        </Badge>
+                      </div>
+                      <p className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-lg md:text-xl font-normal leading-snug' : 'text-sm'}`}>{highlightText(message.text, highlightTerm)}</p>
+                      {message.speaker !== 'system' && (
+                        <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
+                          {message.timestamp}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
               ))
             )}
             {isTyping && (
-              <div className="flex gap-3 justify-start my-4">
+              <div className="flex gap-3 justify-start my-2">
                 <div className="max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground flex items-center gap-2"
                   role="status" aria-live="polite"
                 >
@@ -334,10 +357,10 @@ export const ChatInterface: React.FC = () => {
             )}
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Input Area */}
-        <div className="flex gap-2 pt-4 border-t border-border bg-background">
+        <div className="flex gap-2 pt-2 border-t border-border bg-background">
           <Input
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}

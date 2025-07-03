@@ -84,7 +84,7 @@ export const Auth: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-8">
@@ -102,7 +102,7 @@ export const Auth: React.FC = () => {
         </div>
 
         {/* Auth Card */}
-        <Card className="shadow-xl">
+        <Card className="shadow-2xl border border-border bg-white/90 dark:bg-background/90">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
               {isSignUp ? 'Create Account' : 'Sign In'}

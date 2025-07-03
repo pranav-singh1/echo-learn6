@@ -41,7 +41,8 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
     switchToSession, 
     deleteSession,
     updateSessionTitle,
-    setActivePanel
+    setActivePanel,
+    setHighlightTerm
   } = useAppContext();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,6 +137,22 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
     <aside className="h-full w-64 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border bg-sidebar">
         <h2 className="text-lg font-semibold text-sidebar-foreground">History</h2>
+      </div>
+      {/* Search Bar */}
+      <div className="px-4 py-2 border-b border-sidebar-border bg-sidebar flex items-center gap-2">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={e => {
+            setSearchTerm(e.target.value);
+            setHighlightTerm(e.target.value);
+          }}
+          placeholder="Search conversations..."
+          className="w-full bg-sidebar text-sidebar-foreground placeholder:text-muted-foreground border border-sidebar-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          aria-label="Search conversations"
+          onBlur={e => setHighlightTerm(e.target.value)}
+        />
       </div>
       <div className="flex-1 overflow-y-auto bg-sidebar text-sidebar-foreground">
         {filteredSessions.length === 0 ? (
