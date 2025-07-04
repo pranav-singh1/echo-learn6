@@ -143,6 +143,7 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
           onClick={createNewSession}
           className="flex items-center gap-1 hover:bg-sidebar-accent text-sidebar-foreground"
           aria-label="Start a new chat"
+          data-tour="new-chat"
         >
           <Plus className="h-4 w-4" />
           New Chat

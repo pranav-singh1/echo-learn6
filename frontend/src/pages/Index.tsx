@@ -27,12 +27,7 @@ export const Index: React.FC = () => {
   
   const [showConversation, setShowConversation] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
-  const [showTour, setShowTour] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !localStorage.getItem('onboardingTourDismissed');
-    }
-    return false;
-  });
+  const [showTour, setShowTour] = useState(true); // Always show tour for testing
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -54,9 +49,6 @@ export const Index: React.FC = () => {
 
   const handleCloseTour = () => {
     setShowTour(false);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('onboardingTourDismissed', 'true');
-    }
   };
 
   // Show landing page for unauthenticated users OR when showConversation is false
