@@ -297,17 +297,10 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
             {(() => {
               const { correct, total, percentage } = calculateMCQScore();
               return (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">Multiple Choice Score:</span>
-                    <span className="text-lg font-bold text-green-700 dark:text-green-300">{percentage}%</span>
-                    <span className="text-md font-medium text-gray-500 dark:text-gray-400">({correct} / {total})</span>
-                  </div>
-                  {questions.some(q => q.type === 'short-answer') && (
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      • Short answer questions receive written feedback only
-                    </span>
-                  )}
+                <div className="flex items-center flex-wrap gap-2 text-base">
+                  <span className="font-semibold text-blue-700 dark:text-blue-300">Multiple Choice Score:</span>
+                  <span className="font-bold text-green-700 dark:text-green-300 ml-1">{percentage}%</span>
+                  <span className="text-gray-500 dark:text-gray-400 ml-1">({correct} / {total})</span>
                 </div>
               );
             })()}
