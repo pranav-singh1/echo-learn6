@@ -52,11 +52,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route 
         path="/" 
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } 
+        element={<Index />} 
       />
       <Route 
         path="/auth" 

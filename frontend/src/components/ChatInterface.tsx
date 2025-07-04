@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User } from 'lucide-react';
+import { Separator } from './ui/separator';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, ChevronRight, BookOpen, Target, Wifi, WifiOff, Radio } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -16,7 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Separator } from './ui/separator';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -46,6 +46,21 @@ export const ChatInterface: React.FC = () => {
   const [editTitle, setEditTitle] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Calculate learning progress
+  const userMessages = messages.filter(msg => msg.speaker === 'user');
+  const progressTowardsQuiz = Math.min(userMessages.length, 5);
+  const progressPercentage = (progressTowardsQuiz / 5) * 100;
+
+  // Connection status helper
+  const getConnectionStatus = () => {
+    if (isConnected && !isListening) return { label: 'Live', color: 'bg-green-500', icon: '🟢' };
+    if (isConnected && isListening) return { label: 'Listening', color: 'bg-green-500 animate-pulse', icon: '🟢' };
+    if (!isConnected) return { label: 'Disconnected', color: 'bg-red-500', icon: '🔴' };
+    return { label: 'Connecting', color: 'bg-yellow-500 animate-pulse', icon: '🟡' };
+  };
+
+  const connectionStatus = getConnectionStatus();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -143,141 +158,140 @@ export const ChatInterface: React.FC = () => {
 
   return (
     <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
-      <CardHeader className="flex flex-col gap-1 bg-background text-foreground border-b border-border shadow-sm dark:shadow dark:bg-background/80 sticky top-0 z-10 p-2 md:p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="flex items-center gap-2 text-card-foreground">
-              <MessageCircle className="h-5 w-5" />
-              {isEditingTitle ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onKeyDown={handleTitleKeyPress}
-                    onBlur={handleSaveTitle}
-                    className="text-lg font-semibold h-8 w-48"
-                    autoFocus
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleSaveTitle}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Check className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCancelTitle}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span 
-                    className="cursor-pointer hover:text-blue-600 transition-colors"
-                    onDoubleClick={handleStartEditTitle}
-                  >
-                    {activeSession?.title || 'New Conversation'}
-                  </span>
-                  {activeSession && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleStartEditTitle}
-                      className="h-6 w-6 p-0 opacity-0 hover:opacity-100 transition-opacity"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={createNewSession}
-                className="flex items-center gap-2"
-                aria-label="Start a new chat"
-              >
-                <Plus className="h-4 w-4" />
-                New Chat
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleVoiceToggle}
-                disabled={isTyping}
-                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
-                aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
-              >
-                {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                {isConnected ? 'Stop' : 'Start'} Voice
-              </Button>
-              {messages.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleQuiz}
-                  disabled={isGeneratingQuiz}
-                  className="flex items-center gap-2"
-                  aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
-                >
-                  {isGeneratingQuiz ? 'Generating...' : 
-                   activePanel === 'quiz' ? 'Close Quiz' :
-                   quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+      {/* Sticky Header - Session Meta */}
+      <CardHeader className="bg-gradient-to-r from-background to-background/80 backdrop-blur-sm border-b border-border shadow-lg sticky top-0 z-20 p-3 space-y-3">
+        {/* Top Row: Title + Progress + Status */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <MessageCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyPress}
+                  onBlur={handleSaveTitle}
+                  className="text-lg font-semibold h-8 w-48 border-blue-300 focus:border-blue-500"
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" onClick={handleSaveTitle} className="h-6 w-6 p-0">
+                  <Check className="w-3 h-3 text-green-600" />
                 </Button>
-              )}
-            </div>
-            <div className="pl-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
-                    <User className="h-4 w-4" />
-                    {user?.email?.split('@')[0] || 'User'}
+                <Button size="sm" variant="ghost" onClick={handleCancelTitle} className="h-6 w-6 p-0">
+                  <X className="w-3 h-3 text-red-600" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group min-w-0">
+                <span 
+                  className="text-lg font-semibold cursor-pointer hover:text-blue-600 transition-colors truncate"
+                  onDoubleClick={handleStartEditTitle}
+                  title={activeSession?.title || 'New Conversation'}
+                >
+                  {activeSession?.title || 'New Conversation'}
+                </span>
+                {activeSession && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleStartEditTitle}
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  >
+                    <Edit2 className="w-3 h-3" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>{user?.email}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Progress Chip */}
+            {messages.length > 0 && (
+              <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full px-3 py-1.5 border border-blue-200 dark:border-blue-800">
+                <Target className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
+                  Learning streak: {progressTowardsQuiz} / 5
+                </span>
+                <div className="w-8 h-1.5 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Connection Status Badge */}
+            <Badge 
+              variant="outline" 
+              className={`${connectionStatus.color.replace('bg-', 'border-').replace('500', '300')} ${connectionStatus.color.replace('bg-', 'text-').replace('500', '700')} flex items-center gap-1.5 px-2.5 py-1`}
+            >
+              <span className="text-xs">{connectionStatus.icon}</span>
+              <span className="text-xs font-medium">{connectionStatus.label}</span>
+            </Badge>
           </div>
         </div>
-        
-        {/* Connection Status */}
-        <div className="flex items-center gap-2 text-sm">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
-          <span className={isConnected ? 'text-green-600' : 'text-gray-500'}>
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-          {isListening && (
-            <>
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-red-600">Listening...</span>
-            </>
-          )}
+
+        {/* Bottom Row: Actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleVoiceToggle}
+              disabled={isTyping}
+              className={`flex items-center gap-2 transition-all ${
+                isConnected 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+              aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+            >
+              {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isConnected ? 'Stop Voice' : 'Start Voice'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleQuiz}
+              disabled={isGeneratingQuiz || messages.length < 3}
+              className="flex items-center gap-2 hover:bg-green-50 hover:border-green-300 disabled:opacity-50"
+              aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+            >
+              <BookOpen className="h-4 w-4" />
+              {isGeneratingQuiz ? 'Generating...' : 
+               activePanel === 'quiz' ? 'Close Quiz' :
+               quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+            </Button>
+          </div>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">{user?.email?.split('@')[0] || 'User'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                <User className="mr-2 h-4 w-4" />
+                <span>{user?.email}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
 

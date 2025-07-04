@@ -10,19 +10,22 @@ import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Menu, X, Home, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Index: React.FC = () => {
-  const { activePanel, setActivePanel, startFreshConversation } = useAppContext();
-  const [showConversation, setShowConversation] = useState(() => {
-    // Try to load from localStorage, default to false
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('showConversation');
-      return stored === 'true';
-    }
-    return false;
-  });
-  const [showHistory, setShowHistory] = useState(true);
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  
+  // Only use app context when user is authenticated
+  const appContext = user ? useAppContext() : null;
+  const { activePanel, setActivePanel, startFreshConversation } = appContext || {
+    activePanel: null,
+    setActivePanel: () => {},
+    startFreshConversation: () => {}
+  };
+  
+  const [showConversation, setShowConversation] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -41,8 +44,8 @@ export const Index: React.FC = () => {
     setActivePanel(null);
   };
 
-  // Show landing page if conversation hasn't started
-  if (!showConversation) {
+  // Show landing page for unauthenticated users OR when showConversation is false
+  if (!user || !showConversation) {
     return <LandingPage onStartConversation={handleStartConversation} />;
   }
 
@@ -108,20 +111,22 @@ export const Index: React.FC = () => {
         </div>
         
         <div className="flex-1 flex min-w-0 h-full min-h-0">
-          {/* Chat Interface - Always visible */}
+          {/* Chat Interface - Main content */}
           <div className="flex-1 h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
             <ChatInterface />
           </div>
           
-          {/* Right Panel - Conditional, only rendered when activePanel is set */}
-          {activePanel && (
-            <div className="md:w-96 border-l border-border bg-white dark:bg-background dark:text-foreground flex-shrink-0">
-              {activePanel === 'quiz' && (
-                <QuizPanel onClose={() => setActivePanel(null)} />
-              )}
-              {activePanel === 'summary' && (
-                <SummaryPanel onClose={() => setActivePanel(null)} />
-              )}
+          {/* Right Side: Quiz Panel */}
+          {activePanel === 'quiz' && (
+            <div className="w-80 h-full border-l border-border">
+              <QuizPanel onClose={() => setActivePanel(null)} />
+            </div>
+          )}
+          
+          {/* Right Side: Summary Panel */}
+          {activePanel === 'summary' && (
+            <div className="w-80 h-full border-l border-border">
+              <SummaryPanel onClose={() => setActivePanel(null)} />
             </div>
           )}
         </div>
