@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, ChevronRight, BookOpen, Target, Wifi, WifiOff, Radio } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -17,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Separator } from './ui/separator';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -51,16 +51,6 @@ export const ChatInterface: React.FC = () => {
   const userMessages = messages.filter(msg => msg.speaker === 'user');
   const progressTowardsQuiz = Math.min(userMessages.length, 5);
   const progressPercentage = (progressTowardsQuiz / 5) * 100;
-
-  // Connection status helper
-  const getConnectionStatus = () => {
-    if (isConnected && !isListening) return { label: 'Live', color: 'bg-green-500', icon: '🟢' };
-    if (isConnected && isListening) return { label: 'Listening', color: 'bg-green-500 animate-pulse', icon: '🟢' };
-    if (!isConnected) return { label: 'Disconnected', color: 'bg-red-500', icon: '🔴' };
-    return { label: 'Connecting', color: 'bg-yellow-500 animate-pulse', icon: '🟡' };
-  };
-
-  const connectionStatus = getConnectionStatus();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -156,6 +146,12 @@ export const ChatInterface: React.FC = () => {
     );
   }
 
+  const connectionStatus = {
+    color: isConnected ? 'bg-green-500' : 'bg-gray-400',
+    icon: isConnected ? '✅' : '❌',
+    label: isConnected ? 'Connected' : 'Disconnected'
+  };
+
   return (
     <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
       {/* Sticky Header - Session Meta */}
@@ -235,63 +231,63 @@ export const ChatInterface: React.FC = () => {
         {/* Bottom Row: Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={handleVoiceToggle}
-              disabled={isTyping}
-              className={`flex items-center gap-2 transition-all ${
-                isConnected 
-                  ? 'bg-red-600 hover:bg-red-700 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-              aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
-            >
-              {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isConnected ? 'Stop Voice' : 'Start Voice'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleQuiz}
-              disabled={isGeneratingQuiz || messages.length < 3}
-              className="flex items-center gap-2 hover:bg-green-50 hover:border-green-300 disabled:opacity-50"
-              aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
-            >
-              <BookOpen className="h-4 w-4" />
-              {isGeneratingQuiz ? 'Generating...' : 
-               activePanel === 'quiz' ? 'Close Quiz' :
-               quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
-            </Button>
-          </div>
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user?.email?.split('@')[0] || 'User'}</span>
+            <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
+              <Button
+                size="sm"
+                onClick={handleVoiceToggle}
+                disabled={isTyping}
+                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
+                aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+                data-tour="start-voice"
+              >
+                {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isConnected ? 'Stop' : 'Start'} Voice
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled>
-                <User className="mr-2 h-4 w-4" />
-                <span>{user?.email}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleQuiz}
+                disabled={isGeneratingQuiz || messages.length < 3}
+                className="flex items-center gap-2 disabled:opacity-50"
+                aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                data-tour="quiz"
+              >
+                <BookOpen className="h-4 w-4" />
+                {isGeneratingQuiz ? 'Generating...' : 
+                 activePanel === 'quiz' ? 'Close Quiz' :
+                 quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+              </Button>
+            </div>
+          </div>
+          <div className="pl-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
+                  <User className="h-4 w-4" />
+                  {user?.email?.split('@')[0] || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{user?.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
 
