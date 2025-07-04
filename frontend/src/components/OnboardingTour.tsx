@@ -1,6 +1,12 @@
-import React, { useState, useMemo, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 
 const BASE_STEPS = [
+  {
+    selector: '[data-tour="new-chat"]',
+    title: 'New Chat',
+    description: 'Start a fresh conversation here. This creates a new session and clears the chat area.',
+    popoverPosition: { top: 120, left: 280 },
+  },
   {
     selector: '[data-tour="history"]',
     title: 'Show/Hide History',
@@ -10,15 +16,14 @@ const BASE_STEPS = [
   {
     selector: '[data-tour="start-voice"]',
     title: 'Start Voice Conversation',
-    description: 'Click here to start a new voice conversation with EchoLearn.',
+    description: 'Click here to start a new voice conversation with EchoLearn. You can also type messages in the input below.',
     popoverPosition: { top: 180, right: 32 },
   },
   {
     selector: '[data-tour="quiz"]',
-    title: 'Quiz Panel',
-    description: 'After a conversation, generate and take a quiz to reinforce your learning.',
-    optional: true, // Only show if quiz button is visible
-    popoverPosition: { top: 120, right: 32 },
+    title: 'Generate Quiz',
+    description: 'After having a conversation (3+ messages), this button becomes active and you can generate a quiz to test your knowledge.',
+    popoverPosition: { top: 180, right: 32 },
   },
   {
     selector: '[data-tour="theme-toggle"]',
@@ -36,27 +41,9 @@ const BASE_STEPS = [
   },
 ];
 
-function isElementVisible(selector: string) {
-  const el = document.querySelector(selector) as HTMLElement | null;
-  if (!el) return false;
-  const rect = el.getBoundingClientRect();
-  return (
-    rect.width > 0 &&
-    rect.height > 0 &&
-    rect.bottom > 0 &&
-    rect.right > 0 &&
-    rect.top < window.innerHeight &&
-    rect.left < window.innerWidth
-  );
-}
-
 export const OnboardingTour: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  // Dynamically filter steps based on visibility (for quiz button)
-  const steps = useMemo(() => {
-    return BASE_STEPS.filter(
-      step => !step.optional || isElementVisible(step.selector)
-    );
-  }, []);
+  // Show all steps - no filtering needed since we want to tour all buttons
+  const steps = BASE_STEPS;
   const [step, setStep] = useState(0);
   const current = steps[step];
 
