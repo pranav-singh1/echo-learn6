@@ -137,6 +137,16 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
     <aside className="h-full w-64 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border bg-sidebar">
         <h2 className="text-lg font-semibold text-sidebar-foreground">History</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={createNewSession}
+          className="flex items-center gap-1 hover:bg-sidebar-accent text-sidebar-foreground"
+          aria-label="Start a new chat"
+        >
+          <Plus className="h-4 w-4" />
+          New Chat
+        </Button>
       </div>
       {/* Search Bar */}
       <div className="px-4 py-2 border-b border-sidebar-border bg-sidebar flex items-center gap-2">

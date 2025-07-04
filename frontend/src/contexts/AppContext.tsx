@@ -115,41 +115,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user]);
 
-  // Initialize user session - load existing session but don't create new one until user sends message
+  // Initialize user session - load existing sessions but start fresh
   const initializeUserSession = async () => {
     if (!user) return;
     
     try {
-      // Load existing sessions first
+      // Load existing sessions first for the sidebar
       const storage = await supabaseConversationStorage.getConversations();
       setAllSessions(storage.sessions);
       
-      // Check if there's already an active session
-      const activeSession = await supabaseConversationStorage.getActiveSession();
-      
-      if (activeSession) {
-        // Load the existing active session
-        console.log('Loading existing active session:', activeSession);
-        setActiveSession(activeSession);
-        setMessages(activeSession.messages);
-        setQuizSummary(activeSession.summary || null);
-        setQuizQuestions(activeSession.quizQuestions || []);
-        setQuizAnswers(activeSession.quizAnswers || {});
-        setQuizEvaluations(activeSession.quizEvaluations || {});
-        setQuizShowAnswers(activeSession.quizShowAnswers || false);
-        setActivePanel('chat');
-      } else {
-        // Don't create a session yet - wait for user to send first message
-        console.log('No active session found, will create when user sends first message');
-        setActiveSession(null);
-        setMessages([]);
-        setQuizSummary(null);
-        setQuizQuestions([]);
-        setQuizAnswers({});
-        setQuizEvaluations({});
-        setQuizShowAnswers(false);
-        setActivePanel('chat');
-      }
+      // Always start fresh - don't load the last active session automatically
+      console.log('Starting fresh session - not loading last conversation');
+      setActiveSession(null);
+      setMessages([]);
+      setQuizSummary(null);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizEvaluations({});
+      setQuizShowAnswers(false);
+      setActivePanel('chat');
     } catch (error) {
       console.error('Error initializing user session:', error);
     }
