@@ -106,6 +106,7 @@ export class ConversationService {
   async sendTextMessage(text: string): Promise<void> {
     if (!text.trim()) return;
 
+    // Add user message first
     this.addMessage({
       speaker: 'user',
       text,
@@ -113,18 +114,25 @@ export class ConversationService {
       messageId: `msg_${Date.now()}_${Math.random()}`
     });
 
-    // Create a streaming response for text messages too
-    setTimeout(() => {
-      const responses = [
-        "That's interesting! Can you tell me more about that?",
-        "Great explanation! What other aspects of this topic would you like to explore?",
-        "I see what you mean. How does this connect to what you've learned before?",
-        "Excellent point! Can you give me an example of that?",
-        "That's a good start. What questions do you have about this topic?"
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      // Start streaming the response
+    try {
+      // Call the chat API for an AI response
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          conversationHistory: this.messages.slice(-10) // Send last 10 messages for context
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.response;
+
+      // Start streaming the AI response
       const messageId = `msg_${Date.now()}_${Math.random()}`;
       const streamingMessage: ConversationMessage = {
         speaker: 'ai',
@@ -135,8 +143,24 @@ export class ConversationService {
       };
       
       this.addMessage(streamingMessage);
-      this.streamText(randomResponse, messageId);
-    }, 1000);
+      this.streamText(aiResponse, messageId);
+
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      
+      // Fallback to a generic error message
+      const messageId = `msg_${Date.now()}_${Math.random()}`;
+      const errorMessage: ConversationMessage = {
+        speaker: 'ai',
+        text: "I'm sorry, I'm having trouble responding right now. Could you try again?",
+        timestamp: new Date().toLocaleTimeString(),
+        isStreaming: true,
+        messageId
+      };
+      
+      this.addMessage(errorMessage);
+      this.streamText(errorMessage.text, messageId);
+    }
   }
 
   private streamText(fullText: string, messageId: string) {
