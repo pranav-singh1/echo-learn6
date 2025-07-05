@@ -22,7 +22,7 @@ const BASE_STEPS = [
   {
     selector: '[data-tour="quiz"]',
     title: 'Generate Quiz',
-    description: 'After having a conversation (3+ messages), this button becomes active and you can generate a quiz to test your knowledge.',
+    description: 'This button only works after a conversation has been started. Once you have exchanged messages, you can generate a quiz to test your knowledge.',
     popoverPosition: { top: 180, right: 32 },
   },
   {
