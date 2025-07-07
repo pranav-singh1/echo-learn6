@@ -20,6 +20,12 @@ const BASE_STEPS = [
     popoverPosition: { top: 180, right: 32 },
   },
   {
+    selector: '[data-tour="mute"]',
+    title: 'Mute Microphone',
+    description: 'Mute your device microphone during voice conversations. The button is always visible but only works when a voice conversation is active.',
+    popoverPosition: { top: 180, right: 32 },
+  },
+  {
     selector: '[data-tour="quiz"]',
     title: 'Generate Quiz',
     description: 'This button only works after a conversation has been started. Once you have exchanged messages, you can generate a quiz to test your knowledge.',

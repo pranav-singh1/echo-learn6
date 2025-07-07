@@ -10,6 +10,7 @@ interface AppContextType {
   isListening: boolean;
   conversationError: string | null;
   messages: ConversationMessage[];
+  isMuted: boolean;
   
   // Session management
   activeSession: ConversationSession | null;
@@ -26,6 +27,7 @@ interface AppContextType {
   startConversation: () => Promise<void>;
   stopConversation: () => Promise<void>;
   sendTextMessage: (text: string) => Promise<void>;
+  toggleMute: () => Promise<void>;
   
   // Quiz state
   quizQuestions: any[];
@@ -71,6 +73,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [isListening, setIsListening] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [isMuted, setIsMuted] = useState(false);
   
   // Session management
   const [activeSession, setActiveSession] = useState<ConversationSession | null>(null);
@@ -89,6 +92,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>(null);
   // Search highlight state
   const [highlightTerm, setHighlightTerm] = useState<string>('');
+  
+  // Track initialization to prevent unnecessary reloads
+  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Only persist quiz/summary panel state if open, otherwise always default to chat/null
   useEffect(() => {
@@ -111,42 +118,99 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('quizQuestions state changed to:', quizQuestions);
   }, [quizQuestions]);
 
-  // Load conversations when user changes
+  // Load conversations when user changes - with proper ID tracking
   useEffect(() => {
-    if (user) {
+    const currentUserId = user?.id || null;
+    
+    console.log('User effect triggered:', { 
+      currentUserId, 
+      initializedUserId, 
+      isInitialized, 
+      userExists: !!user 
+    });
+    
+    if (user && currentUserId !== initializedUserId) {
+      console.log('User changed or first initialization, initializing session for user:', currentUserId);
+      setInitializedUserId(currentUserId);
+      setIsInitialized(false);
       setActivePanel(null);
       initializeUserSession();
-    } else {
+    } else if (!user && initializedUserId) {
+      console.log('User logged out, clearing data');
       // Clear data when user logs out
       setAllSessions([]);
       setActiveSession(null);
       setMessages([]);
       setQuizSummary(null);
       setQuizQuestions([]);
+      setInitializedUserId(null);
+      setIsInitialized(false);
+    } else if (user && currentUserId === initializedUserId && isInitialized) {
+      console.log('Same user detected and already initialized, preserving session state');
+      // Same user and already initialized, don't re-initialize
+    } else if (user && currentUserId === initializedUserId && !isInitialized) {
+      console.log('Same user but not initialized yet, completing initialization');
+      // This handles the case where the user object reference changed but it's the same user
+      // and we haven't finished initialization yet
     }
-  }, [user]);
+  }, [user?.id, initializedUserId, isInitialized]);
 
-  // Initialize user session - load existing sessions but start fresh
+  // Initialize user session - load existing sessions and preserve active session if it exists
   const initializeUserSession = async () => {
     if (!user) return;
+    
+    console.log('=== initializeUserSession called ===');
+    console.log('Current activeSession:', activeSession?.id);
+    console.log('Current messages count:', messages.length);
+    console.log('User ID:', user.id);
+    console.log('Is initialized:', isInitialized);
     
     try {
       // Load existing sessions first for the sidebar
       const storage = await supabaseConversationStorage.getConversations();
       setAllSessions(storage.sessions);
+      console.log('Loaded sessions:', storage.sessions.length);
       
-      // Always start fresh - don't load the last active session automatically
-      console.log('Starting fresh session - not loading last conversation');
-      setActiveSession(null);
-      setMessages([]);
-      setQuizSummary(null);
-      setQuizQuestions([]);
-      setQuizAnswers({});
-      setQuizEvaluations({});
-      setQuizShowAnswers(false);
-      setActivePanel('chat');
+      // If we already have an active session with messages, preserve it (e.g., from tab switching)
+      if (activeSession && messages.length > 0 && isInitialized) {
+        console.log('Preserving existing active session during tab switch:', activeSession.id);
+        setIsInitialized(true);
+        return; // Don't clear the current session
+      }
+      
+      // Try to load the last active session from Supabase only if we don't have one
+      if (!activeSession || messages.length === 0) {
+        const lastActiveSession = await supabaseConversationStorage.getActiveSession();
+        console.log('Last active session from Supabase:', lastActiveSession?.id);
+        
+        if (lastActiveSession && lastActiveSession.messages.length > 0) {
+          console.log('Loading last active session:', lastActiveSession.id);
+          setActiveSession(lastActiveSession);
+          setMessages(lastActiveSession.messages);
+          setQuizSummary(lastActiveSession.summary || null);
+          setQuizQuestions(lastActiveSession.quizQuestions || []);
+          setQuizAnswers(lastActiveSession.quizAnswers || {});
+          setQuizEvaluations(lastActiveSession.quizEvaluations || {});
+          setQuizShowAnswers(lastActiveSession.quizShowAnswers || false);
+          setActivePanel(null);
+        } else {
+          // Only start fresh if there's no active session
+          console.log('No active session found - starting fresh');
+          setActiveSession(null);
+          setMessages([]);
+          setQuizSummary(null);
+          setQuizQuestions([]);
+          setQuizAnswers({});
+          setQuizEvaluations({});
+          setQuizShowAnswers(false);
+          setActivePanel(null);
+        }
+      }
+      
+      setIsInitialized(true);
     } catch (error) {
       console.error('Error initializing user session:', error);
+      setIsInitialized(true);
     }
   };
 
@@ -223,34 +287,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     });
 
-    const unsubscribeMessageUpdates = conversationService.onMessageUpdate((messageId, text, isComplete) => {
-      setMessages(prev => prev.map(msg => 
-        msg.messageId === messageId 
-          ? { ...msg, text, isStreaming: !isComplete }
-          : msg
-      ));
-      
-      // Save to Supabase when streaming is complete
-      if (isComplete && activeSession) {
-        const message = messages.find(msg => msg.messageId === messageId);
-        if (message) {
-          const completeMessage = { ...message, text, isStreaming: false };
-          supabaseConversationStorage.addMessage(completeMessage, activeSession.id);
-          
-          // Auto-generate title after first AI response if session has default title
-          if (completeMessage.speaker === 'ai' && 
-              activeSession.title === 'New Conversation' && 
-              messages.length >= 2) { // Ensure we have user message + this AI response
-            console.log('Triggering auto title generation after first streaming AI response completed');
-            // Small delay to ensure message is saved first
-            setTimeout(() => {
-              generateConversationTitle();
-            }, 1000);
-          }
-        }
-      }
-    });
-
     const unsubscribeState = conversationService.onStateChange((state) => {
       if (state.isConnected !== undefined) setIsConnected(state.isConnected);
       if (state.isListening !== undefined) setIsListening(state.isListening);
@@ -260,7 +296,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Cleanup on unmount
     return () => {
       unsubscribeMessages();
-      unsubscribeMessageUpdates();
       unsubscribeState();
     };
   }, [activeSession, messages]);
@@ -652,12 +687,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const toggleMute = async () => {
+    await conversationService.toggleMute();
+    setIsMuted(conversationService.isMicMuted());
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
     isListening,
     conversationError,
     messages,
+    isMuted,
     
     // Session management
     activeSession,
@@ -674,6 +715,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     startConversation,
     stopConversation,
     sendTextMessage,
+    toggleMute,
     
     // Quiz state
     quizQuestions,
@@ -702,7 +744,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       {/* ElevenLabs conversation component */}
       <ElevenLabsConversation
         onMessage={(message) => conversationService.addMessage(message)}
-        onMessageUpdate={(messageId, text, isComplete) => conversationService.updateMessage(messageId, text, isComplete)}
         onStateChange={(state) => conversationService.updateState(state)}
         onStart={() => console.log('Conversation started')}
         onStop={() => console.log('Conversation stopped')}

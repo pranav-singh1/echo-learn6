@@ -11,9 +11,9 @@ export interface ConversationState {
 // This service connects to the real ElevenLabs conversation component
 export class ConversationService {
   private messageCallbacks: ((message: ConversationMessage) => void)[] = [];
-  private messageUpdateCallbacks: ((messageId: string, text: string, isComplete: boolean) => void)[] = [];
   private stateCallbacks: ((state: Partial<ConversationState>) => void)[] = [];
   private messages: ConversationMessage[] = [];
+  private isMuted: boolean = false;
 
   constructor() {
     // Initialize the service
@@ -26,17 +26,6 @@ export class ConversationService {
       const index = this.messageCallbacks.indexOf(callback);
       if (index > -1) {
         this.messageCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  // Subscribe to message updates
-  onMessageUpdate(callback: (messageId: string, text: string, isComplete: boolean) => void) {
-    this.messageUpdateCallbacks.push(callback);
-    return () => {
-      const index = this.messageUpdateCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.messageUpdateCallbacks.splice(index, 1);
       }
     };
   }
@@ -132,71 +121,31 @@ export class ConversationService {
       const data = await response.json();
       const aiResponse = data.response;
 
-      // Start streaming the AI response
-      const messageId = `msg_${Date.now()}_${Math.random()}`;
-      const streamingMessage: ConversationMessage = {
+      // Add AI response directly - no streaming
+      this.addMessage({
         speaker: 'ai',
-        text: '',
+        text: aiResponse,
         timestamp: new Date().toLocaleTimeString(),
-        isStreaming: true,
-        messageId
-      };
-      
-      this.addMessage(streamingMessage);
-      this.streamText(aiResponse, messageId);
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      });
 
     } catch (error) {
       console.error('Error getting AI response:', error);
       
       // Fallback to a generic error message
-      const messageId = `msg_${Date.now()}_${Math.random()}`;
-      const errorMessage: ConversationMessage = {
+      this.addMessage({
         speaker: 'ai',
         text: "I'm sorry, I'm having trouble responding right now. Could you try again?",
         timestamp: new Date().toLocaleTimeString(),
-        isStreaming: true,
-        messageId
-      };
-      
-      this.addMessage(errorMessage);
-      this.streamText(errorMessage.text, messageId);
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      });
     }
-  }
-
-  private streamText(fullText: string, messageId: string) {
-    let currentIndex = 0;
-    const streamInterval = setInterval(() => {
-      if (currentIndex < fullText.length) {
-        const currentText = fullText.substring(0, currentIndex + 1);
-        this.updateMessage(messageId, currentText, false);
-        currentIndex++;
-      } else {
-        clearInterval(streamInterval);
-        this.updateMessage(messageId, fullText, true);
-      }
-    }, 30);
   }
 
   // Add a message and notify subscribers
   addMessage(message: ConversationMessage) {
     this.messages.push(message);
     this.messageCallbacks.forEach(callback => callback(message));
-  }
-
-  // Update message and notify subscribers
-  updateMessage(messageId: string, text: string, isComplete: boolean) {
-    // Update the message in the messages array
-    const messageIndex = this.messages.findIndex(msg => msg.messageId === messageId);
-    if (messageIndex !== -1) {
-      this.messages[messageIndex] = {
-        ...this.messages[messageIndex],
-        text,
-        isStreaming: !isComplete
-      };
-    }
-    
-    // Notify callbacks
-    this.messageUpdateCallbacks.forEach(callback => callback(messageId, text, isComplete));
   }
 
   // Update state and notify subscribers
@@ -209,14 +158,47 @@ export class ConversationService {
     return [...this.messages];
   }
 
+  // Handle automatic disconnection (e.g., from tab switching) without ending conversation
+  handleAutomaticDisconnection(): void {
+    console.log('Handling automatic disconnection - preserving conversation state');
+    this.updateState({ isConnected: false, isListening: false });
+    // Don't add "Conversation ended" message for automatic disconnections
+  }
+
+  // Mute/unmute functionality
+  async toggleMute(): Promise<void> {
+    this.isMuted = !this.isMuted;
+    console.log('Conversation service mute toggled:', this.isMuted);
+    
+    // Delegate to ElevenLabs component
+    const elevenLabs = (window as any).elevenLabsConversation;
+    if (elevenLabs && elevenLabs.toggleMute) {
+      await elevenLabs.toggleMute(this.isMuted);
+    } else {
+      console.warn('ElevenLabs conversation not available for muting');
+    }
+    
+    // Update state to reflect mute status
+    this.updateState({ isListening: !this.isMuted });
+  }
+
+  isMicMuted(): boolean {
+    return this.isMuted;
+  }
+
   // Cleanup
   destroy() {
     this.messageCallbacks = [];
-    this.messageUpdateCallbacks = [];
     this.stateCallbacks = [];
     this.messages = [];
+    this.isMuted = false;
   }
 }
 
 // Create a singleton instance
-export const conversationService = new ConversationService(); 
+export const conversationService = new ConversationService();
+
+// Expose globally for ElevenLabs component
+if (typeof window !== 'undefined') {
+  (window as any).conversationService = conversationService;
+} 

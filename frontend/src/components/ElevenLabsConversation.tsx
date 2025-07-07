@@ -11,7 +11,6 @@ export interface ConversationMessage {
 
 interface ElevenLabsConversationProps {
   onMessage: (message: ConversationMessage) => void;
-  onMessageUpdate: (messageId: string, text: string, isComplete: boolean) => void;
   onStateChange: (state: { isConnected: boolean; isListening: boolean; error: string | null }) => void;
   onStart: () => void;
   onStop: () => void;
@@ -19,17 +18,15 @@ interface ElevenLabsConversationProps {
 
 export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
   onMessage,
-  onMessageUpdate,
   onStateChange,
   onStart,
   onStop
 }) => {
   const [log, setLog] = useState<string[]>([]);
-  const [currentStreamingMessage, setCurrentStreamingMessage] = useState<{
-    id: string;
-    text: string;
-    speaker: string;
-  } | null>(null);
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const [shouldReconnect, setShouldReconnect] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [originalStream, setOriginalStream] = useState<MediaStream | null>(null);
 
   // ElevenLabs hook configuration with streaming support
   const conversation = useConversation({
@@ -37,11 +34,25 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
       console.log('ElevenLabs: Connected');
       setLog((prev) => [...prev, '[Connected]']);
       onStateChange({ isConnected: true, isListening: true, error: null });
+      setShouldReconnect(false);
     },
     onDisconnect: () => {
       console.log('ElevenLabs: Disconnected');
       setLog((prev) => [...prev, '[Disconnected]']);
-      onStateChange({ isConnected: false, isListening: false, error: null });
+      
+      // Check if this is due to tab switching
+      if (!isTabVisible || shouldReconnect) {
+        console.log('Disconnection due to tab switching - using automatic disconnection handler');
+        const conversationService = (window as any).conversationService;
+        if (conversationService && conversationService.handleAutomaticDisconnection) {
+          conversationService.handleAutomaticDisconnection();
+        } else {
+          onStateChange({ isConnected: false, isListening: false, error: null });
+        }
+      } else {
+        console.log('Unexpected disconnection while tab is visible');
+        onStateChange({ isConnected: false, isListening: false, error: null });
+      }
     },
     onMessage: (message) => {
       console.log('ElevenLabs: Message received:', message);
@@ -61,93 +72,49 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
 
       setLog((prev) => [...prev, `${speaker}: ${text}`]);
 
-      // Handle streaming for AI messages
-      if (speaker === 'ai') {
-        const messageId = `msg_${Date.now()}_${Math.random()}`;
-        
-        if (!currentStreamingMessage) {
-          // Start new streaming message
-          const streamingMessage: ConversationMessage = {
-            speaker: 'ai',
-            text: '',
-            timestamp: new Date().toLocaleTimeString(),
-            isStreaming: true,
-            messageId
-          };
-          
-          setCurrentStreamingMessage({ id: messageId, text: '', speaker });
-          onMessage(streamingMessage);
-          
-          // Start character-by-character streaming
-          streamText(text, messageId);
-        } else {
-          // Continue existing streaming message
-          const fullText = currentStreamingMessage.text + ' ' + text;
-          setCurrentStreamingMessage(prev => prev ? { ...prev, text: fullText } : null);
-          streamText(text, currentStreamingMessage.id, currentStreamingMessage.text);
-        }
-      } else {
-        // For user/system messages, add immediately
-        const conversationMessage: ConversationMessage = {
-          speaker: speaker as 'user' | 'ai' | 'system',
-          text,
-          timestamp: new Date().toLocaleTimeString(),
-          messageId: `msg_${Date.now()}_${Math.random()}`
-        };
-        
-        onMessage(conversationMessage);
-      }
+      // Simple message handling - no complex streaming
+      const conversationMessage: ConversationMessage = {
+        speaker: speaker as 'user' | 'ai' | 'system',
+        text,
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
       
+      onMessage(conversationMessage);
       console.log(`[${speaker}]`, text);
     },
     onError: (error) => {
       console.error('ElevenLabs: Error:', error);
       setLog((prev) => [...prev, `[Error] ${error}`]);
       onStateChange({ isConnected: false, isListening: false, error: error.toString() });
-      
-      // Complete any streaming message on error
-      if (currentStreamingMessage) {
-        onMessageUpdate(currentStreamingMessage.id, currentStreamingMessage.text, true);
-        setCurrentStreamingMessage(null);
-      }
     }
   });
-
-  // Function to stream text character by character
-  const streamText = useCallback((fullText: string, messageId: string, existingText: string = '') => {
-    const textToStream = existingText ? fullText : fullText;
-    let currentIndex = existingText.length;
-    
-    const streamInterval = setInterval(() => {
-      if (currentIndex < textToStream.length) {
-        const currentText = textToStream.substring(0, currentIndex + 1);
-        onMessageUpdate(messageId, currentText, false);
-        currentIndex++;
-      } else {
-        // Streaming complete
-        clearInterval(streamInterval);
-        onMessageUpdate(messageId, textToStream, true);
-        setCurrentStreamingMessage(null);
-      }
-    }, 30); // Adjust speed - 30ms per character
-
-    // Cleanup function to clear interval if component unmounts
-    return () => clearInterval(streamInterval);
-  }, [onMessageUpdate]);
 
   const startConversation = useCallback(async () => {
     try {
       console.log('Starting conversation - requesting mic permission...');
       
-      // Simple microphone permission request
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone permission granted');
+      // Store original getUserMedia
+      const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
       
-      // Start ElevenLabs session with minimal config
+      // Override getUserMedia to intercept the stream
+      navigator.mediaDevices.getUserMedia = async (constraints) => {
+        const stream = await originalGetUserMedia(constraints);
+        if (constraints?.audio) {
+          console.log('Intercepted audio stream for ElevenLabs');
+          setOriginalStream(stream);
+        }
+        return stream;
+      };
+      
+      // Start ElevenLabs session (it will call getUserMedia internally)
       console.log('Starting ElevenLabs session...');
       await conversation.startSession({
         agentId: 'agent_01jw58pna0f8tv6khmvbtsxwm9'
       });
+      
+      // Restore original getUserMedia
+      navigator.mediaDevices.getUserMedia = originalGetUserMedia;
       
       console.log('ElevenLabs session started successfully');
       onStart();
@@ -168,24 +135,50 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
       await conversation.endSession();
       console.log('Conversation stopped');
       
-      // Complete any streaming message when stopping
-      if (currentStreamingMessage) {
-        onMessageUpdate(currentStreamingMessage.id, currentStreamingMessage.text, true);
-        setCurrentStreamingMessage(null);
+      // Clean up original stream
+      if (originalStream) {
+        originalStream.getTracks().forEach(track => track.stop());
+        setOriginalStream(null);
       }
+      setIsMuted(false);
       
       onStop();
     } catch (error) {
       console.error('Error stopping conversation:', error);
     }
-  }, [conversation, onStop, currentStreamingMessage, onMessageUpdate]);
+  }, [conversation, onStop, originalStream]);
 
-  // Expose start/stop methods
+  const toggleMute = useCallback(async (muted: boolean) => {
+    try {
+      console.log('Toggling mute:', muted);
+      setIsMuted(muted);
+      
+      // Directly control the microphone tracks
+      if (originalStream) {
+        const audioTracks = originalStream.getAudioTracks();
+        audioTracks.forEach(track => {
+          track.enabled = !muted;
+          console.log(`Audio track ${track.id} enabled:`, track.enabled);
+        });
+        console.log('Microphone muted:', muted);
+      } else {
+        console.warn('No original stream available for muting');
+      }
+      
+      console.log('Mute toggled successfully');
+    } catch (error) {
+      console.error('Error toggling mute:', error);
+    }
+  }, [originalStream]);
+
+  // Expose start/stop/mute methods
   useEffect(() => {
     (window as any).elevenLabsConversation = {
       start: startConversation,
       stop: stopConversation,
-      status: conversation.status
+      toggleMute: toggleMute,
+      status: conversation.status,
+      isMuted: isMuted
     };
     
     return () => {
@@ -193,7 +186,61 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
         delete (window as any).elevenLabsConversation;
       }
     };
-  }, [startConversation, stopConversation, conversation.status]);
+  }, [startConversation, stopConversation, toggleMute, conversation.status, isMuted]);
+
+  // Handle tab visibility changes to prevent disconnection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsTabVisible(isVisible);
+      
+      if (isVisible && shouldReconnect) {
+        console.log('Tab became visible, attempting to reconnect...');
+        setShouldReconnect(false);
+        
+        // Try to resume audio context if it was suspended
+        if (typeof window !== 'undefined' && window.AudioContext) {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              console.log('Audio context resumed');
+            }).catch(err => {
+              console.warn('Failed to resume audio context:', err);
+            });
+          }
+        }
+      } else if (!isVisible && conversation.status === 'connected') {
+        console.log('Tab became hidden, marking for potential reconnection');
+        setShouldReconnect(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also handle focus/blur events for additional reliability
+    const handleFocus = () => {
+      if (shouldReconnect) {
+        console.log('Window focused, attempting to reconnect...');
+        setShouldReconnect(false);
+      }
+    };
+    
+    const handleBlur = () => {
+      if (conversation.status === 'connected') {
+        console.log('Window blurred while connected');
+        setShouldReconnect(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [conversation.status, shouldReconnect]);
 
   return null;
 }; 
