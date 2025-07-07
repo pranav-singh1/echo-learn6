@@ -5,7 +5,6 @@ import { ChatInterface } from '../components/ChatInterface';
 import { QuizPanel } from '../components/QuizPanel';
 import { SummaryPanel } from '../components/SummaryPanel';
 import { ConversationHistory } from '../components/ConversationHistory';
-import { FloatingMic } from '../components/FloatingMic';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Menu, X, Home, Moon, Sun, HelpCircle } from 'lucide-react';
@@ -161,9 +160,6 @@ export const Index: React.FC = () => {
           )}
         </div>
       </div>
-      
-      {/* Floating Mic */}
-      <FloatingMic />
       
       {/* Help Button - Bottom Left */}
       <Button

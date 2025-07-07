@@ -8,7 +8,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2 } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -34,11 +34,13 @@ export const ChatInterface: React.FC = () => {
     sendTextMessage,
     generateQuiz,
     toggleQuiz,
+    toggleMute,
     isGeneratingQuiz,
     quizQuestions,
     activePanel,
     highlightTerm,
-    allSessions
+    allSessions,
+    isMuted
   } = useAppContext();
 
   const { user, signOut, updateProfile } = useAuth();
@@ -335,6 +337,24 @@ export const ChatInterface: React.FC = () => {
                 >
                   {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {isConnected ? 'Stop' : 'Start'} Voice
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={toggleMute}
+                  variant="outline"
+                  disabled={!isConnected}
+                  className={`flex items-center gap-2 ${
+                    !isConnected 
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : isMuted 
+                        ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100' 
+                        : 'hover:bg-gray-50'
+                  }`}
+                  aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                  data-tour="mute"
+                >
+                  <VolumeX className={`h-4 w-4 ${isMuted ? 'text-red-600' : !isConnected ? 'text-gray-400' : ''}`} />
+                  {isMuted ? 'Unmute' : 'Mute'}
                 </Button>
                 <Button
                   variant="outline"
