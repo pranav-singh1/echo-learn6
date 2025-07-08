@@ -46,15 +46,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
         <div className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-bounce delay-1200"></div>
       </div>
 
-      <div className="relative z-10">
-        {/* Header */}
-        <header className="container mx-auto px-6 py-8">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+        <div className="container mx-auto px-6 py-4">
           <nav className="flex items-center justify-between">
             <div 
               className="flex items-center space-x-3 group cursor-pointer"
               onClick={() => navigate('/')}
             >
-              <Logo className="h-12 w-auto group-hover:scale-105 transition-transform duration-200" />
+              <Logo className="h-12 w-auto group-hover:scale-105 transition-transform duration-200" forceBlack={true} />
             </div>
             
             {/* Desktop Navigation Links */}
@@ -112,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
 
           {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <div className="lg:hidden mt-4 p-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200">
+            <div className="lg:hidden mt-4 p-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-gray-200">
               <div className="flex flex-col space-y-4">
                 <a 
                   href="#features" 
@@ -175,8 +175,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </div>
             </div>
           )}
-        </header>
+        </div>
+      </header>
 
+      <div className="relative z-10 pt-20">
         {/* Hero Section */}
         <section className="container mx-auto px-6 py-16 text-center">
           <div className="max-w-4xl mx-auto">

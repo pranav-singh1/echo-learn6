@@ -12,6 +12,12 @@ interface AppContextType {
   messages: ConversationMessage[];
   isMuted: boolean;
   
+  // Voice session state
+  isVoiceSessionActive: boolean;
+  voiceSessionTranscript: string;
+  isTextInputLocked: boolean;
+  hasSentFirstTextAfterVoice: boolean;
+  
   // Session management
   activeSession: ConversationSession | null;
   allSessions: ConversationSession[];
@@ -74,6 +80,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isMuted, setIsMuted] = useState(false);
+  
+  // Voice session state
+  const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
+  const [voiceSessionTranscript, setVoiceSessionTranscript] = useState('');
+  const [isTextInputLocked, setIsTextInputLocked] = useState(false);
+  const [hasSentFirstTextAfterVoice, setHasSentFirstTextAfterVoice] = useState(false);
   
   // Session management
   const [activeSession, setActiveSession] = useState<ConversationSession | null>(null);
@@ -466,18 +478,45 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setAllSessions(updatedStorage.sessions);
       }
       
+      // Start voice session and lock text input
+      setIsVoiceSessionActive(true);
+      setIsTextInputLocked(true);
+      setHasSentFirstTextAfterVoice(false);
+      setVoiceSessionTranscript('');
+      
       await conversationService.startConversation();
     } catch (error) {
       console.error('Failed to start conversation:', error);
       setConversationError(error instanceof Error ? error.message : 'Failed to start conversation');
+      
+      // Reset voice session state on error
+      setIsVoiceSessionActive(false);
+      setIsTextInputLocked(false);
     }
   };
 
   const stopConversation = async () => {
     try {
       await conversationService.stopConversation();
+      
+      // End voice session and unlock text input
+      setIsVoiceSessionActive(false);
+      setIsTextInputLocked(false);
+      
+      // Build transcript from voice session messages
+      const voiceMessages = messages.filter(msg => 
+        msg.speaker === 'user' || msg.speaker === 'ai'
+      ).map(msg => `${msg.speaker === 'user' ? 'You' : 'EchoLearn'}: ${msg.text}`).join('\n');
+      
+      setVoiceSessionTranscript(voiceMessages);
+      console.log('Voice session ended. Transcript prepared for next text message.');
+      
     } catch (error) {
       console.error('Failed to stop conversation:', error);
+      
+      // Reset voice session state on error
+      setIsVoiceSessionActive(false);
+      setIsTextInputLocked(false);
     }
   };
 
@@ -494,7 +533,56 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setAllSessions(updatedStorage.sessions);
       }
       
-      await conversationService.sendTextMessage(text);
+      // Check if this is the first text message after a voice session
+      if (!hasSentFirstTextAfterVoice && voiceSessionTranscript && voiceSessionTranscript.trim()) {
+        console.log('First text message after voice session - injecting transcript context');
+        
+        // Add the user's message to the UI first (what they actually typed)
+        const userMessage = {
+          speaker: 'user',
+          text: text,
+          timestamp: new Date().toLocaleTimeString(),
+          messageId: `msg_${Date.now()}_${Math.random()}`
+        };
+        
+        // Add user message to UI
+        conversationService.addMessage(userMessage);
+        
+        // Send the transcript context along with the user's message to the API
+        const contextMessage = `Voice Session Transcript:\n${voiceSessionTranscript}\n\nUser's Text Message: ${text}`;
+        
+        // Call the chat API with the context but don't display it in UI
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: contextMessage,
+            conversationHistory: messages.slice(-10) // Send last 10 messages for context
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to get AI response');
+        }
+
+        const data = await response.json();
+        const aiResponse = data.response;
+
+        // Add AI response to UI
+        conversationService.addMessage({
+          speaker: 'ai',
+          text: aiResponse,
+          timestamp: new Date().toLocaleTimeString(),
+          messageId: `msg_${Date.now()}_${Math.random()}`
+        });
+        
+        // Mark that we've sent the first text message after voice
+        setHasSentFirstTextAfterVoice(true);
+        setVoiceSessionTranscript(''); // Clear the transcript after use
+      } else {
+        // Normal text message
+        await conversationService.sendTextMessage(text);
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
     }
@@ -699,6 +787,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     conversationError,
     messages,
     isMuted,
+    
+    // Voice session state
+    isVoiceSessionActive,
+    voiceSessionTranscript,
+    isTextInputLocked,
+    hasSentFirstTextAfterVoice,
     
     // Session management
     activeSession,
