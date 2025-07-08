@@ -10,10 +10,11 @@ import { Brain, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Auth: React.FC = () => {
-  const { signIn, signUp, loading } = useAuth();
+  const { signIn, signUp, resetPassword, loading } = useAuth();
   const navigate = useNavigate();
   
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -72,6 +73,42 @@ export const Auth: React.FC = () => {
     }, 100);
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsSubmitting(true);
+
+    console.log('=== PASSWORD RESET REQUESTED ===');
+    console.log('Email:', email);
+    alert('Password reset requested for: ' + email); // Temporary alert to confirm function is called
+
+    try {
+      const { error } = await resetPassword(email);
+      console.log('Reset password result:', { error });
+      
+      if (error) {
+        console.error('Password reset error:', error);
+        
+        // Handle rate limiting specifically
+        if (error.message.includes('For security purposes, you can only request this after')) {
+          setError('Too many reset attempts. Please wait a moment before trying again.');
+        } else {
+          setError(error.message);
+        }
+      } else {
+        console.log('Password reset email sent successfully!');
+        setSuccess('Password reset email sent! Please check your email for instructions.');
+        setIsForgotPassword(false);
+      }
+    } catch (err) {
+      console.error('Unexpected error during password reset:', err);
+      setError('An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -122,61 +159,121 @@ export const Auth: React.FC = () => {
               </TabsList>
 
               <TabsContent value="signin">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
+                {!isForgotPassword ? (
+                  <>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Signing In...
+                          </>
+                        ) : (
+                          'Sign In'
+                        )}
+                      </Button>
+                    </form>
+
+                    <div className="mt-4 space-y-2">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleDemoLogin}
+                        disabled={isSubmitting}
+                      >
+                        Try Demo Account
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        className="w-full text-sm text-gray-600 hover:text-blue-600"
+                        onClick={() => setIsForgotPassword(true)}
+                        disabled={isSubmitting}
+                      >
+                        Forgot Password?
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-semibold">Reset Password</h3>
+                      <p className="text-sm text-gray-600">
+                        Enter your email address and we'll send you a link to reset your password.
+                      </p>
                     </div>
+                    
+                    <form onSubmit={handlePasswordReset} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Sending Reset Email...
+                          </>
+                        ) : (
+                          'Send Reset Email'
+                        )}
+                      </Button>
+                    </form>
+
+                    <Button
+                      variant="ghost"
+                      className="w-full text-sm text-gray-600 hover:text-blue-600"
+                      onClick={() => setIsForgotPassword(false)}
+                      disabled={isSubmitting}
+                    >
+                      Back to Sign In
+                    </Button>
                   </div>
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Signing In...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
-                  </Button>
-                </form>
-
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleDemoLogin}
-                    disabled={isSubmitting}
-                  >
-                    Try Demo Account
-                  </Button>
-                </div>
+                )}
               </TabsContent>
 
               <TabsContent value="signup">

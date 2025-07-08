@@ -40,7 +40,12 @@ export const ChatInterface: React.FC = () => {
     activePanel,
     highlightTerm,
     allSessions,
-    isMuted
+    isMuted,
+    // Voice session state
+    isVoiceSessionActive,
+    voiceSessionTranscript,
+    isTextInputLocked,
+    hasSentFirstTextAfterVoice
   } = useAppContext();
 
   const { user, signOut, updateProfile } = useAuth();
@@ -55,11 +60,6 @@ export const ChatInterface: React.FC = () => {
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  // Calculate learning progress
-  const userMessages = messages.filter(msg => msg.speaker === 'user');
-  const progressTowardsQuiz = Math.min(userMessages.length, 5);
-  const progressPercentage = (progressTowardsQuiz / 5) * 100;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -296,19 +296,13 @@ export const ChatInterface: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Progress Chip */}
-              {messages.length > 0 && (
-                <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full px-3 py-1.5 border border-blue-200 dark:border-blue-800">
-                  <Target className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300 whitespace-nowrap">
-                    Learning streak: {progressTowardsQuiz} / 5
+              {/* Voice Session Status */}
+              {isVoiceSessionActive && (
+                <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-full px-3 py-1.5 border border-red-200 dark:border-red-800">
+                  <Mic className="w-4 h-4 text-red-600 animate-pulse" />
+                  <span className="text-sm font-medium text-red-700 dark:text-red-300 whitespace-nowrap">
+                    Voice Session Active
                   </span>
-                  <div className="w-8 h-1.5 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </div>
                 </div>
               )}
 
@@ -486,24 +480,58 @@ export const ChatInterface: React.FC = () => {
 
           {/* Input Area */}
           <div className="flex gap-2 pt-2 border-t border-border bg-background">
-            <Input
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={isTyping}
-              className="flex-1"
-              aria-label="Type your message"
-            />
+            <div className="flex-1 relative">
+              <Input
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={
+                  isTextInputLocked 
+                    ? "Text input locked during voice session..." 
+                    : "Type your message..."
+                }
+                disabled={isTyping || isTextInputLocked}
+                className={`flex-1 ${isTextInputLocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                aria-label="Type your message"
+              />
+              {isTextInputLocked && (
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <span>Voice Active</span>
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               onClick={handleSendMessage}
-              disabled={!textInput.trim() || isTyping}
+              disabled={!textInput.trim() || isTyping || isTextInputLocked}
               size="sm"
               aria-label="Send message"
+              className={isTextInputLocked ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          
+          {/* Voice Session Info */}
+          {isTextInputLocked && (
+            <div className="px-2 py-1 bg-blue-50 border-l-4 border-blue-400 rounded-r">
+              <p className="text-xs text-blue-700">
+                💡 <strong>Voice Session Active:</strong> Text input is locked. Click "Stop Voice" to enable text chat. 
+                Your first text message will include the voice session transcript for context.
+              </p>
+            </div>
+          )}
+          
+          {/* Transcript Ready Info */}
+          {!isTextInputLocked && voiceSessionTranscript && !hasSentFirstTextAfterVoice && (
+            <div className="px-2 py-1 bg-green-50 border-l-4 border-green-400 rounded-r">
+              <p className="text-xs text-green-700">
+                ✅ <strong>Voice Session Ended:</strong> Text input unlocked. Your first message will include the voice session transcript.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -603,44 +631,6 @@ export const ChatInterface: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Voice Notifications
-                  </Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Play sounds for voice interactions
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Auto-save Conversations
-                  </Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Automatically save conversation history
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Quiz Auto-generation
-                  </Label>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Generate quizzes after 5 exchanges
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Separator />
-              
               <div>
                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Data & Privacy
