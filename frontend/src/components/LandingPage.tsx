@@ -534,21 +534,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               Simple, Transparent Pricing
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Choose the plan that fits your learning needs. Start free and upgrade anytime.
+              Start free and feel the magic. Upgrade for more time and premium features.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Starter Plan */}
+          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Free Plan */}
             <Card className="group relative bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                  <Mic className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Starter</CardTitle>
-                <p className="text-gray-600 mb-4">Perfect for individual learners and students</p>
+                <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Free</CardTitle>
+                <p className="text-gray-600 mb-4">Try the core experience, no credit card required</p>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold text-gray-800">$9</span>
+                  <span className="text-4xl font-bold text-gray-800">$0</span>
                   <span className="text-lg text-gray-600 ml-1">/month</span>
                 </div>
               </CardHeader>
@@ -556,27 +556,104 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">60 minutes of AI conversations</span>
+                    <span className="text-gray-700">Unlimited AI chat (text or voice)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Unlimited quiz generation</span>
+                    <span className="text-gray-700">Up to 10 minutes/day real-time voice</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">AI-powered summaries</span>
+                    <span className="text-gray-700">Unlimited saved sessions</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Study progress tracking</span>
+                    <span className="text-gray-700">1 quiz per session</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Mobile & desktop access</span>
+                    <span className="text-gray-700">Export transcript (text only)</span>
+                  </div>
+                  <div className="flex items-center space-x-3 opacity-60">
+                    <X className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-500">No premium voices or controls</span>
+                  </div>
+                  <div className="flex items-center space-x-3 opacity-60">
+                    <X className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-500">No downloadable quiz reports</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs">🔒</span>
+                    </div>
+                    <span className="text-gray-600">Watermark on transcripts</span>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full mt-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 rounded-xl transition-all duration-200 group-hover:scale-105"
+                  onClick={() => {
+                    if (user) {
+                      onStartConversation();
+                    } else {
+                      navigate('/auth');
+                    }
+                  }}
+                >
+                  Start Free
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                <p className="text-sm text-gray-500 text-center">
+                  Feel the magic • No credit card required
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Basic Plan */}
+            <Card className="group relative bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Mic className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Basic</CardTitle>
+                <p className="text-gray-600 mb-4">For regular learners who want more time</p>
+                <div className="flex items-baseline justify-center">
+                  <span className="text-4xl font-bold text-gray-800">$12</span>
+                  <span className="text-lg text-gray-600 ml-1">/month</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700">Unlimited text + 1 hour/day voice</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Email support</span>
+                    <span className="text-gray-700">Unlimited saved sessions</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700">Unlimited quizzes</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700">Export transcripts + quizzes</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700">Voice pause/resume & replay</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700">Priority voice performance</span>
+                  </div>
+                  <div className="flex items-center space-x-3 opacity-60">
+                    <X className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-500">No premium voice selection</span>
+                  </div>
+                  <div className="flex items-center space-x-3 opacity-60">
+                    <X className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-500">No advanced customization</span>
                   </div>
                 </div>
                 <Button 
@@ -593,7 +670,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <p className="text-sm text-gray-500 text-center">
-                  ~$0.15 per minute • Cancel anytime
+                  ~$0.20 per minute • Cancel anytime
                 </p>
               </CardContent>
             </Card>
@@ -612,9 +689,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <Brain className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Pro</CardTitle>
-                <p className="text-gray-600 mb-4">For serious learners and power users</p>
+                <p className="text-gray-600 mb-4">For power users, educators, or serious learners</p>
                 <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold text-gray-800">$29</span>
+                  <span className="text-4xl font-bold text-gray-800">$25</span>
                   <span className="text-lg text-gray-600 ml-1">/month</span>
                 </div>
               </CardHeader>
@@ -622,27 +699,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">300 minutes of AI conversations</span>
+                    <span className="text-gray-700">Unlimited text + 5 hours/day voice</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Unlimited quiz generation</span>
+                    <span className="text-gray-700">All Basic features</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Advanced AI summaries</span>
+                    <span className="text-gray-700">Downloadable PDF reports</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Priority voice processing</span>
+                    <span className="text-gray-700">Premium ElevenLabs voices</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Custom learning paths</span>
+                    <span className="text-gray-700">Teaching style presets</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">Export study materials</span>
+                    <span className="text-gray-700">AI session insights</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -663,7 +740,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 <p className="text-sm text-gray-500 text-center">
-                  ~$0.10 per minute • Cancel anytime
+                  ~$0.14 per minute • Cancel anytime
                 </p>
               </CardContent>
             </Card>
