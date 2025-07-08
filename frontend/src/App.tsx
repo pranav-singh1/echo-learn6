@@ -7,6 +7,7 @@ import { AppProvider } from "./contexts/AppContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Index } from "./pages/Index";
 import { Auth } from "./pages/Auth";
+import { ResetPassword } from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -57,6 +58,10 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/auth" 
         element={user ? <Navigate to="/" replace /> : <Auth />} 
+      />
+      <Route 
+        path="/reset-password" 
+        element={<ResetPassword />} 
       />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
