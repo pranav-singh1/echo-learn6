@@ -8,7 +8,7 @@ import { ConversationHistory } from '../components/ConversationHistory';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut, Trash2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { OnboardingTour } from '../components/OnboardingTour';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,6 +81,33 @@ export const Index: React.FC = () => {
       setShowProfileModal(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
+    }
+  };
+
+  const handleDeleteAllConversations = async () => {
+    const doubleConfirm = window.prompt(
+      'This will permanently delete ALL your conversation data. This action cannot be undone.\n\nType "DELETE" to confirm:'
+    );
+    
+    if (doubleConfirm !== 'DELETE') {
+      alert('Data deletion cancelled.');
+      return;
+    }
+
+    try {
+      // Import the storage service
+      const { supabaseConversationStorage } = await import('../lib/supabaseConversationStorage');
+      
+      // Clear all conversations
+      await supabaseConversationStorage.clearAllConversations();
+      
+      // Reload the app state
+      window.location.reload();
+      
+      alert('All conversation data has been permanently deleted.');
+    } catch (error) {
+      console.error('Failed to delete data:', error);
+      alert('Failed to delete data. Please try again.');
     }
   };
 
@@ -161,7 +188,7 @@ export const Index: React.FC = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
                   <User className="h-4 w-4" />
-                  {user?.email?.split('@')[0] || 'User'}
+                  {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -366,6 +393,21 @@ export const Index: React.FC = () => {
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   {theme === 'dark' ? 'Light' : 'Dark'}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Delete All Conversations</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Permanently delete all your conversation history.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeleteAllConversations}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete All
                 </Button>
               </div>
             </div>
