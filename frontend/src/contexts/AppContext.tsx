@@ -120,35 +120,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [activePanel]);
 
-  // Debug effect to track quizSummary changes
-  useEffect(() => {
-    console.log('quizSummary state changed to:', quizSummary);
-  }, [quizSummary]);
 
-  // Debug effect to track quizQuestions changes
-  useEffect(() => {
-    console.log('quizQuestions state changed to:', quizQuestions);
-  }, [quizQuestions]);
 
   // Load conversations when user changes - with proper ID tracking
   useEffect(() => {
     const currentUserId = user?.id || null;
     
-    console.log('User effect triggered:', { 
-      currentUserId, 
-      initializedUserId, 
-      isInitialized, 
-      userExists: !!user 
-    });
-    
     if (user && currentUserId !== initializedUserId) {
-      console.log('User changed or first initialization, initializing session for user:', currentUserId);
       setInitializedUserId(currentUserId);
       setIsInitialized(false);
       setActivePanel(null);
       initializeUserSession();
     } else if (!user && initializedUserId) {
-      console.log('User logged out, clearing data');
       // Clear data when user logs out
       setAllSessions([]);
       setActiveSession(null);
@@ -158,10 +141,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setInitializedUserId(null);
       setIsInitialized(false);
     } else if (user && currentUserId === initializedUserId && isInitialized) {
-      console.log('Same user detected and already initialized, preserving session state');
       // Same user and already initialized, don't re-initialize
     } else if (user && currentUserId === initializedUserId && !isInitialized) {
-      console.log('Same user but not initialized yet, completing initialization');
       // This handles the case where the user object reference changed but it's the same user
       // and we haven't finished initialization yet
     }
@@ -193,10 +174,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Try to load the last active session from Supabase only if we don't have one
       if (!activeSession || messages.length === 0) {
         const lastActiveSession = await supabaseConversationStorage.getActiveSession();
-        console.log('Last active session from Supabase:', lastActiveSession?.id);
-        
         if (lastActiveSession && lastActiveSession.messages.length > 0) {
-          console.log('Loading last active session:', lastActiveSession.id);
           setActiveSession(lastActiveSession);
           setMessages(lastActiveSession.messages);
           setQuizSummary(lastActiveSession.summary || null);
@@ -207,7 +185,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           setActivePanel(null);
         } else {
           // Only start fresh if there's no active session
-          console.log('No active session found - starting fresh');
           setActiveSession(null);
           setMessages([]);
           setQuizSummary(null);
@@ -285,7 +262,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (message.speaker === 'ai' && 
             activeSession.title === 'New Conversation' && 
             messages.length >= 1) { // Ensure we have at least user message + this AI response
-          console.log('Triggering auto title generation after first AI response');
           // Small delay to ensure message is saved first
           setTimeout(() => {
             generateConversationTitle();
@@ -293,9 +269,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       } else if (activeSession && message.isStreaming) {
         // For streaming messages, we'll save them when they're complete
-        console.log('Streaming message started, will save when complete');
       } else if (!activeSession) {
-        console.log('No active session yet, message will be saved once session is created');
+        // No active session yet, message will be saved once session is created
       }
     });
 
@@ -314,23 +289,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Session management functions
   const createNewSession = async () => {
-    console.log('createNewSession called, user:', user);
     if (!user) {
-      console.log('No user found, returning early');
       return;
     }
     
     try {
-      console.log('Stopping current conversation if active...');
       // Stop current conversation if active
       if (isConnected) {
         stopConversation();
       }
       
-      console.log('Creating new session in Supabase...');
       // Create new session
       const newSession = await supabaseConversationStorage.createSession();
-      console.log('New session created:', newSession);
       
       setActiveSession(newSession);
       setMessages([]);
@@ -341,10 +311,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setQuizShowAnswers(false);
       setActivePanel('chat');
       
-      console.log('Reloading conversations...');
       // Reload all sessions
       await loadConversations();
-      console.log('createNewSession completed successfully');
     } catch (error) {
       console.error('Error creating new session:', error);
     }
@@ -352,8 +320,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Start a fresh conversation view without creating a session
   const startFreshConversation = () => {
-    console.log('Starting fresh conversation view (no session created yet)');
-    
     // Stop current conversation if active
     if (isConnected) {
       stopConversation();
@@ -372,7 +338,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Force create a fresh session (used when transitioning from landing page)
   const createFreshSession = async () => {
-    console.log('createFreshSession called - forcing new session creation');
     if (!user) return;
     
     try {
@@ -383,7 +348,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Always create a new session regardless of existing ones
       const newSession = await supabaseConversationStorage.createSession();
-      console.log('Fresh session created:', newSession);
       
       setActiveSession(newSession);
       setMessages([]);
@@ -509,7 +473,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ).map(msg => `${msg.speaker === 'user' ? 'You' : 'EchoLearn'}: ${msg.text}`).join('\n');
       
       setVoiceSessionTranscript(voiceMessages);
-      console.log('Voice session ended. Transcript prepared for next text message.');
       
     } catch (error) {
       console.error('Failed to stop conversation:', error);
@@ -524,7 +487,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       // Create new session if none exists (when user sends first message)
       if (!activeSession) {
-        console.log('Creating new session as user is sending first message');
         const newSession = await supabaseConversationStorage.createSession();
         setActiveSession(newSession);
         
@@ -535,7 +497,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Check if this is the first text message after a voice session
       if (!hasSentFirstTextAfterVoice && voiceSessionTranscript && voiceSessionTranscript.trim()) {
-        console.log('First text message after voice session - injecting transcript context');
         
         // Add the user's message to the UI first (what they actually typed)
         const userMessage = {
@@ -610,16 +571,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           return `${speaker}: ${msg.text}`;
         });
 
-        console.log('Sending quiz generation request with log:', conversationLog);
-
         const response = await fetch('/api/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ log: conversationLog }),
         });
-
-        console.log('Quiz API response status:', response.status);
-        console.log('Quiz API response ok:', response.ok);
 
         if (!response.ok) {
           // Try to parse the error response, but have a fallback.
@@ -633,9 +589,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
 
         const data = await response.json();
-        console.log('Quiz API response data:', data);
-        console.log('Summary from API:', data.summary);
-        console.log('Questions from API:', data.questions);
         
         setQuizSummary(data.summary);
         setQuizQuestions(data.questions);
@@ -647,14 +600,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           quizQuestions: data.questions
         });
         
-        console.log('Successfully saved summary and questions to session');
-        
         // Reload sessions to update UI
         await loadConversations();
-        
-        console.log('Quiz generation completed successfully');
-        console.log('Current quizSummary state:', data.summary);
-        console.log('Current quizQuestions state:', data.questions);
       } catch (error) {
         console.error('Error generating quiz:', error);
         setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
@@ -665,24 +612,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const toggleQuiz = async () => {
-    console.log('toggleQuiz called');
-    console.log('activePanel:', activePanel);
-    console.log('quizQuestions.length:', quizQuestions.length);
-    console.log('Current quizSummary:', quizSummary);
-    
     // If quiz panel is currently open, close it
     if (activePanel === 'quiz') {
-      console.log('Closing quiz panel');
       setActivePanel(null);
     } 
     // If we have quiz questions already, just open the quiz panel
     else if (quizQuestions.length > 0) {
-      console.log('Opening existing quiz');
       setActivePanel('quiz');
     } 
     // If no quiz exists, generate a new one
     else {
-      console.log('Generating new quiz');
       await generateQuiz();
     }
   };
@@ -741,15 +680,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (messages.length === 0 || !activeSession) return;
     
     try {
-      console.log('Generating conversation title for session:', activeSession.id);
-
       const response = await fetch('/api/title', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages }),
       });
-
-      console.log('Title API response status:', response.status);
 
       if (!response.ok) {
         try {
@@ -761,14 +696,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      console.log('Generated title:', data.title);
       
       // Update session title
       if (activeSession && data.title) {
         await updateSessionTitle(activeSession.id, data.title);
       }
-      
-      console.log('Conversation title updated successfully');
     } catch (error) {
       console.error('Error generating conversation title:', error);
       // Don't show error to user for title generation failures
@@ -839,8 +771,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       <ElevenLabsConversation
         onMessage={(message) => conversationService.addMessage(message)}
         onStateChange={(state) => conversationService.updateState(state)}
-        onStart={() => console.log('Conversation started')}
-        onStop={() => console.log('Conversation stopped')}
+        onStart={() => {}}
+        onStop={() => {}}
       />
       {children}
     </AppContext.Provider>
