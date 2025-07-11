@@ -20,51 +20,97 @@ export const ResetPassword: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
 
+
   useEffect(() => {
-    // On mount, let Supabase handle the hash and set the session
-    const handleSessionFromUrl = async () => {
+    // On mount, handle the password reset flow
+    const handlePasswordReset = async () => {
       setIsValidSession(null);
       setError(null);
       setSuccess(null);
-      console.log('ResetPassword page loaded');
-      console.log('Full URL:', window.location.href);
-      // This will parse the hash and set the session if present
-      const { data, error } = await supabase.auth.getSessionFromUrl();
-      if (error) {
-        console.error('Error parsing session from URL:', error);
-        setError('Invalid or expired reset link. Please request a new password reset.');
-        setIsValidSession(false);
-        return;
+      
+      // Check if we have a recovery token in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const type = urlParams.get('type');
+      
+      // Check for tokens in both query params and hash
+      let finalAccessToken = accessToken;
+      let finalRefreshToken = refreshToken;
+      let finalType = type;
+      
+      // If not found in query params, check hash
+      if (!finalAccessToken && location.hash) {
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        finalAccessToken = hashParams.get('access_token');
+        finalRefreshToken = hashParams.get('refresh_token');
+        finalType = hashParams.get('type');
       }
-      if (data.session && data.session.user) {
-        console.log('Session set from URL:', data.session);
-        setIsValidSession(true);
-      } else {
-        setError('Invalid or expired reset link. Please request a new password reset.');
-        setIsValidSession(false);
+      
+      if (finalAccessToken && finalRefreshToken && finalType === 'recovery') {
+        // Set the session with the recovery tokens
+        const { data, error } = await supabase.auth.setSession({
+          access_token: finalAccessToken,
+          refresh_token: finalRefreshToken,
+        });
+        
+        if (error) {
+          setError('Invalid or expired reset link. Please request a new password reset.');
+          setIsValidSession(false);
+          return;
+        }
+        
+        if (data.session && data.session.user) {
+          setIsValidSession(true);
+        } else {
+          setError('Invalid or expired reset link. Please request a new password reset.');
+          setIsValidSession(false);
+        }
+                   } else {
+        // No recovery tokens found - this might be a direct navigation or invalid link
+        // Try to get any existing session
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          setError('Invalid or expired reset link. Please request a new password reset.');
+          setIsValidSession(false);
+          return;
+        }
+        
+        if (data.session && data.session.user) {
+          setIsValidSession(true);
+        } else {
+          setError('Invalid or expired reset link. Please request a new password reset.');
+          setIsValidSession(false);
+        }
       }
     };
-    handleSessionFromUrl();
-  }, []);
+    
+    handlePasswordReset();
+  }, [location]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setIsSubmitting(true);
+    
     try {
       if (password !== confirmPassword) {
         setError('Passwords do not match');
         setIsSubmitting(false);
         return;
       }
+      
       if (password.length < 6) {
         setError('Password must be at least 6 characters');
         setIsSubmitting(false);
         return;
       }
+      
       // Update the user's password
       const { error } = await supabase.auth.updateUser({ password });
+      
       if (error) {
         setError(error.message);
       } else {
@@ -83,10 +129,10 @@ export const ResetPassword: React.FC = () => {
   if (isValidSession === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Verifying reset link...</p>
-        </div>
+                  <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Verifying reset link...</p>
+          </div>
       </div>
     );
   }
@@ -148,6 +194,8 @@ export const ResetPassword: React.FC = () => {
             <CardDescription>Enter your new password below</CardDescription>
           </CardHeader>
           <CardContent>
+
+            
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
@@ -202,6 +250,7 @@ export const ResetPassword: React.FC = () => {
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
+
           </CardContent>
         </Card>
       </div>

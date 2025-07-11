@@ -79,17 +79,10 @@ export const Auth: React.FC = () => {
     setSuccess(null);
     setIsSubmitting(true);
 
-    console.log('=== PASSWORD RESET REQUESTED ===');
-    console.log('Email:', email);
-    alert('Password reset requested for: ' + email); // Temporary alert to confirm function is called
-
     try {
       const { error } = await resetPassword(email);
-      console.log('Reset password result:', { error });
       
       if (error) {
-        console.error('Password reset error:', error);
-        
         // Handle rate limiting specifically
         if (error.message.includes('For security purposes, you can only request this after')) {
           setError('Too many reset attempts. Please wait a moment before trying again.');
@@ -97,7 +90,6 @@ export const Auth: React.FC = () => {
           setError(error.message);
         }
       } else {
-        console.log('Password reset email sent successfully!');
         setSuccess('Password reset email sent! Please check your email for instructions.');
         setIsForgotPassword(false);
       }
@@ -376,9 +368,9 @@ export const Auth: React.FC = () => {
         <div className="text-center mt-6 text-sm text-gray-600">
           <p>
             By continuing, you agree to our{' '}
-            <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>
+            <a href="/terms" className="text-blue-600 hover:underline">Terms of Service</a>
             {' '}and{' '}
-            <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+            <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>
           </p>
         </div>
       </div>
