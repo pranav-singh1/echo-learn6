@@ -166,7 +166,7 @@ export const Index: React.FC = () => {
           {/* Right side actions */}
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
               className="hidden md:flex"
@@ -174,7 +174,7 @@ export const Index: React.FC = () => {
               {showHistory ? 'Hide History' : 'Show History'}
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={toggleTheme}
               className="flex items-center gap-2"
@@ -183,6 +183,16 @@ export const Index: React.FC = () => {
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               {theme === 'dark' ? 'Light' : 'Dark'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShowHelp}
+              className="flex items-center gap-2"
+              aria-label="Help"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -242,17 +252,6 @@ export const Index: React.FC = () => {
         </div>
       </div>
       
-      {/* Help Button - Bottom Left */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleShowHelp}
-        className="fixed bottom-4 left-4 z-50 rounded-full w-10 h-10 p-0 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-200"
-        aria-label="Help"
-      >
-        <HelpCircle className="w-5 h-5" />
-      </Button>
-
       {/* Help Modal */}
       {showHelp && (
         <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
