@@ -117,15 +117,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateProfile = async (updates: { name?: string }) => {
     if (!user) return { error: { message: 'No user logged in' } as AuthError };
 
-    const { error } = await supabase
-      .from('users')
-      .update({
-        name: updates.name,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
+    try {
+      // Update the auth user metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          name: updates.name,
+        }
+      });
 
-    return { error };
+      if (authError) {
+        return { error: authError };
+      }
+
+      // Update the users table
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({
+          name: updates.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (dbError) {
+        return { error: { message: dbError.message } as AuthError };
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error: { message: 'Failed to update profile' } as AuthError };
+    }
   };
 
   const value: AuthContextType = {
