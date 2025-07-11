@@ -305,21 +305,12 @@ export const ChatInterface: React.FC = () => {
                   </span>
                 </div>
               )}
-
-              {/* Connection Status Badge */}
-              <Badge 
-                variant="outline" 
-                className={`${connectionStatus.color.replace('bg-', 'border-').replace('500', '300')} ${connectionStatus.color.replace('bg-', 'text-').replace('500', '700')} flex items-center gap-1.5 px-2.5 py-1`}
-              >
-                <span className="text-xs">{connectionStatus.icon}</span>
-                <span className="text-xs font-medium">{connectionStatus.label}</span>
-              </Badge>
             </div>
           </div>
 
           {/* Bottom Row: Actions */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full">
               <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
                 <Button
                   size="sm"
@@ -363,6 +354,21 @@ export const ChatInterface: React.FC = () => {
                   {isGeneratingQuiz ? 'Generating...' : 
                    activePanel === 'quiz' ? 'Close Quiz' :
                    quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                </Button>
+              </div>
+              <div className="ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className={`flex items-center gap-2 border font-medium text-sm ${
+                    isConnected 
+                      ? 'border-green-300' 
+                      : 'border-gray-300'
+                  }`}
+                >
+                  <span className="text-xs">{connectionStatus.icon}</span>
+                  <span>{connectionStatus.label}</span>
                 </Button>
               </div>
             </div>
