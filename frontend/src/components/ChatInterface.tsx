@@ -366,37 +366,6 @@ export const ChatInterface: React.FC = () => {
                 </Button>
               </div>
             </div>
-            <div className="pl-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
-                    <User className="h-4 w-4" />
-                    {user?.email?.split('@')[0] || 'User'}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>{user?.email}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSettingsModal(true)}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
         </CardHeader>
 
