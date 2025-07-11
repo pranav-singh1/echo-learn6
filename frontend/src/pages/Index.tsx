@@ -269,6 +269,9 @@ export const Index: React.FC = () => {
                 <strong>Start Conversation:</strong> Click the microphone button or type in the chat to begin talking with EchoLearn.
               </div>
               <div>
+                <strong>Mute/Unmute:</strong> Mute your microphone so EchoLearn doesn't pick up background noise or unintended speech during voice sessions.
+              </div>
+              <div>
                 <strong>New Chat:</strong> Use the "New Chat" button in the sidebar to start fresh.
               </div>
               <div>
