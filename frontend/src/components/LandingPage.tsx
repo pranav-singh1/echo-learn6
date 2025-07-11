@@ -17,7 +17,16 @@ import {
   TrendingUp,
   Quote,
   Menu,
-  X
+  X,
+  Home,
+  Footprints,
+  GraduationCap,
+  Train,
+  Moon,
+  Clock,
+  Headphones,
+  Target,
+  Coffee
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -62,17 +71,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
                 Features
               </a>
+              <a href="#use-cases" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                Use Cases
+              </a>
               <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
                 How it Works
-              </a>
-              <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
-                Pricing
               </a>
               <a href="#faq" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
                 FAQ
               </a>
               <a href="#contact" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
                 Contact
+              </a>
+              <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                Pricing
               </a>
               {user ? (
                 <Button
@@ -122,18 +134,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   Features
                 </a>
                 <a 
+                  href="#use-cases" 
+                  className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Use Cases
+                </a>
+                <a 
                   href="#how-it-works" 
                   className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium py-2"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   How it Works
-                </a>
-                <a 
-                  href="#pricing" 
-                  className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Pricing
                 </a>
                 <a 
                   href="#faq" 
@@ -148,6 +160,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Contact
+                </a>
+                <a 
+                  href="#pricing" 
+                  className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Pricing
                 </a>
                 <div className="pt-2 border-t border-gray-200">
                   {user ? (
@@ -220,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               <Button
                 variant="outline"
                 size="lg"
-                className="border-2 border-gray-200 hover:border-blue-300 px-8 py-4 text-lg rounded-2xl transition-all duration-300 hover:bg-white/80 backdrop-blur-sm"
+                className="!bg-white !text-gray-700 !border-2 !border-gray-200 hover:!border-blue-300 hover:!bg-white/90 px-8 py-4 text-lg rounded-2xl transition-all duration-300 backdrop-blur-sm shadow-lg hover:shadow-xl"
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
                 Watch Demo
@@ -260,7 +279,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Mic className="w-8 h-8 text-white" />
@@ -278,7 +297,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </CardContent>
             </Card>
 
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <BookOpen className="w-8 h-8 text-white" />
@@ -296,7 +315,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </CardContent>
             </Card>
 
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="pb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Sparkles className="w-8 h-8 text-white" />
@@ -310,6 +329,137 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <div className="flex items-center justify-center space-x-2 text-sm text-green-600">
                   <CheckCircle className="w-4 h-4" />
                   <span>Adaptive questioning</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Use Cases Section */}
+        <section id="use-cases" className="container mx-auto px-6 py-20">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-gradient-to-r from-green-100 to-blue-100 text-green-700 border-green-200">
+              Use Cases
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+              Learn <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Anywhere, Anytime</span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              EchoLearn adapts to your lifestyle, turning any moment into a learning opportunity
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Study at Home */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Home className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">Study at Home</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  In your room, no one around to discuss concepts with? Have natural conversations with AI to clarify doubts and reinforce learning.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-indigo-600 font-medium">
+                  <Clock className="w-4 h-4" />
+                  <span>Anytime, 24/7</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Walking to Class */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Footprints className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">Walking to Class</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  Refresh key concepts on your way to lectures. Use voice conversations to review material hands-free while walking.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-green-600 font-medium">
+                  <Headphones className="w-4 h-4" />
+                  <span>Hands-free learning</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Before Exams */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <GraduationCap className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">Exam Preparation</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  Generate practice quizzes and get instant feedback. Have AI explain complex topics in different ways until you understand.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-orange-600 font-medium">
+                  <Target className="w-4 h-4" />
+                  <span>Focused prep</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Commuting */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Train className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">During Commute</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  Turn travel time into productive study sessions. Review notes through voice or practice with AI-generated quizzes.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-blue-600 font-medium">
+                  <Zap className="w-4 h-4" />
+                  <span>Productive travel</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Group Study */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">Group Study</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  When your study group can't meet, continue discussions with AI. Get different perspectives and explanations instantly.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-pink-600 font-medium">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Always available</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Late Night Study */}
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <Moon className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-800 mb-3">Late Night Sessions</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4 leading-relaxed">
+                  When libraries are closed and friends are asleep, get AI assistance for those last-minute study sessions and concept clarification.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-violet-600 font-medium">
+                  <Coffee className="w-4 h-4" />
+                  <span>Night owl friendly</span>
                 </div>
               </CardContent>
             </Card>
@@ -339,7 +489,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
         </section>
 
         {/* How it Works Section */}
-        <section id="how-it-works" className="container mx-auto px-6 py-20 bg-white/30 backdrop-blur-sm rounded-3xl mx-6">
+        <section id="how-it-works" className="container mx-auto px-6 py-20">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-indigo-50 text-indigo-700 border-indigo-200">
               Process
@@ -448,7 +598,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 answer: "Yes! You can start using EchoLearn immediately with no signup required. Experience the full features and decide if it's right for your learning journey."
               }
             ].map((faq, index) => (
-              <Card key={index} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Card key={index} className="bg-white/30 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-gray-800 text-left">
                     {faq.question}
@@ -465,7 +615,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
         </section>
 
         {/* Contact Section */}
-        <section id="contact" className="container mx-auto px-6 py-20 bg-white/30 backdrop-blur-sm rounded-3xl mx-6">
+        <section id="contact" className="container mx-auto px-6 py-20">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-green-50 text-green-700 border-green-200">
               Contact
@@ -478,48 +628,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 text-center">
+          <div className="flex justify-center max-w-md mx-auto">
+            <Card className="group bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 text-center w-full">
               <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-6 h-6 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-lg font-bold text-gray-800">Email Support</CardTitle>
+                <CardTitle className="text-xl font-bold text-gray-800">Email Support</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">Get help with any questions or technical issues</p>
-                <a href="mailto:support@echolearn.ai" className="text-blue-600 hover:text-blue-700 font-medium">
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  Get help with any questions or technical issues. We typically respond within 24 hours.
+                </p>
+                <a 
+                  href="mailto:support@echolearn.ai" 
+                  className="inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
                   support@echolearn.ai
-                </a>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 text-center">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-lg font-bold text-gray-800">Community</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">Join our learning community and connect with other users</p>
-                <a href="#" className="text-purple-600 hover:text-purple-700 font-medium">
-                  Join Discord
-                </a>
-              </CardContent>
-            </Card>
-
-            <Card className="group bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 text-center">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-lg font-bold text-gray-800">Documentation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">Learn how to get the most out of EchoLearn</p>
-                <a href="#" className="text-green-600 hover:text-green-700 font-medium">
-                  View Docs
                 </a>
               </CardContent>
             </Card>
@@ -542,7 +668,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
 
           <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Free Plan */}
-            <Card className="group relative bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group relative bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="text-center pb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Sparkles className="w-8 h-8 text-white" />
@@ -611,7 +737,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Card>
 
             {/* Basic Plan */}
-            <Card className="group relative bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group relative bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               <CardHeader className="text-center pb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Mic className="w-8 h-8 text-white" />
@@ -678,7 +804,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Card>
 
             {/* Pro Plan */}
-            <Card className="group relative bg-white/70 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+            <Card className="group relative bg-white/30 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
               {/* Popular Badge */}
               <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
                 <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-1 rounded-b-lg border-0 shadow-lg">

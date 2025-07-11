@@ -7,13 +7,23 @@ import { SummaryPanel } from '../components/SummaryPanel';
 import { ConversationHistory } from '../components/ConversationHistory';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
-import { Menu, X, Home, Moon, Sun, HelpCircle } from 'lucide-react';
+import { Input } from '../components/ui/input';
+import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { OnboardingTour } from '../components/OnboardingTour';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 
 export const Index: React.FC = () => {
   const { user } = useAuth();
+  const { signOut, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   
   // Only use app context when user is authenticated
@@ -34,6 +44,18 @@ export const Index: React.FC = () => {
     return false;
   });
   const [showHelp, setShowHelp] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+
+  // Update profile fields when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.user_metadata?.name || '');
+      setProfileEmail(user.email || '');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,6 +73,15 @@ export const Index: React.FC = () => {
   const handleGoHome = () => {
     setShowConversation(false);
     setActivePanel(null);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile({ name: profileName });
+      setShowProfileModal(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
   };
 
   const handleCloseTour = () => {
@@ -100,7 +131,7 @@ export const Index: React.FC = () => {
             >
               {showHistory ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <span className="h-full w-auto flex items-center text-black dark:text-white">
+            <span className="h-full w-auto flex items-center text-black dark:text-white cursor-pointer hover:scale-105 transition-transform duration-200" onClick={handleGoHome}>
               <Logo className="h-full w-auto" />
             </span>
           </div>
@@ -126,16 +157,39 @@ export const Index: React.FC = () => {
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               {theme === 'dark' ? 'Light' : 'Dark'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGoHome}
-              className="flex items-center gap-2"
-              data-tour="home"
-            >
-              <Home className="w-4 h-4" />
-              Home
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
+                  <User className="h-4 w-4" />
+                  {user?.email?.split('@')[0] || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{user?.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowSettingsModal(true)}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleGoHome}>
+                  <Home className="mr-2 h-4 w-4" />
+                  <span>Home</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
@@ -203,6 +257,125 @@ export const Index: React.FC = () => {
             <div className="mt-6 flex justify-end">
               <Button onClick={handleCloseHelp} className="bg-blue-600 hover:bg-blue-700 text-white">
                 Got it!
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Manage your account information</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Display Name
+                </label>
+                <Input
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Enter your display name"
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email
+                </label>
+                <Input
+                  value={profileEmail}
+                  disabled
+                  className="w-full bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Email cannot be changed
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowProfileModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveProfile}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <Settings className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Configure your preferences</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Theme</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark mode</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2"
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {theme === 'dark' ? 'Light' : 'Dark'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button
+                onClick={() => setShowSettingsModal(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white"
+              >
+                Close
               </Button>
             </div>
           </div>
