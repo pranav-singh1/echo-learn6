@@ -296,15 +296,7 @@ export const ChatInterface: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Voice Session Status */}
-              {isVoiceSessionActive && (
-                <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-full px-3 py-1.5 border border-red-200 dark:border-red-800">
-                  <Mic className="w-4 h-4 text-red-600 animate-pulse" />
-                  <span className="text-sm font-medium text-red-700 dark:text-red-300 whitespace-nowrap">
-                    Voice Session Active
-                  </span>
-                </div>
-              )}
+              {/* Voice Session Status - REMOVED */}
             </div>
           </div>
 
@@ -489,24 +481,9 @@ export const ChatInterface: React.FC = () => {
             </Button>
           </div>
           
-          {/* Voice Session Info */}
-          {isTextInputLocked && (
-            <div className="px-2 py-1 bg-blue-50 border-l-4 border-blue-400 rounded-r">
-              <p className="text-xs text-blue-700">
-                💡 <strong>Voice Session Active:</strong> Text input is locked. Click "Stop Voice" to enable text chat. 
-                Your first text message will include the voice session transcript for context.
-              </p>
-            </div>
-          )}
+          {/* Voice Session Info - REMOVED */}
           
-          {/* Transcript Ready Info */}
-          {!isTextInputLocked && voiceSessionTranscript && !hasSentFirstTextAfterVoice && (
-            <div className="px-2 py-1 bg-green-50 border-l-4 border-green-400 rounded-r">
-              <p className="text-xs text-green-700">
-                ✅ <strong>Voice Session Ended:</strong> Text input unlocked. Your first message will include the voice session transcript.
-              </p>
-            </div>
-          )}
+          {/* Transcript Ready Info - REMOVED */}
         </CardContent>
       </Card>
 
