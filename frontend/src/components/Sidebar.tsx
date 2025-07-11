@@ -23,10 +23,7 @@ export const Sidebar: React.FC = () => {
     quizQuestions 
   } = useAppContext();
 
-  // Debug logging
-  console.log('Sidebar - quizSummary:', quizSummary);
-  console.log('Sidebar - quizQuestions.length:', quizQuestions.length);
-  console.log('Sidebar - activePanel:', activePanel);
+
 
   // Calculate conversation stats
   const userMessages = messages.filter(m => m.speaker === 'user').length;
