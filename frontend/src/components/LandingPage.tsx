@@ -31,6 +31,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo';
+import AnimatedBenefits from './AnimatedBenefits';
 
 interface LandingPageProps {
   onStartConversation: () => void;
@@ -246,20 +247,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </Button>
             </div>
 
-            {/* Stats */}
-            <div className="flex flex-wrap justify-center gap-8 text-center animate-fade-in-up animation-delay-800">
-              <div className="flex items-center space-x-2 group hover:scale-105 transition-transform duration-200">
-                <Users className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                <span className="text-gray-600 font-medium">10K+ Learners</span>
-              </div>
-              <div className="flex items-center space-x-2 group hover:scale-105 transition-transform duration-200">
-                <TrendingUp className="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" />
-                <span className="text-gray-600 font-medium">95% Success Rate</span>
-              </div>
-              <div className="flex items-center space-x-2 group hover:scale-105 transition-transform duration-200">
-                <Star className="w-5 h-5 text-yellow-500 group-hover:scale-110 transition-transform" />
-                <span className="text-gray-600 font-medium">4.9/5 Rating</span>
-              </div>
+            {/* Replace Stats with AnimatedBenefits */}
+            <div className="animate-fade-in-up animation-delay-800">
+              <AnimatedBenefits />
             </div>
           </div>
         </section>
