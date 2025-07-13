@@ -275,7 +275,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     const unsubscribeState = conversationService.onStateChange((state) => {
-      if (state.isConnected !== undefined) setIsConnected(state.isConnected);
+      if (state.isConnected !== undefined) {
+        setIsConnected(state.isConnected);
+        
+        // If connection is lost and we were in a voice session, handle conversation end
+        if (state.isConnected === false && isVoiceSessionActive) {
+          console.log('Connection lost during voice session, handling conversation end');
+          handleConversationEnd(false); // Agent-initiated stop
+        }
+      }
+      
       if (state.isListening !== undefined) setIsListening(state.isListening);
       if (state.error !== undefined) setConversationError(state.error);
     });
@@ -286,6 +295,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       unsubscribeState();
     };
   }, [activeSession, messages]);
+
+  // Shared function to handle conversation ending (both manual and agent-initiated)
+  const handleConversationEnd = (isManualStop: boolean = false) => {
+    console.log('Handling conversation end, manual stop:', isManualStop);
+    
+    // End voice session and unlock text input
+    setIsVoiceSessionActive(false);
+    setIsTextInputLocked(false);
+    
+    // Build transcript from voice session messages for later use
+    const voiceMessages = messages.filter(msg => 
+      msg.speaker === 'user' || msg.speaker === 'ai'
+    ).map(msg => `${msg.speaker === 'user' ? 'You' : 'EchoLearn'}: ${msg.text}`).join('\n');
+    
+    setVoiceSessionTranscript(voiceMessages);
+    
+    // For agent-initiated stops, we need to manually add the "Conversation ended" message
+    // since the conversationService.stopConversation() is not called in this case
+    if (!isManualStop) {
+      console.log('Adding "Conversation ended" message for agent-initiated stop');
+      conversationService.addMessage({
+        speaker: 'system',
+        text: 'Conversation ended',
+        timestamp: new Date().toLocaleTimeString()
+      });
+    }
+    // For manual stops, the "Conversation ended" message is already added by conversationService.stopConversation()
+  };
 
   // Session management functions
   const createNewSession = async () => {
@@ -461,18 +498,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const stopConversation = async () => {
     try {
+      // The conversationService.stopConversation() will add the "Conversation ended" message
       await conversationService.stopConversation();
       
-      // End voice session and unlock text input
-      setIsVoiceSessionActive(false);
-      setIsTextInputLocked(false);
-      
-      // Build transcript from voice session messages
-      const voiceMessages = messages.filter(msg => 
-        msg.speaker === 'user' || msg.speaker === 'ai'
-      ).map(msg => `${msg.speaker === 'user' ? 'You' : 'EchoLearn'}: ${msg.text}`).join('\n');
-      
-      setVoiceSessionTranscript(voiceMessages);
+      // Handle the conversation end with manual stop flag
+      handleConversationEnd(true);
       
     } catch (error) {
       console.error('Failed to stop conversation:', error);
@@ -500,7 +530,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         
         // Add the user's message to the UI first (what they actually typed)
         const userMessage = {
-          speaker: 'user',
+          speaker: 'user' as const,
           text: text,
           timestamp: new Date().toLocaleTimeString(),
           messageId: `msg_${Date.now()}_${Math.random()}`
@@ -531,7 +561,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         // Add AI response to UI
         conversationService.addMessage({
-          speaker: 'ai',
+          speaker: 'ai' as const,
           text: aiResponse,
           timestamp: new Date().toLocaleTimeString(),
           messageId: `msg_${Date.now()}_${Math.random()}`
@@ -541,7 +571,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setHasSentFirstTextAfterVoice(true);
         setVoiceSessionTranscript(''); // Clear the transcript after use
       } else {
-        // Normal text message
+        // Normal text message - but include conversation history for context
         await conversationService.sendTextMessage(text);
       }
     } catch (error) {
@@ -581,6 +611,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           // Try to parse the error response, but have a fallback.
           try {
               const errorData = await response.json();
+              
+              // Handle specific case where no educational content is found
+              if (errorData.error === 'No educational content found') {
+                setQuizQuestions([]);
+                setQuizSummary(null);
+                setQuizBlocked(errorData.reason || 'The conversation does not contain sufficient educational content for quiz generation. Try discussing a topic you want to learn about!');
+                setIsGeneratingQuiz(false);
+                return;
+              }
+              
               throw new Error(errorData.error || `Request failed with status ${response.status}`);
           } catch (e) {
               // If the error response is not JSON, use the status text.
