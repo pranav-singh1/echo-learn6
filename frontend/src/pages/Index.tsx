@@ -8,7 +8,7 @@ import { ConversationHistory } from '../components/ConversationHistory';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut, Trash2 } from 'lucide-react';
+import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut, Trash2, History } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { OnboardingTour } from '../components/OnboardingTour';
 import { useAuth } from '../contexts/AuthContext';
@@ -169,8 +169,10 @@ export const Index: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
-              className="hidden md:flex"
+              className="hidden md:flex items-center gap-2 w-32"
+              aria-label={showHistory ? 'Hide history' : 'Show history'}
             >
+              <History className="w-4 h-4" />
               {showHistory ? 'Hide History' : 'Show History'}
             </Button>
             <Button
