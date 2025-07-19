@@ -12,6 +12,7 @@ import {
   FileText,
   X
 } from 'lucide-react';
+import MathRenderer from './MathRenderer';
 
 export const Sidebar: React.FC = () => {
   const { 
@@ -142,7 +143,9 @@ export const Sidebar: React.FC = () => {
                     </Badge>
                     <span className="text-xs text-gray-500">{message.timestamp}</span>
                   </div>
-                  <p className="text-gray-700 line-clamp-2">{message.text}</p>
+                  <div className="text-gray-700 line-clamp-2">
+                    <MathRenderer text={message.text} className="text-sm" />
+                  </div>
                 </CardContent>
               </Card>
             ))}

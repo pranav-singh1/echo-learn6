@@ -167,6 +167,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // If we already have an active session with messages, preserve it (e.g., from tab switching)
       if (activeSession && messages.length > 0 && isInitialized) {
         console.log('Preserving existing active session during tab switch:', activeSession.id);
+        // Ensure conversation service is properly initialized
+        conversationService.clearMessages();
+        conversationService.setSessionMessages(messages);
         setIsInitialized(true);
         return; // Don't clear the current session
       }
@@ -177,6 +180,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (lastActiveSession && lastActiveSession.messages.length > 0) {
           setActiveSession(lastActiveSession);
           setMessages(lastActiveSession.messages);
+          // Initialize conversation service with loaded session messages
+          conversationService.clearMessages();
+          conversationService.setSessionMessages(lastActiveSession.messages);
+          
           setQuizSummary(lastActiveSession.summary || null);
           setQuizQuestions(lastActiveSession.quizQuestions || []);
           setQuizAnswers(lastActiveSession.quizAnswers || {});
@@ -187,6 +194,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           // Only start fresh if there's no active session
           setActiveSession(null);
           setMessages([]);
+          // Clear conversation service for fresh start
+          conversationService.clearMessages();
+          
           setQuizSummary(null);
           setQuizQuestions([]);
           setQuizAnswers({});
@@ -217,6 +227,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Load messages from active session
       if (active) {
         setMessages(active.messages);
+        // Initialize conversation service with active session messages
+        conversationService.clearMessages();
+        conversationService.setSessionMessages(active.messages);
+        
         setQuizSummary(active.summary || null);
         setQuizQuestions(active.quizQuestions || []);
         
@@ -238,6 +252,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       } else {
         setMessages([]);
+        // Clear conversation service when no active session
+        conversationService.clearMessages();
+        
         setQuizSummary(null);
         setQuizQuestions([]);
         setQuizAnswers({});
@@ -336,6 +353,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         stopConversation();
       }
       
+      // Clear conversation service messages to ensure fresh start
+      conversationService.clearMessages();
+      
       // Create new session
       const newSession = await supabaseConversationStorage.createSession();
       
@@ -362,6 +382,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       stopConversation();
     }
     
+    // Clear conversation service messages
+    conversationService.clearMessages();
+    
     // Clear all state to show fresh "New Conversation"
     setActiveSession(null);
     setMessages([]);
@@ -382,6 +405,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (isConnected) {
         stopConversation();
       }
+      
+      // Clear conversation service messages to ensure fresh start
+      conversationService.clearMessages();
       
       // Always create a new session regardless of existing ones
       const newSession = await supabaseConversationStorage.createSession();
@@ -415,6 +441,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Switch to session
       const session = await supabaseConversationStorage.switchToSession(sessionId);
       if (session) {
+        // Clear conversation service and set the new session's messages
+        conversationService.clearMessages();
+        conversationService.setSessionMessages(session.messages);
+        
         setActiveSession(session);
         setMessages(session.messages);
         setQuizSummary(session.summary || null);
@@ -474,9 +504,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newSession = await supabaseConversationStorage.createSession();
         setActiveSession(newSession);
         
+        // Clear conversation service and initialize with empty messages
+        conversationService.clearMessages();
+        
         // Reload all sessions to include the new one
         const updatedStorage = await supabaseConversationStorage.getConversations();
         setAllSessions(updatedStorage.sessions);
+      } else {
+        // Set current session messages in conversation service
+        conversationService.setSessionMessages(messages);
       }
       
       // Start voice session and lock text input
@@ -520,9 +556,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newSession = await supabaseConversationStorage.createSession();
         setActiveSession(newSession);
         
+        // Clear conversation service and initialize with empty messages
+        conversationService.clearMessages();
+        
         // Reload all sessions to include the new one
         const updatedStorage = await supabaseConversationStorage.getConversations();
         setAllSessions(updatedStorage.sessions);
+      } else {
+        // Ensure conversation service has current session messages
+        conversationService.setSessionMessages(messages);
       }
       
       // Check if this is the first text message after a voice session
@@ -548,7 +590,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: contextMessage,
-            conversationHistory: messages.slice(-10) // Send last 10 messages for context
+            conversationHistory: messages.slice(-10) // Send last 10 messages from current session only
           }),
         });
 
@@ -571,7 +613,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setHasSentFirstTextAfterVoice(true);
         setVoiceSessionTranscript(''); // Clear the transcript after use
       } else {
-        // Normal text message - but include conversation history for context
+        // Normal text message - conversation service will handle the API call with proper session isolation
         await conversationService.sendTextMessage(text);
       }
     } catch (error) {

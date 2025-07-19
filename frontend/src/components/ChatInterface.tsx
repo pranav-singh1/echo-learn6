@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
+import MathRenderer from './MathRenderer';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -415,7 +416,13 @@ export const ChatInterface: React.FC = () => {
                             {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
                           </Badge>
                         </div>
-                        <p className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-sm font-normal leading-relaxed' : 'text-sm'}`}>{highlightText(message.text, highlightTerm)}</p>
+                        <div className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-sm font-normal leading-relaxed' : 'text-sm'}`}>
+                          <MathRenderer 
+                            text={message.text} 
+                            highlightTerm={highlightTerm}
+                            className="leading-relaxed"
+                          />
+                        </div>
                         {message.speaker !== 'system' && (
                           <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
                             {message.timestamp}

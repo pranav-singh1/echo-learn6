@@ -7,6 +7,31 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const EDUCATIONAL_CONTENT_CHECK_PROMPT = `You are analyzing a conversation transcript to determine if it contains educational content suitable for quiz generation.
+
+Analyze the conversation and determine if it contains:
+- Learning concepts, facts, or information that can be tested
+- Educational discussions about topics like science, history, literature, math, etc.
+- Explanations of processes, theories, or ideas
+- Any content that would be appropriate for creating quiz questions
+
+Respond with ONLY a JSON object in this format:
+{
+  "hasEducationalContent": boolean,
+  "reason": "Brief explanation of why this does or doesn't contain educational content"
+}
+
+Examples of educational content:
+- Discussions about historical events, scientific concepts, literary analysis
+- Explanations of how things work, mathematical concepts, academic topics
+- Learning about skills, processes, or factual information
+
+Examples of non-educational content:
+- Casual conversation, greetings, small talk
+- Personal conversations about daily life
+- Technical support or troubleshooting
+- General chat without learning objectives`;
+
 const SYSTEM_PROMPT = `You are an educational assistant that creates summaries and quiz questions from conversation transcripts.
 Generate a concise summary and 3-5 quiz questions (mix of multiple choice and short answer).
 You MUST respond in this exact JSON format:
@@ -73,9 +98,49 @@ export async function POST(request: Request) {
 
     // Join the log entries into a single transcript
     const transcript = log.join('\n');
-    console.log('Generating quiz for transcript:', transcript.substring(0, 100) + '...');
+    console.log('Analyzing transcript for educational content:', transcript.substring(0, 100) + '...');
 
-    // Call OpenAI API
+    // First, check if the conversation contains educational content
+    const contentCheck = await openai.chat.completions.create({
+      model: 'gpt-4-turbo',
+      messages: [
+        { role: 'system', content: EDUCATIONAL_CONTENT_CHECK_PROMPT },
+        { role: 'user', content: transcript }
+      ],
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+    });
+
+    const contentCheckResult = contentCheck.choices[0]?.message?.content;
+    console.log('Educational content check result:', contentCheckResult);
+
+    if (!contentCheckResult) {
+      throw new Error('No response from educational content check');
+    }
+
+    let educationalAnalysis;
+    try {
+      educationalAnalysis = JSON.parse(contentCheckResult);
+    } catch (parseError) {
+      console.error('Failed to parse educational content check:', contentCheckResult);
+      throw new Error('Invalid response format from educational content analysis');
+    }
+
+    // If no educational content is found, return an error
+    if (!educationalAnalysis.hasEducationalContent) {
+      console.log('No educational content found:', educationalAnalysis.reason);
+      return NextResponse.json(
+        { 
+          error: 'No educational content found',
+          reason: educationalAnalysis.reason || 'The conversation does not contain sufficient educational content for quiz generation.'
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log('Educational content found, proceeding with quiz generation');
+
+    // If educational content is found, proceed with quiz generation
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo',
       messages: [

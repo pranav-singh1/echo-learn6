@@ -2,6 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useConversation } from '@elevenlabs/react';
+import MathRenderer from './MathRenderer';
 
 // Types for quiz data
 interface QuizQuestion {
@@ -180,7 +181,9 @@ export function Conversation() {
                 >
                   {speaker}:
                 </span>{' '}
-                <span className="text-gray-800">{messageText}</span>
+                <span className="text-gray-800">
+                  <MathRenderer text={messageText} />
+                </span>
               </p>
             );
           })}
