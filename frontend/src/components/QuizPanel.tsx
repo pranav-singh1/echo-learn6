@@ -1,11 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { X, CheckCircle, Circle, FileText, Sparkles, RefreshCw, BookOpen } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, CheckCircle, Circle, FileText, Sparkles, RefreshCw, BookOpen, Brain, TrendingUp, RotateCcw, AlertCircle, Clock, Target, Award } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
+import { Progress } from './ui/progress';
+import { Separator } from './ui/separator';
 import { useAppContext } from '../contexts/AppContext';
 import { evaluateAnswer } from '../lib/api';
 import { useToast } from '../hooks/use-toast';
 import { Textarea } from './ui/textarea';
+import MathRenderer from './MathRenderer';
 
 interface QuizPanelProps {
   onClose: () => void;
@@ -311,20 +316,16 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
         <div ref={contentRef} className="flex-1 min-h-0 px-6 py-6 space-y-6 bg-background text-foreground">
           {questions.map((question, index) => (
             <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
-              <CardHeader className="pb-3 bg-card text-card-foreground">
-                <CardTitle className="text-sm font-medium flex items-start text-card-foreground">
-                  <span className="bg-primary/10 text-primary text-xs font-semibold px-2 py-1 rounded-full mr-3 flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <span>{question.question}</span>
-                    <span className="block text-xs text-muted-foreground mt-1">
-                      {question.type === 'multiple-choice' ? 'Multiple Choice' : 'Short Answer'}
-                    </span>
-                  </div>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                  <Circle className="w-5 h-5 text-primary" />
+                  Question {index + 1}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 bg-card text-card-foreground">
+              <CardContent className="space-y-4">
+                <div className="text-base font-medium text-card-foreground leading-relaxed">
+                  <MathRenderer text={question.question} className="leading-relaxed" />
+                </div>
                 {question.type === 'multiple-choice' && question.options ? (
                   <div className="space-y-3">
                     {question.options.map((option, optionIndex) => (
@@ -383,12 +384,12 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
                           </span>
                         </div>
                         <div className="space-y-2">
-                          <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-                            {evaluations[index].feedback}
-                          </p>
-                          <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
-                            {evaluations[index].explanation}
-                          </p>
+                          <div className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                            <MathRenderer text={evaluations[index].feedback} className="leading-relaxed" />
+                          </div>
+                          <div className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                            <MathRenderer text={evaluations[index].explanation} className="leading-relaxed" />
+                          </div>
                         </div>
                       </div>
                     )}

@@ -14,13 +14,25 @@ export class ConversationService {
   private stateCallbacks: ((state: Partial<ConversationState>) => void)[] = [];
   private messages: ConversationMessage[] = [];
   private isMuted: boolean = false;
+  private currentSessionMessages: ConversationMessage[] = []; // Track current session messages separately
 
   constructor() {
     // Initialize the service
   }
 
-  // Subscribe to conversation messages
-  onMessage(callback: (message: ConversationMessage) => void) {
+  // Clear all messages (called when switching/creating sessions)
+  clearMessages() {
+    this.messages = [];
+    this.currentSessionMessages = [];
+  }
+
+  // Set the current session messages (called when switching sessions)
+  setSessionMessages(messages: ConversationMessage[]) {
+    this.currentSessionMessages = [...messages];
+  }
+
+  // Subscribe to message updates
+  onMessage(callback: (message: ConversationMessage) => void): () => void {
     this.messageCallbacks.push(callback);
     return () => {
       const index = this.messageCallbacks.indexOf(callback);
@@ -31,7 +43,7 @@ export class ConversationService {
   }
 
   // Subscribe to state changes
-  onStateChange(callback: (state: Partial<ConversationState>) => void) {
+  onStateChange(callback: (state: Partial<ConversationState>) => void): () => void {
     this.stateCallbacks.push(callback);
     return () => {
       const index = this.stateCallbacks.indexOf(callback);
@@ -41,7 +53,12 @@ export class ConversationService {
     };
   }
 
-  // Simplified start conversation - remove complex audio setup
+  // Update state and notify subscribers
+  updateState(state: Partial<ConversationState>) {
+    this.stateCallbacks.forEach(callback => callback(state));
+  }
+
+  // Start conversation
   async startConversation(): Promise<void> {
     try {
       console.log('ConversationService: Starting conversation...');
@@ -49,7 +66,7 @@ export class ConversationService {
       // Update state to connecting
       this.updateState({ isConnected: false, isListening: true, error: null });
 
-      // Start the ElevenLabs session directly
+      // Start the ElevenLabs session
       const elevenLabs = (window as any).elevenLabsConversation;
       if (elevenLabs && elevenLabs.start) {
         console.log('Starting ElevenLabs session...');
@@ -70,7 +87,7 @@ export class ConversationService {
     }
   }
 
-  // Stop conversation - same as backend
+  // Stop conversation
   async stopConversation(): Promise<void> {
     try {
       const elevenLabs = (window as any).elevenLabsConversation;
@@ -80,15 +97,33 @@ export class ConversationService {
       
       this.updateState({ isConnected: false, isListening: false });
       
-      // Add disconnect message
+      // Add conversation ended message
       this.addMessage({
         speaker: 'system',
         text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
       });
     } catch (error) {
       console.error('Failed to stop conversation:', error);
     }
+  }
+
+  // Toggle mute
+  async toggleMute(): Promise<void> {
+    this.isMuted = !this.isMuted;
+    console.log('Conversation service mute toggled:', this.isMuted);
+    
+    // Delegate to ElevenLabs component
+    const elevenLabs = (window as any).elevenLabsConversation;
+    if (elevenLabs && elevenLabs.toggleMute) {
+      await elevenLabs.toggleMute(this.isMuted);
+    } else {
+      console.warn('ElevenLabs conversation not available for muting');
+    }
+    
+    // Update state to reflect mute status
+    this.updateState({ isListening: !this.isMuted });
   }
 
   // Send a text message (for when voice isn't working)
@@ -96,21 +131,24 @@ export class ConversationService {
     if (!text.trim()) return;
 
     // Add user message first
-    this.addMessage({
-      speaker: 'user',
+    const userMessage = {
+      speaker: 'user' as const,
       text,
       timestamp: new Date().toLocaleTimeString(),
       messageId: `msg_${Date.now()}_${Math.random()}`
-    });
+    };
+    
+    this.addMessage(userMessage);
 
     try {
       // Call the chat API for an AI response
+      // Use current session messages instead of the internal messages array
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          conversationHistory: this.messages.slice(-10) // Send last 10 messages for context
+          conversationHistory: this.currentSessionMessages.slice(-10) // Send last 10 messages from current session only
         }),
       });
 
@@ -145,12 +183,8 @@ export class ConversationService {
   // Add a message and notify subscribers
   addMessage(message: ConversationMessage) {
     this.messages.push(message);
+    this.currentSessionMessages.push(message); // Also add to current session messages
     this.messageCallbacks.forEach(callback => callback(message));
-  }
-
-  // Update state and notify subscribers
-  updateState(state: Partial<ConversationState>) {
-    this.stateCallbacks.forEach(callback => callback(state));
   }
 
   // Get current messages
@@ -165,25 +199,14 @@ export class ConversationService {
     // Don't add "Conversation ended" message for automatic disconnections
   }
 
-  // Mute/unmute functionality
-  async toggleMute(): Promise<void> {
-    this.isMuted = !this.isMuted;
-    console.log('Conversation service mute toggled:', this.isMuted);
-    
-    // Delegate to ElevenLabs component
-    const elevenLabs = (window as any).elevenLabsConversation;
-    if (elevenLabs && elevenLabs.toggleMute) {
-      await elevenLabs.toggleMute(this.isMuted);
-    } else {
-      console.warn('ElevenLabs conversation not available for muting');
-    }
-    
-    // Update state to reflect mute status
-    this.updateState({ isListening: !this.isMuted });
-  }
-
   isMicMuted(): boolean {
     return this.isMuted;
+  }
+
+  // Get connection status
+  isConnectedToVoice(): boolean {
+    const elevenLabs = (window as any).elevenLabsConversation;
+    return elevenLabs?.status === 'connected' || false;
   }
 
   // Cleanup
@@ -191,11 +214,12 @@ export class ConversationService {
     this.messageCallbacks = [];
     this.stateCallbacks = [];
     this.messages = [];
+    this.currentSessionMessages = [];
     this.isMuted = false;
   }
 }
 
-// Create a singleton instance
+// Export singleton instance
 export const conversationService = new ConversationService();
 
 // Expose globally for ElevenLabs component
