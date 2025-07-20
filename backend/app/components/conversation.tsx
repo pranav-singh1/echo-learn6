@@ -51,11 +51,11 @@ export function Conversation() {
       // message has shape: { message: string; source: 'user' | 'agent' | ... }
       if (typeof message === 'object' && 'message' in message) {
         text = message.message;
-        speaker = message.source === 'user' ? 'You' : 'Echo Learn';
+        speaker = message.source === 'user' ? 'Student' : 'Tutor';
       } else if (typeof message === 'string') {
         // fallback case
         text = message;
-        speaker = 'AI';
+        speaker = 'Tutor';
       } else {
         text = '[Unknown message format]';
         speaker = 'System';
@@ -172,9 +172,9 @@ export function Conversation() {
               <p key={index}>
                 <span
                   className={
-                    speaker === 'You'
+                    speaker === 'Student'
                       ? 'text-green-500 font-semibold'
-                      : speaker === 'Echo Learn'
+                      : speaker === 'Tutor'
                       ? 'text-blue-500 font-semibold'
                       : 'text-gray-500 font-semibold'
                   }

@@ -97,13 +97,9 @@ export class ConversationService {
       
       this.updateState({ isConnected: false, isListening: false });
       
-      // Add conversation ended message
-      this.addMessage({
-        speaker: 'system',
-        text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString(),
-        messageId: `msg_${Date.now()}_${Math.random()}`
-      });
+      // Don't add "Conversation ended" message here - let AppContext handle it
+      // to prevent duplicate messages
+      
     } catch (error) {
       console.error('Failed to stop conversation:', error);
     }
@@ -142,13 +138,12 @@ export class ConversationService {
 
     try {
       // Call the chat API for an AI response
-      // Use current session messages instead of the internal messages array
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          conversationHistory: this.currentSessionMessages.slice(-10) // Send last 10 messages from current session only
+          conversationHistory: this.currentSessionMessages.slice(-10)
         }),
       });
 

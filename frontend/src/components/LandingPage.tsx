@@ -175,10 +175,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </a>
               {user ? (
                 <Button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={onStartConversation}
                   className="bg-brand hover:bg-brand-dark text-white px-6 py-2 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  Dashboard
+                  Launch App
                 </Button>
               ) : (
                 <Button
@@ -226,12 +226,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   {user ? (
                     <Button
                       onClick={() => {
-                        navigate('/dashboard');
+                        onStartConversation();
                         setMobileMenuOpen(false);
                       }}
                       className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-xl font-semibold"
                     >
-                      Dashboard
+                      Launch App
                     </Button>
                   ) : (
                     <Button

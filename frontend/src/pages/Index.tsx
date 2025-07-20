@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Logo from '../components/Logo';
 import { LandingPage } from '../components/LandingPage';
 import { ChatInterface } from '../components/ChatInterface';
@@ -28,10 +28,12 @@ export const Index: React.FC = () => {
   
   // Only use app context when user is authenticated
   const appContext = user ? useAppContext() : null;
-  const { activePanel, setActivePanel, startFreshConversation } = appContext || {
+  const { activePanel, setActivePanel, startFreshConversation, streamingEnabled, setStreamingEnabled } = appContext || {
     activePanel: null,
     setActivePanel: () => {},
-    startFreshConversation: () => {}
+    startFreshConversation: () => {},
+    streamingEnabled: true,
+    setStreamingEnabled: () => {}
   };
   
   const [showConversation, setShowConversation] = useState(false);
@@ -48,14 +50,37 @@ export const Index: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update profile fields when user data changes
   useEffect(() => {
     if (user) {
       setProfileName(user.user_metadata?.name || '');
       setProfileEmail(user.email || '');
+      setProfilePicture(user.user_metadata?.profile_picture || '');
     }
   }, [user]);
+
+  // Handle ESC key to close modals
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showProfileModal) {
+          setShowProfileModal(false);
+        }
+        if (showSettingsModal) {
+          setShowSettingsModal(false);
+        }
+        if (showHelp) {
+          setShowHelp(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [showProfileModal, showSettingsModal, showHelp]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -77,11 +102,47 @@ export const Index: React.FC = () => {
 
   const handleSaveProfile = async () => {
     try {
-      await updateProfile({ name: profileName });
+      await updateProfile({ 
+        name: profileName,
+        profilePicture: profilePicture 
+      });
       setShowProfileModal(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
     }
+  };
+
+  const handleProfilePictureUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setProfilePicture(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setProfilePicture('');
   };
 
   const handleDeleteAllConversations = async () => {
@@ -199,7 +260,17 @@ export const Index: React.FC = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2" aria-label="User menu">
-                  <User className="h-4 w-4" />
+                  {profilePicture ? (
+                    <div className="w-4 h-4 rounded-full overflow-hidden">
+                      <img 
+                        src={profilePicture} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <User className="h-4 w-4" />
+                  )}
                   {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
                 </Button>
               </DropdownMenuTrigger>
@@ -306,14 +377,50 @@ export const Index: React.FC = () => {
             </button>
             
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="relative">
+                {profilePicture ? (
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-blue-200 group">
+                    <img 
+                      src={profilePicture} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
+                      <button
+                        onClick={handleRemoveProfilePicture}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                        title="Remove profile picture"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center border-2 border-blue-200">
+                    <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                )}
+                <button
+                  onClick={handleProfilePictureUpload}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs transition-colors"
+                  title="Upload profile picture"
+                >
+                  +
+                </button>
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Manage your account information</p>
               </div>
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
 
             <div className="space-y-4">
               <div>
@@ -397,6 +504,20 @@ export const Index: React.FC = () => {
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   {theme === 'dark' ? 'Light' : 'Dark'}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Typewriter Text</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Character-by-character text display</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStreamingEnabled(!streamingEnabled)}
+                  className="flex items-center gap-2"
+                >
+                  {streamingEnabled ? 'On' : 'Off'}
                 </Button>
               </div>
               <div className="flex items-center justify-between">

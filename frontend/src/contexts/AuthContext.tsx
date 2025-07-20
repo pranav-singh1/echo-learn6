@@ -10,7 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-  updateProfile: (updates: { name?: string }) => Promise<{ error: AuthError | null }>;
+  updateProfile: (updates: { name?: string; profilePicture?: string }) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   };
 
-  const updateProfile = async (updates: { name?: string }) => {
+  const updateProfile = async (updates: { name?: string; profilePicture?: string }) => {
     if (!user) return { error: { message: 'No user logged in' } as AuthError };
 
     try {
@@ -122,6 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           name: updates.name,
+          profile_picture: updates.profilePicture,
         }
       });
 
@@ -134,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .from('users')
         .update({
           name: updates.name,
+          profile_picture: updates.profilePicture,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);

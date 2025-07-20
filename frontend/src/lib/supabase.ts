@@ -21,6 +21,7 @@ export interface Database {
           id: string;
           email: string;
           name: string | null;
+          profile_picture: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -28,6 +29,7 @@ export interface Database {
           id: string;
           email: string;
           name?: string | null;
+          profile_picture?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -35,6 +37,7 @@ export interface Database {
           id?: string;
           email?: string;
           name?: string | null;
+          profile_picture?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -55,6 +55,10 @@ interface AppContextType {
   setActivePanel: (panel: 'chat' | 'quiz' | 'summary' | null) => void;
   highlightTerm: string;
   setHighlightTerm: (term: string) => void;
+  
+  // Settings
+  streamingEnabled: boolean;
+  setStreamingEnabled: (enabled: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -86,6 +90,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [voiceSessionTranscript, setVoiceSessionTranscript] = useState('');
   const [isTextInputLocked, setIsTextInputLocked] = useState(false);
   const [hasSentFirstTextAfterVoice, setHasSentFirstTextAfterVoice] = useState(false);
+  const [isManuallyStoppingConversation, setIsManuallyStoppingConversation] = useState(false);
   
   // Session management
   const [activeSession, setActiveSession] = useState<ConversationSession | null>(null);
@@ -104,6 +109,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>(null);
   // Search highlight state
   const [highlightTerm, setHighlightTerm] = useState<string>('');
+  
+  // Settings
+  const [streamingEnabled, setStreamingEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('streamingEnabled');
+      return saved !== null ? JSON.parse(saved) : true; // Default to true (streaming on)
+    }
+    return true;
+  });
+  
+  // Persist streaming setting
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('streamingEnabled', JSON.stringify(streamingEnabled));
+    }
+  }, [streamingEnabled]);
   
   // Track initialization to prevent unnecessary reloads
   const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
@@ -271,8 +292,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
       setMessages(prev => [...prev, message]);
       
-      // Save message to Supabase storage with session ID (only for complete messages)
-      if (activeSession && !message.isStreaming) {
+      // Save message to Supabase storage with session ID
+      if (activeSession) {
         await supabaseConversationStorage.addMessage(message, activeSession.id);
         
         // Auto-generate title after first AI response if session has default title
@@ -284,8 +305,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             generateConversationTitle();
           }, 1000);
         }
-      } else if (activeSession && message.isStreaming) {
-        // For streaming messages, we'll save them when they're complete
       } else if (!activeSession) {
         // No active session yet, message will be saved once session is created
       }
@@ -296,7 +315,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setIsConnected(state.isConnected);
         
         // If connection is lost and we were in a voice session, handle conversation end
-        if (state.isConnected === false && isVoiceSessionActive) {
+        // BUT only if we're not already manually stopping (to prevent duplicate messages)
+        if (state.isConnected === false && isVoiceSessionActive && !isManuallyStoppingConversation) {
           console.log('Connection lost during voice session, handling conversation end');
           handleConversationEnd(false); // Agent-initiated stop
         }
@@ -311,7 +331,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       unsubscribeMessages();
       unsubscribeState();
     };
-  }, [activeSession, messages]);
+  }, [activeSession, messages, isVoiceSessionActive, isManuallyStoppingConversation]);
 
   // Shared function to handle conversation ending (both manual and agent-initiated)
   const handleConversationEnd = (isManualStop: boolean = false) => {
@@ -335,7 +355,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       conversationService.addMessage({
         speaker: 'system',
         text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
       });
     }
     // For manual stops, the "Conversation ended" message is already added by conversationService.stopConversation()
@@ -534,8 +555,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const stopConversation = async () => {
     try {
-      // The conversationService.stopConversation() will add the "Conversation ended" message
+      // Set flag to prevent state change listener from adding duplicate message
+      setIsManuallyStoppingConversation(true);
+      
+      // Stop the conversation service first
       await conversationService.stopConversation();
+      
+      // Add the "Conversation ended" message for manual stops
+      conversationService.addMessage({
+        speaker: 'system',
+        text: 'Conversation ended',
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      });
       
       // Handle the conversation end with manual stop flag
       handleConversationEnd(true);
@@ -546,6 +578,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Reset voice session state on error
       setIsVoiceSessionActive(false);
       setIsTextInputLocked(false);
+    } finally {
+      // Always clear the manual stop flag
+      setIsManuallyStoppingConversation(false);
     }
   };
 
@@ -639,7 +674,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       try {
         // Convert messages to the format expected by the backend
         const conversationLog = messages.map(msg => {
-          const speaker = msg.speaker === 'user' ? 'You' : 'Echo Learn';
+          const speaker = msg.speaker === 'user' ? 'Student' : 'Tutor';
           return `${speaker}: ${msg.text}`;
         });
 
@@ -744,6 +779,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const resetQuiz = async () => {
+    // Keep the same questions, only reset answers and evaluations
     setQuizAnswers({});
     setQuizEvaluations({});
     setQuizShowAnswers(false);
@@ -754,6 +790,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         quizAnswers: {},
         quizEvaluations: {},
         quizShowAnswers: false
+        // Note: We keep quizQuestions and summary unchanged
       });
     }
   };
@@ -845,6 +882,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setActivePanel,
     highlightTerm,
     setHighlightTerm,
+    
+    // Settings
+    streamingEnabled,
+    setStreamingEnabled,
   };
 
   return (

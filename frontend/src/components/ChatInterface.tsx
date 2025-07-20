@@ -8,7 +8,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import {
 } from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
 import MathRenderer from './MathRenderer';
+import { TypewriterText } from './TypewriterText';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -46,7 +47,10 @@ export const ChatInterface: React.FC = () => {
     isVoiceSessionActive,
     voiceSessionTranscript,
     isTextInputLocked,
-    hasSentFirstTextAfterVoice
+    hasSentFirstTextAfterVoice,
+    // Settings
+    streamingEnabled,
+    setStreamingEnabled
   } = useAppContext();
 
   const { user, signOut, updateProfile } = useAuth();
@@ -59,8 +63,10 @@ export const ChatInterface: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -72,8 +78,26 @@ export const ChatInterface: React.FC = () => {
     if (user) {
       setProfileName(user.user_metadata?.name || '');
       setProfileEmail(user.email || '');
+      setProfilePicture(user.user_metadata?.profile_picture || '');
     }
   }, [user]);
+
+  // Handle ESC key to close profile modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showProfileModal) {
+          setShowProfileModal(false);
+        }
+        if (showSettingsModal) {
+          setShowSettingsModal(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [showProfileModal, showSettingsModal]);
 
   const handleSendMessage = async () => {
     if (!textInput.trim()) return;
@@ -130,9 +154,9 @@ export const ChatInterface: React.FC = () => {
   const getSpeakerColor = (speaker: string) => {
     switch (speaker) {
       case 'user':
-        return 'text-green-600 bg-green-50 border-green-200';
+        return 'text-blue-700 bg-blue-50 border-blue-200';
       case 'ai':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-brand bg-brand-lite border-brand/20';
       case 'system':
         return 'text-gray-600 bg-gray-50 border-gray-200';
       default:
@@ -143,13 +167,40 @@ export const ChatInterface: React.FC = () => {
   const getSpeakerIcon = (speaker: string) => {
     switch (speaker) {
       case 'user':
-        return '👤';
+        if (profilePicture) {
+          return (
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-blue-200">
+              <img 
+                src={profilePicture} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          );
+        }
+        return (
+          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+            <User className="w-3 h-3 text-white" />
+          </div>
+        );
       case 'ai':
-        return '🤖';
+        return (
+          <div className="w-6 h-6 bg-gradient-to-br from-brand to-brand-dark rounded-full flex items-center justify-center">
+            <Sparkles className="w-3 h-3 text-white" />
+          </div>
+        );
       case 'system':
-        return '⚙️';
+        return (
+          <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+            <Settings className="w-3 h-3 text-white" />
+          </div>
+        );
       default:
-        return '💬';
+        return (
+          <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+            <MessageCircle className="w-3 h-3 text-white" />
+          </div>
+        );
     }
   };
 
@@ -172,11 +223,47 @@ export const ChatInterface: React.FC = () => {
 
   const handleSaveProfile = async () => {
     try {
-      await updateProfile({ name: profileName });
+      await updateProfile({ 
+        name: profileName,
+        profilePicture: profilePicture 
+      });
       setShowProfileModal(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
     }
+  };
+
+  const handleProfilePictureUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
+      return;
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setProfilePicture(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setProfilePicture('');
   };
 
   const handleExportData = async () => {
@@ -251,11 +338,13 @@ export const ChatInterface: React.FC = () => {
     <>
       <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
         {/* Sticky Header - Session Meta */}
-        <CardHeader className="bg-gradient-to-r from-background to-background/80 backdrop-blur-sm border-b border-border shadow-lg sticky top-0 z-20 p-3 space-y-3">
+        <CardHeader className="bg-gradient-to-r from-background to-background/80 backdrop-blur-sm border-b border-border shadow-sm sticky top-0 z-20 p-4 space-y-4">
           {/* Top Row: Title + Progress + Status */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <MessageCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <div className="w-8 h-8 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center shadow-sm">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
               {isEditingTitle ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -263,107 +352,110 @@ export const ChatInterface: React.FC = () => {
                     onChange={(e) => setEditTitle(e.target.value)}
                     onKeyDown={handleTitleKeyPress}
                     onBlur={handleSaveTitle}
-                    className="text-lg font-semibold h-8 w-48 border-blue-300 focus:border-blue-500"
+                    className="text-lg font-semibold h-9 w-64 border-brand/30 focus:border-brand"
                     autoFocus
                   />
-                  <Button size="sm" variant="ghost" onClick={handleSaveTitle} className="h-6 w-6 p-0">
-                    <Check className="w-3 h-3 text-green-600" />
+                  <Button size="sm" variant="ghost" onClick={handleSaveTitle} className="h-8 w-8 p-0 hover:bg-green-50">
+                    <Check className="w-4 h-4 text-green-600" />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={handleCancelTitle} className="h-6 w-6 p-0">
-                    <X className="w-3 h-3 text-red-600" />
+                  <Button size="sm" variant="ghost" onClick={handleCancelTitle} className="h-8 w-8 p-0 hover:bg-red-50">
+                    <X className="w-4 h-4 text-red-600" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 group min-w-0">
-                  <span 
-                    className="text-lg font-semibold cursor-pointer hover:text-blue-600 transition-colors truncate"
-                    onDoubleClick={handleStartEditTitle}
-                    title={activeSession?.title || 'New Conversation'}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex flex-col min-w-0">
+                    <h2 className="text-lg font-semibold text-foreground truncate leading-tight">
+                      {activeSession?.title || 'New Conversation'}
+                    </h2>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleStartEditTitle}
+                    className="h-8 w-8 p-0 opacity-60 hover:opacity-100 hover:bg-gray-100"
                   >
-                    {activeSession?.title || 'New Conversation'}
-                  </span>
-                  {activeSession && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleStartEditTitle}
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
-                  )}
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Voice Session Status - REMOVED */}
+            {/* Status indicators and controls */}
+            <div className="flex items-center gap-3">
+              {/* Connection Status */}
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {isConnected ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+
+              {/* Voice Session Status */}
+              {isVoiceSessionActive && (
+                <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
+                  Voice Session Active
+                </Badge>
+              )}
             </div>
           </div>
-
-          {/* Bottom Row: Actions */}
+          
+          {/* Bottom Row: Voice Controls & Actions */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 w-full">
-              <div className="flex items-center gap-2 pr-4 border-r border-border dark:border-border/60">
-                <Button
-                  size="sm"
-                  onClick={handleVoiceToggle}
-                  disabled={isTyping}
-                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
-                  aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
-                  data-tour="start-voice"
-                >
-                  {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isConnected ? 'Stop' : 'Start'} Voice
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={toggleMute}
-                  variant="outline"
-                  disabled={!isConnected}
-                  className={`flex items-center gap-2 ${
-                    !isConnected 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : isMuted 
-                        ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100' 
-                        : 'hover:bg-gray-50'
-                  }`}
-                  aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-                  data-tour="mute"
-                >
-                  <VolumeX className={`h-4 w-4 ${isMuted ? 'text-red-600' : !isConnected ? 'text-gray-400' : ''}`} />
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleQuiz}
-                  disabled={isGeneratingQuiz || messages.length < 3}
-                  className="flex items-center gap-2 disabled:opacity-50"
-                  aria-label={activePanel === 'quiz' ? 'Close Quiz' : quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
-                  data-tour="quiz"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  {isGeneratingQuiz ? 'Generating...' : 
-                   activePanel === 'quiz' ? 'Close Quiz' :
-                   quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
-                </Button>
-              </div>
-              <div className="ml-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  className={`flex items-center gap-2 border font-medium text-sm ${
-                    isConnected 
-                      ? 'border-green-300' 
-                      : 'border-gray-300'
-                  }`}
-                >
-                  <span className="text-xs">{connectionStatus.icon}</span>
-                  <span>{connectionStatus.label}</span>
-                </Button>
-              </div>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                onClick={handleVoiceToggle}
+                disabled={isTyping}
+                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
+                aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+                data-tour="start-voice"
+              >
+                {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isConnected ? 'Stop' : 'Start'} Voice
+              </Button>
+              
+              <Button
+                size="sm"
+                onClick={toggleMute}
+                variant="outline"
+                disabled={!isConnected}
+                className={`flex items-center gap-2 ${
+                  !isConnected 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : isMuted 
+                      ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400' 
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+                aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                data-tour="mute"
+              >
+                <VolumeX className={`h-4 w-4 ${isMuted ? 'text-red-600' : !isConnected ? 'text-gray-400' : ''}`} />
+                {isMuted ? 'Unmute' : 'Mute'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={quizQuestions.length > 0 ? toggleQuiz : generateQuiz}
+                disabled={isGeneratingQuiz || messages.length === 0}
+                className="flex items-center gap-2 disabled:opacity-50 hover:bg-brand/5 hover:border-brand/30 hover:text-brand transition-all duration-200 dark:hover:bg-brand/10"
+                aria-label={quizQuestions.length > 0 ? "Open Quiz" : "Generate Quiz"}
+                data-tour="quiz"
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Target className="h-4 w-4" />
+                    {quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -381,10 +473,25 @@ export const ChatInterface: React.FC = () => {
           <div className="flex-1 min-h-0 overflow-y-auto pr-2 bg-background text-foreground scrollbar-hide">
             <div className="space-y-3">
               {messages.length === 0 ? (
-                <div className="text-center text-gray-500 py-6">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Start a conversation to begin learning!</p>
-                  <p className="text-sm mt-2">Use voice or text to interact with EchoLearn.</p>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-brand-lite to-brand/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Sparkles className="h-8 w-8 text-brand" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Ready to learn together</h3>
+                  <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+                    Start a voice conversation or type a message to begin your AI-powered learning session.
+                  </p>
+                  <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Mic className="w-4 h-4" />
+                      <span>Voice chat</span>
+                    </div>
+                    <div className="w-px h-4 bg-border"></div>
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Text chat</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 messages.map((message, index) => (
@@ -404,47 +511,69 @@ export const ChatInterface: React.FC = () => {
                       <div
                         className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 relative ${
                           message.speaker === 'user'
-                            ? 'bg-blue-50 border-blue-400 text-blue-900 font-semibold border-l-4 border-blue-600 dark:bg-blue-900 dark:border-blue-400 dark:text-blue-100'
+                            ? 'bg-blue-50 border-blue-200 text-blue-900 shadow-md dark:bg-blue-900/20 dark:border-blue-400/30 dark:text-blue-100'
                             : message.speaker === 'ai'
-                            ? 'bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground'
-                            : 'bg-gray-100 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
+                            ? 'bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
                         }`}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm">{getSpeakerIcon(message.speaker)}</span>
-                          <Badge variant="outline" className={`text-xs ${getSpeakerColor(message.speaker)}`}>
+                        <div className="flex items-center gap-3 mb-3">
+                          {getSpeakerIcon(message.speaker)}
+                          <Badge variant="outline" className={`text-xs font-medium ${getSpeakerColor(message.speaker)}`}>
                             {message.speaker === 'user' ? 'You' : message.speaker === 'ai' ? 'EchoLearn' : 'System'}
                           </Badge>
+                          {message.speaker !== 'system' && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                              {message.timestamp}
+                            </span>
+                          )}
                         </div>
-                        <div className={`mb-2 ${message.speaker === 'user' || message.speaker === 'ai' ? 'text-sm font-normal leading-relaxed' : 'text-sm'}`}>
-                          <MathRenderer 
-                            text={message.text} 
-                            highlightTerm={highlightTerm}
-                            className="leading-relaxed"
-                          />
+                        <div className={`${message.speaker === 'user' || message.speaker === 'ai' ? 'text-sm leading-relaxed' : 'text-sm'}`}>
+                          {message.speaker === 'ai' ? (
+                            <TypewriterText
+                              text={message.text}
+                              enabled={streamingEnabled}
+                              speed={30}
+                              className="leading-relaxed"
+                            >
+                              {(displayText) => (
+                                <MathRenderer 
+                                  text={displayText} 
+                                  highlightTerm={highlightTerm}
+                                  className="leading-relaxed"
+                                />
+                              )}
+                            </TypewriterText>
+                          ) : (
+                            <MathRenderer 
+                              text={message.text} 
+                              highlightTerm={highlightTerm}
+                              className="leading-relaxed"
+                            />
+                          )}
                         </div>
-                        {message.speaker !== 'system' && (
-                          <span className="block text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">
-                            {message.timestamp}
-                          </span>
-                        )}
                       </div>
                     </div>
                   )
                 ))
               )}
               {isTyping && (
-                <div className="flex gap-3 justify-start my-2">
-                  <div className="max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 bg-white border-indigo-300 text-gray-900 shadow-md border-l-4 border-indigo-500 dark:bg-card dark:border-indigo-500 dark:text-card-foreground flex items-center gap-2"
+                <div className="flex gap-3 justify-start my-4 animate-fade-in">
+                  <div className="max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground flex items-center gap-3"
                     role="status" aria-live="polite"
                   >
-                    <span className="text-sm">🤖</span>
-                    <span className="text-sm font-medium">EchoLearn is typing</span>
-                    <span className="ml-2 flex space-x-1">
-                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '100ms' }}></span>
-                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></span>
-                    </span>
+                    <div className="w-6 h-6 bg-gradient-to-br from-brand to-brand-dark rounded-full flex items-center justify-center">
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                    <Badge variant="outline" className="text-xs font-medium text-brand bg-brand-lite border-brand/20">
+                      EchoLearn
+                    </Badge>
+                    <span className="text-sm text-gray-600">typing</span>
+                    <div className="flex space-x-1 ml-2">
+                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -453,7 +582,7 @@ export const ChatInterface: React.FC = () => {
           </div>
 
           {/* Input Area */}
-          <div className="flex gap-2 pt-2 border-t border-border bg-background">
+          <div className="flex gap-3 pt-4 border-t border-border bg-background">
             <div className="flex-1 relative">
               <Input
                 value={textInput}
@@ -461,18 +590,22 @@ export const ChatInterface: React.FC = () => {
                 onKeyPress={handleKeyPress}
                 placeholder={
                   isTextInputLocked 
-                    ? "Text input locked during voice session..." 
-                    : "Type your message..."
+                    ? "Voice session active - text input temporarily disabled" 
+                    : "Type your message here..."
                 }
                 disabled={isTyping || isTextInputLocked}
-                className={`flex-1 ${isTextInputLocked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                className={`flex-1 h-12 px-4 text-base transition-all duration-200 ${
+                  isTextInputLocked 
+                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700' 
+                    : 'bg-background border-border focus:border-brand focus:ring-2 focus:ring-brand/20'
+                }`}
                 aria-label="Type your message"
               />
               {isTextInputLocked && (
-                <div className="absolute inset-y-0 right-3 flex items-center">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <span>Voice Active</span>
+                <div className="absolute inset-y-0 right-4 flex items-center">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium">Voice Active</span>
                   </div>
                 </div>
               )}
@@ -480,17 +613,21 @@ export const ChatInterface: React.FC = () => {
             <Button
               onClick={handleSendMessage}
               disabled={!textInput.trim() || isTyping || isTextInputLocked}
-              size="sm"
+              size="default"
+              className={`h-12 px-6 font-medium transition-all duration-200 ${
+                isTextInputLocked 
+                  ? 'opacity-40 cursor-not-allowed' 
+                  : 'bg-brand hover:bg-brand-dark text-white shadow-md hover:shadow-lg'
+              }`}
               aria-label="Send message"
-              className={isTextInputLocked ? 'opacity-50 cursor-not-allowed' : ''}
             >
-              <Send className="h-4 w-4" />
+              {isTyping ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
-          
-          {/* Voice Session Info - REMOVED */}
-          
-          {/* Transcript Ready Info - REMOVED */}
         </CardContent>
       </Card>
 
@@ -506,14 +643,50 @@ export const ChatInterface: React.FC = () => {
             </button>
             
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="relative">
+                {profilePicture ? (
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-blue-200 group">
+                    <img 
+                      src={profilePicture} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
+                      <button
+                        onClick={handleRemoveProfilePicture}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold"
+                        title="Remove profile picture"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center border-2 border-blue-200">
+                    <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                )}
+                <button
+                  onClick={handleProfilePictureUpload}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center text-xs transition-colors"
+                  title="Upload profile picture"
+                >
+                  +
+                </button>
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Manage your account information</p>
               </div>
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
 
             <div className="space-y-4">
               <div>
@@ -603,6 +776,24 @@ export const ChatInterface: React.FC = () => {
                     <Trash2 className="mr-2 h-3 w-3" />
                     Delete All Data
                   </Button>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Chat Experience
+                </Label>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Typewriter Effect</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Show AI text character by character as you read</p>
+                    </div>
+                    <Switch
+                      checked={streamingEnabled}
+                      onCheckedChange={setStreamingEnabled}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

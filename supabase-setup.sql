@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT NOT NULL,
     name TEXT,
+    profile_picture TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -42,6 +43,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'conversations' AND column_name = 'quiz_show_answers') THEN
         ALTER TABLE public.conversations ADD COLUMN quiz_show_answers BOOLEAN DEFAULT false;
+    END IF;
+    
+    -- Add profile_picture column to users table if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'profile_picture') THEN
+        ALTER TABLE public.users ADD COLUMN profile_picture TEXT;
     END IF;
 END $$;
 

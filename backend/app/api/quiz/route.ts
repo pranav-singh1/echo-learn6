@@ -32,11 +32,20 @@ Examples of non-educational content:
 - Technical support or troubleshooting
 - General chat without learning objectives`;
 
-const SYSTEM_PROMPT = `You are an educational assistant that creates summaries and quiz questions from conversation transcripts.
-Generate a concise summary and 3-5 quiz questions (mix of multiple choice and short answer).
+const SYSTEM_PROMPT = `You are an educational assistant that extracts key learning concepts from educational discussions.
+
+IMPORTANT: Focus ONLY on the educational content discussed. Do NOT mention:
+- EchoLearn, AI assistants, or chatbots
+- The conversation format or that this was a discussion
+- Meta-commentary about the learning process
+
+Extract the core educational concepts, facts, and information that were covered. Summarize the actual subject matter that was learned.
+
+Generate a concise summary of the educational content and 3-5 quiz questions (mix of multiple choice and short answer).
+
 You MUST respond in this exact JSON format:
 {
-  "summary": "Brief summary of the key points...",
+  "summary": "Concise summary of the key educational concepts and information covered (focus on the subject matter, not the conversation)",
   "questions": [
     {
       "question": "Question text...",

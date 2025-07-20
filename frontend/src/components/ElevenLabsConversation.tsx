@@ -5,8 +5,7 @@ export interface ConversationMessage {
   speaker: 'user' | 'ai' | 'system';
   text: string;
   timestamp: string;
-  isStreaming?: boolean;
-  messageId?: string;
+  messageId: string;
 }
 
 interface ElevenLabsConversationProps {
@@ -67,7 +66,7 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
 
       setLog((prev) => [...prev, `${speaker}: ${text}`]);
 
-      // Simple message handling - no complex streaming
+      // Simple message handling
       const conversationMessage: ConversationMessage = {
         speaker: speaker as 'user' | 'ai' | 'system',
         text,
