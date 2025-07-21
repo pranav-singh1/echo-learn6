@@ -264,7 +264,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   variant="outline" 
                   className="bg-glass-white backdrop-blur-sm border-brand/30 text-brand px-4 py-2 text-sm font-semibold rounded-full shadow-lg animate-float"
                 >
-                  🎯 AI-Powered Learning Revolution
+                  Smarter Learning with AI
                 </Badge>
                 
                 <h1 className="text-6xl lg:text-7xl font-bold text-neutral leading-tight tracking-tight">
@@ -387,7 +387,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 </div>
 
                 {/* Floating Quiz Card */}
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl border border-purple-200 p-4 max-w-64 animate-float">
+                <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl border border-purple-200 p-4 max-w-64 transform rotate-[-6deg] hover:rotate-0 hover:-translate-y-2 transition-transform duration-500 cursor-pointer">
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                       <Sparkle size={12} weight="duotone" className="text-white" />
@@ -413,19 +413,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
         <div className="container mx-auto px-6">
           <div className="text-center space-y-6">
             <p className="text-sm font-medium text-neutral/60 uppercase tracking-wide">Trusted by learners worldwide</p>
-            
-            <div className="flex items-center justify-center space-x-8 opacity-60">
-              <div className="text-2xl font-bold text-neutral">10K+</div>
-              <div className="w-px h-6 bg-brand/20"></div>
-              <div className="text-2xl font-bold text-neutral">50K+</div>
-              <div className="w-px h-6 bg-brand/20"></div>
-              <div className="text-2xl font-bold text-neutral">98%</div>
-            </div>
-            
-            <div className="flex items-center justify-center space-x-8 text-sm text-neutral/60">
-              <span>Students</span>
-              <span>Conversations</span>
-              <span>Success Rate</span>
+            <div className="flex items-center justify-center">
+              <p className="text-lg md:text-xl text-neutral/80 max-w-2xl mx-auto font-medium italic bg-white/60 rounded-xl px-6 py-4 shadow-sm border border-brand/10">
+                Join others who have already cut their study time in half with <span className="text-brand font-semibold">EchoLearn</span>. Start today and spend tonight celebrating progress instead of cramming.
+              </p>
             </div>
           </div>
         </div>
