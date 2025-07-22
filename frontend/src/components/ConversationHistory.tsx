@@ -212,7 +212,7 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
                     e.stopPropagation();
                     setShowDeleteDialog(session.id);
                   }}
-                  aria-label="Delete conversation"
+                  aria-label={`Delete conversation titled ${session.title}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -227,12 +227,13 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setShowDeleteDialog(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel onClick={() => setShowDeleteDialog(null)} aria-label="Cancel delete conversation">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => {
                             handleDeleteSession(session.id);
                           }}
                           className="bg-red-600 hover:bg-red-700"
+                          aria-label="Confirm delete conversation"
                         >
                           Delete
                         </AlertDialogAction>
