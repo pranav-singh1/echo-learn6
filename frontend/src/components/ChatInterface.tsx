@@ -390,14 +390,6 @@ export const ChatInterface: React.FC = () => {
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
-
-              {/* Voice Session Status */}
-              {isVoiceSessionActive && (
-                <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-1"></div>
-                  Voice Session Active
-                </Badge>
-              )}
             </div>
           </div>
           
@@ -532,7 +524,7 @@ export const ChatInterface: React.FC = () => {
                           {message.speaker === 'ai' ? (
                             <TypewriterText
                               text={message.text}
-                              enabled={streamingEnabled}
+                              enabled={streamingEnabled && message.shouldTypewriter}
                               speed={30}
                               className="leading-relaxed"
                             >

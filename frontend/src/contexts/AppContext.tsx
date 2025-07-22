@@ -200,7 +200,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const lastActiveSession = await supabaseConversationStorage.getActiveSession();
         if (lastActiveSession && lastActiveSession.messages.length > 0) {
           setActiveSession(lastActiveSession);
-          setMessages(lastActiveSession.messages);
+          setMessages(lastActiveSession.messages.map(m => ({ ...m, shouldTypewriter: false })));
           // Initialize conversation service with loaded session messages
           conversationService.clearMessages();
           conversationService.setSessionMessages(lastActiveSession.messages);
@@ -247,7 +247,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Load messages from active session
       if (active) {
-        setMessages(active.messages);
+        setMessages(active.messages.map(m => ({ ...m, shouldTypewriter: false })));
         // Initialize conversation service with active session messages
         conversationService.clearMessages();
         conversationService.setSessionMessages(active.messages);
@@ -290,7 +290,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
-      setMessages(prev => [...prev, message]);
+      const shouldTypewriter = message.speaker === 'ai' && isConnected;
+      setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
       
       // Save message to Supabase storage with session ID
       if (activeSession) {
@@ -331,7 +332,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       unsubscribeMessages();
       unsubscribeState();
     };
-  }, [activeSession, messages, isVoiceSessionActive, isManuallyStoppingConversation]);
+  }, [activeSession, messages, isVoiceSessionActive, isManuallyStoppingConversation, isConnected]);
 
   // Shared function to handle conversation ending (both manual and agent-initiated)
   const handleConversationEnd = (isManualStop: boolean = false) => {
@@ -467,7 +468,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         conversationService.setSessionMessages(session.messages);
         
         setActiveSession(session);
-        setMessages(session.messages);
+        setMessages(session.messages.map(m => ({ ...m, shouldTypewriter: false })));
         setQuizSummary(session.summary || null);
         setQuizQuestions(session.quizQuestions || []);
         setQuizAnswers(session.quizAnswers || {});
