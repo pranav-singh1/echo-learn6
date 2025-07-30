@@ -62,20 +62,16 @@ export class ConversationService {
   async startConversation(): Promise<void> {
     try {
       console.log('ConversationService: Starting conversation...');
-      
-      // Update state to connecting
       this.updateState({ isConnected: false, isListening: true, error: null });
-
-      // Start the ElevenLabs session
-      const elevenLabs = (window as any).elevenLabsConversation;
-      if (elevenLabs && elevenLabs.start) {
-        console.log('Starting ElevenLabs session...');
-        await elevenLabs.start();
-        console.log('ElevenLabs session started successfully');
+      // Start the Retell session
+      const retell = (window as any).retellConversation;
+      if (retell && retell.start) {
+        console.log('Starting Retell session...');
+        await retell.start();
+        console.log('Retell session started successfully');
       } else {
-        throw new Error('ElevenLabs conversation not initialized');
+        throw new Error('Retell conversation not initialized');
       }
-
     } catch (error) {
       console.error('Failed to start conversation:', error);
       this.updateState({ 
@@ -90,36 +86,23 @@ export class ConversationService {
   // Stop conversation
   async stopConversation(): Promise<void> {
     try {
-      const elevenLabs = (window as any).elevenLabsConversation;
-      if (elevenLabs && elevenLabs.stop) {
-        await elevenLabs.stop();
+      const retell = (window as any).retellConversation;
+      if (retell && retell.stop) {
+        await retell.stop();
       }
-      
       this.updateState({ isConnected: false, isListening: false });
-      
-      // Don't add "Conversation ended" message here - let AppContext handle it
-      // to prevent duplicate messages
-      
     } catch (error) {
       console.error('Failed to stop conversation:', error);
+      this.updateState({ isConnected: false, isListening: false });
     }
   }
 
-  // Toggle mute
+  // Mute/unmute
   async toggleMute(): Promise<void> {
-    this.isMuted = !this.isMuted;
-    console.log('Conversation service mute toggled:', this.isMuted);
-    
-    // Delegate to ElevenLabs component
-    const elevenLabs = (window as any).elevenLabsConversation;
-    if (elevenLabs && elevenLabs.toggleMute) {
-      await elevenLabs.toggleMute(this.isMuted);
-    } else {
-      console.warn('ElevenLabs conversation not available for muting');
+    const retell = (window as any).retellConversation;
+    if (retell && retell.toggleMute) {
+      await retell.toggleMute(!retell.isMuted);
     }
-    
-    // Update state to reflect mute status
-    this.updateState({ isListening: !this.isMuted });
   }
 
   // Send a text message (for when voice isn't working)
@@ -200,8 +183,8 @@ export class ConversationService {
 
   // Get connection status
   isConnectedToVoice(): boolean {
-    const elevenLabs = (window as any).elevenLabsConversation;
-    return elevenLabs?.status === 'connected' || false;
+    const retell = (window as any).retellConversation;
+    return retell?.status === 'connected' || false;
   }
 
   // Cleanup
