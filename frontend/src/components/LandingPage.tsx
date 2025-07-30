@@ -103,6 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(null);
+  const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'yearly'>('monthly');
   
   // FAQ data
   const faqs = [
@@ -846,6 +847,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </p>
           </div>
 
+          {/* Billing Toggle */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-900 border border-brand/10 p-1">
+              <button
+                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'monthly' ? 'bg-white dark:bg-gray-800 text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
+                onClick={() => setBillingPeriod('monthly')}
+              >
+                Monthly billing
+              </button>
+              <button
+                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'yearly' ? 'bg-white dark:bg-gray-800 text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
+                onClick={() => setBillingPeriod('yearly')}
+              >
+                Yearly billing
+              </button>
+            </div>
+          </div>
+
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               {/* Free Plan */}
@@ -880,7 +899,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <p className="text-brand-lite">For serious learners</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-3xl font-bold">$9.99<span className="text-lg text-brand-lite">/month</span></div>
+                  {billingPeriod === 'yearly' && (
+                    <div className="mb-2 inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full border border-green-200">
+                      Save 17% (2 months free)
+                    </div>
+                  )}
+                  <div className="text-3xl font-bold">
+                    {billingPeriod === 'monthly' ? (
+                      <>
+                        $9.99<span className="text-lg text-brand-lite">/month</span>
+                      </>
+                    ) : (
+                      <>
+                        $99<span className="text-lg text-brand-lite">/year</span>
+                      </>
+                    )}
+                  </div>
                   <ul className="space-y-2">
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand-lite" />
