@@ -26,10 +26,7 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
 }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [transcript, setTranscript] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const transcriptRef = useRef<string[]>([]);
-  const originalStream = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     retellWebClient.on('call_started', () => {
@@ -38,38 +35,63 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       onStateChange?.({ isConnected: true, isCalling: true, error: null });
       onStart?.();
     });
+    
     retellWebClient.on('call_ended', () => {
       setIsCalling(false);
       onStateChange?.({ isConnected: false, isCalling: false, error: null });
       onStop?.();
     });
+    
     retellWebClient.on('update', (update: any) => {
+      console.log('Retell update received:', update);
       if (update.transcript) {
-        transcriptRef.current = update.transcript.split('\n');
-        setTranscript([...transcriptRef.current]);
-        const lastLine = transcriptRef.current[transcriptRef.current.length - 1];
-        if (lastLine) {
-          const speaker = lastLine.startsWith('Agent:') ? 'ai' : lastLine.startsWith('User:') ? 'user' : 'system';
-          const text = lastLine.replace(/^\w+: /, '');
-          onMessage?.({
-            speaker: speaker as 'user' | 'ai' | 'system',
-            text,
+        console.log('Transcript found:', update.transcript);
+        const transcriptLines = update.transcript.split('\n');
+        console.log('Transcript lines:', transcriptLines);
+        const lastLine = transcriptLines[transcriptLines.length - 1];
+        console.log('Last line:', lastLine);
+        if (lastLine && lastLine.trim()) {
+          // Try different ways to detect speaker
+          let speaker: 'user' | 'ai' | 'system' = 'system';
+          let text = lastLine;
+          
+          if (lastLine.toLowerCase().includes('agent:') || lastLine.toLowerCase().includes('ai:')) {
+            speaker = 'ai';
+            text = lastLine.replace(/^(agent|ai):\s*/i, '');
+          } else if (lastLine.toLowerCase().includes('user:') || lastLine.toLowerCase().includes('you:')) {
+            speaker = 'user';
+            text = lastLine.replace(/^(user|you):\s*/i, '');
+          } else {
+            // If no clear speaker indicator, assume it's user input
+            speaker = 'user';
+            text = lastLine;
+          }
+          
+          console.log('Parsed message:', { speaker, text });
+          
+          const message = {
+            speaker,
+            text: text.trim(),
             timestamp: new Date().toLocaleTimeString(),
             messageId: `msg_${Date.now()}_${Math.random()}`,
-          });
+          };
+          
+          console.log('Sending message to parent:', message);
+          onMessage?.(message);
         }
       }
     });
+    
     retellWebClient.on('error', (err: any) => {
       setError(err?.message || 'Unknown error');
       onStateChange?.({ isConnected: false, isCalling: false, error: err?.message || 'Unknown error' });
       retellWebClient.stopCall();
     });
+    
     return () => {
       retellWebClient.removeAllListeners && retellWebClient.removeAllListeners();
     };
-    // eslint-disable-next-line
-  }, []);
+  }, [onMessage, onStateChange, onStart, onStop]);
 
   const startCall = useCallback(async () => {
     try {
@@ -79,18 +101,23 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agent_id: agentId }),
       });
-      if (!response.ok) throw new Error('Failed to register call');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to register call: ${errorData.error || response.statusText}`);
+      }
       const data = await response.json();
+      console.log('Retell API response:', data);
       if (data.access_token) {
         await retellWebClient.startCall({ accessToken: data.access_token });
       } else {
         throw new Error('No access_token received');
       }
     } catch (err: any) {
+      console.error('Error starting call:', err);
       setError(err.message || 'Failed to start call');
       onStateChange?.({ isConnected: false, isCalling: false, error: err.message || 'Failed to start call' });
     }
-  }, [onStateChange, onStart]);
+  }, [onStateChange]);
 
   const stopCall = useCallback(() => {
     retellWebClient.stopCall();
@@ -100,13 +127,8 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
 
   const toggleMute = useCallback((mute: boolean) => {
     setIsMuted(mute);
-    // Directly control the microphone tracks
-    if (originalStream.current) {
-      const audioTracks = originalStream.current.getAudioTracks();
-      audioTracks.forEach(track => {
-        track.enabled = !mute;
-      });
-    }
+    // Note: Retell SDK doesn't have setMuted method, so we just track the state
+    // The actual muting will need to be handled differently if needed
   }, []);
 
   useEffect(() => {
@@ -124,23 +146,8 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
     };
   }, [startCall, stopCall, toggleMute, isCalling, isMuted]);
 
-  return (
-    <div style={{ padding: 16 }}>
-      <button onClick={isCalling ? stopCall : startCall} style={{ marginBottom: 12 }}>
-        {isCalling ? 'Stop Call' : 'Start Call'}
-      </button>
-      <button onClick={() => toggleMute(!isMuted)} disabled={!isCalling} style={{ marginLeft: 8 }}>
-        {isMuted ? 'Unmute' : 'Mute'}
-      </button>
-      <div style={{ marginTop: 16, background: '#222', color: '#fff', padding: 12, borderRadius: 8, minHeight: 80 }}>
-        <strong>Transcript:</strong>
-        <div style={{ marginTop: 8 }}>
-          {transcript.length === 0 ? <em>No conversation yet.</em> : transcript.map((line, idx) => <div key={idx}>{line}</div>)}
-        </div>
-      </div>
-      {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
-    </div>
-  );
+  // Return null - this component should be invisible!
+  return null;
 };
 
 export default RetellConversation; 
