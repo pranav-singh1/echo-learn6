@@ -291,7 +291,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
+      console.log('AppContext: Received message from conversation service:', message);
       const shouldTypewriter = message.speaker === 'ai' && isConnected;
+      console.log('AppContext: Setting message with shouldTypewriter:', shouldTypewriter);
       setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
       
       // Save message to Supabase storage with session ID
