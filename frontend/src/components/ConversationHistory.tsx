@@ -184,12 +184,33 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
                 <div className="flex flex-col flex-1 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <MessageCircle className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate font-medium relative group" style={{ maxWidth: '140px' }}>
-                      {session.title}
-                      <span className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block bg-gray-900 text-white dark:bg-gray-200 dark:text-gray-900 px-2 py-1 rounded shadow text-xs whitespace-nowrap max-w-xs overflow-hidden overflow-ellipsis" style={{ minWidth: '80px' }}>
+                    {editingSessionId === session.id ? (
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        onBlur={handleSaveEdit}
+                        className="flex-1 bg-transparent border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        autoFocus
+                        style={{ maxWidth: '140px' }}
+                      />
+                    ) : (
+                      <span 
+                        className="truncate font-medium relative group cursor-pointer" 
+                        style={{ maxWidth: '140px' }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          handleStartEdit(session);
+                        }}
+                        title="Double-click to edit"
+                      >
                         {session.title}
+                        <span className="absolute left-0 top-full mt-1 z-10 hidden group-hover:block bg-gray-900 text-white dark:bg-gray-200 dark:text-gray-900 px-2 py-1 rounded shadow text-xs whitespace-nowrap max-w-xs overflow-hidden overflow-ellipsis" style={{ minWidth: '80px' }}>
+                          {session.title}
+                        </span>
                       </span>
-                    </span>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground mt-0.5">
                     {(() => {

@@ -200,7 +200,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const lastActiveSession = await supabaseConversationStorage.getActiveSession();
         if (lastActiveSession && lastActiveSession.messages.length > 0) {
           setActiveSession(lastActiveSession);
-          setMessages(lastActiveSession.messages.map(m => ({ ...m, shouldTypewriter: false })));
+          // Loaded messages should never have typewriter effect
+          setMessages(lastActiveSession.messages.map(m => ({ 
+            ...m, 
+            shouldTypewriter: false 
+          })));
           // Initialize conversation service with loaded session messages
           conversationService.clearMessages();
           conversationService.setSessionMessages(lastActiveSession.messages);
@@ -247,7 +251,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Load messages from active session
       if (active) {
-        setMessages(active.messages.map(m => ({ ...m, shouldTypewriter: false })));
+        // Loaded messages should never have typewriter effect
+        setMessages(active.messages.map(m => ({ 
+          ...m, 
+          shouldTypewriter: false 
+        })));
         // Initialize conversation service with active session messages
         conversationService.clearMessages();
         conversationService.setSessionMessages(active.messages);
@@ -290,7 +298,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
-      const shouldTypewriter = message.speaker === 'ai' && isConnected;
+      // Enable typewriter for AI messages when streaming is enabled, regardless of connection status
+      const shouldTypewriter = message.speaker === 'ai' && streamingEnabled;
       setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
       
       // Save message to Supabase storage with session ID
@@ -332,7 +341,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       unsubscribeMessages();
       unsubscribeState();
     };
-  }, [activeSession, messages, isVoiceSessionActive, isManuallyStoppingConversation, isConnected]);
+  }, [activeSession, messages, isVoiceSessionActive, isManuallyStoppingConversation, isConnected, streamingEnabled]);
 
   // Shared function to handle conversation ending (both manual and agent-initiated)
   const handleConversationEnd = (isManualStop: boolean = false) => {
@@ -468,7 +477,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         conversationService.setSessionMessages(session.messages);
         
         setActiveSession(session);
-        setMessages(session.messages.map(m => ({ ...m, shouldTypewriter: false })));
+        // Loaded messages should never have typewriter effect
+        setMessages(session.messages.map(m => ({ 
+          ...m, 
+          shouldTypewriter: false 
+        })));
         setQuizSummary(session.summary || null);
         setQuizQuestions(session.quizQuestions || []);
         setQuizAnswers(session.quizAnswers || {});
