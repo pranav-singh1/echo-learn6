@@ -3,7 +3,6 @@ import { conversationService, ConversationState } from '../lib/conversation';
 import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
 import { ElevenLabsConversation, ConversationMessage } from '../components/ElevenLabsConversation';
 import { useAuth } from './AuthContext';
-import { RetellConversation } from '../components/RetellConversation';
 
 interface AppContextType {
   // Conversation state
@@ -892,7 +891,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={value}>
-      <RetellConversation
+      <ElevenLabsConversation
         onMessage={(message) => conversationService.addMessage(message)}
         onStateChange={(state) => conversationService.updateState(state)}
         onStart={() => {}}
