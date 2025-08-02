@@ -448,6 +448,8 @@ export const ChatInterface: React.FC = () => {
                   </>
                 )}
               </Button>
+              
+
             </div>
           </div>
         </CardHeader>
@@ -460,6 +462,8 @@ export const ChatInterface: React.FC = () => {
               <AlertDescription>{conversationError}</AlertDescription>
             </Alert>
           )}
+
+
 
           {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-2 bg-background text-foreground scrollbar-hide">
@@ -543,6 +547,7 @@ export const ChatInterface: React.FC = () => {
                               className="leading-relaxed"
                             />
                           )}
+
                         </div>
                       </div>
                     </div>

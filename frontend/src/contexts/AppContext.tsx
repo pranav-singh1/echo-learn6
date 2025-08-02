@@ -298,8 +298,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
-      // Enable typewriter for AI messages when streaming is enabled, regardless of connection status
-      const shouldTypewriter = message.speaker === 'ai' && streamingEnabled;
+      // Since we only display transcript messages at the end now, never use typewriter animation
+      // This ensures all messages appear immediately when the transcript is displayed
+      const shouldTypewriter = false; // Disable typewriter for all messages
       setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
       
       // Save message to Supabase storage with session ID
@@ -327,7 +328,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // If connection is lost and we were in a voice session, handle conversation end
         // BUT only if we're not already manually stopping (to prevent duplicate messages)
         if (state.isConnected === false && isVoiceSessionActive && !isManuallyStoppingConversation) {
-          console.log('Connection lost during voice session, handling conversation end');
           handleConversationEnd(false); // Agent-initiated stop
         }
       }
@@ -345,8 +345,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Shared function to handle conversation ending (both manual and agent-initiated)
   const handleConversationEnd = (isManualStop: boolean = false) => {
-    console.log('Handling conversation end, manual stop:', isManualStop);
-    
     // End voice session and unlock text input
     setIsVoiceSessionActive(false);
     setIsTextInputLocked(false);
@@ -361,13 +359,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // For agent-initiated stops, we need to manually add the "Conversation ended" message
     // since the conversationService.stopConversation() is not called in this case
     if (!isManualStop) {
-      console.log('Adding "Conversation ended" message for agent-initiated stop');
-      conversationService.addMessage({
-        speaker: 'system',
-        text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString(),
-        messageId: `msg_${Date.now()}_${Math.random()}`
-      });
+      // Check if a "Conversation ended" message already exists to prevent duplicates
+      const hasConversationEndedMessage = messages.some(msg => 
+        msg.speaker === 'system' && msg.text === 'Conversation ended'
+      );
+      
+      if (!hasConversationEndedMessage) {
+        conversationService.addMessage({
+          speaker: 'system',
+          text: 'Conversation ended',
+          timestamp: new Date().toLocaleTimeString(),
+          messageId: `msg_${Date.now()}_${Math.random()}`
+        });
+      }
     }
     // For manual stops, the "Conversation ended" message is already added by conversationService.stopConversation()
   };
@@ -575,15 +579,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Stop the conversation service first
       await conversationService.stopConversation();
       
-      // Add the "Conversation ended" message for manual stops
-      conversationService.addMessage({
-        speaker: 'system',
-        text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString(),
-        messageId: `msg_${Date.now()}_${Math.random()}`
-      });
-      
       // Handle the conversation end with manual stop flag
+      // This will add the "Conversation ended" message if needed
       handleConversationEnd(true);
       
     } catch (error) {

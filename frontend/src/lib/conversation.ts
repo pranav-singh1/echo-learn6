@@ -160,8 +160,10 @@ export class ConversationService {
 
   // Add a message and notify subscribers
   addMessage(message: ConversationMessage) {
+    console.log('ConversationService: Adding message:', message);
     this.messages.push(message);
     this.currentSessionMessages.push(message); // Also add to current session messages
+    console.log('ConversationService: Notifying', this.messageCallbacks.length, 'subscribers');
     this.messageCallbacks.forEach(callback => callback(message));
   }
 
