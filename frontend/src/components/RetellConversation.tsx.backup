@@ -1,0 +1,210 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { RetellWebClient } from 'retell-client-js-sdk';
+
+export interface ConversationMessage {
+  speaker: 'user' | 'ai' | 'system';
+  text: string;
+  timestamp: string;
+  messageId: string;
+}
+
+interface RetellConversationProps {
+  onMessage?: (message: ConversationMessage) => void;
+  onStateChange?: (state: { isConnected: boolean; isCalling: boolean; error: string | null }) => void;
+  onStart?: () => void;
+  onStop?: () => void;
+}
+
+const AGENT_ID = "agent_302093d9c369a0189b50c7de42"; // Your Retell agent ID
+
+export const RetellConversation: React.FC<RetellConversationProps> = ({
+  onMessage,
+  onStateChange,
+  onStart,
+  onStop,
+}) => {
+  const [isCalling, setIsCalling] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [callId, setCallId] = useState<string | null>(null);
+  
+  const retellWebClientRef = useRef<RetellWebClient | null>(null);
+  const isInitializedRef = useRef(false);
+  const isStartingCallRef = useRef(false);
+
+  // Initialize Retell Web Client - only once
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isInitializedRef.current) {
+      console.log('Initializing Retell Web Client...');
+      isInitializedRef.current = true;
+      
+      retellWebClientRef.current = new RetellWebClient();
+      
+      // Set up event listeners
+      retellWebClientRef.current.on("call_started", () => {
+        console.log("Retell call started");
+        setIsCalling(true);
+        isStartingCallRef.current = false;
+        onStateChange?.({ isConnected: true, isCalling: true, error: null });
+        onStart?.();
+      });
+
+      retellWebClientRef.current.on("call_ended", async () => {
+        console.log("Retell call ended");
+        setIsCalling(false);
+        onStateChange?.({ isConnected: false, isCalling: false, error: null });
+        onStop?.();
+
+        // Fetch transcript after call ends
+        if (callId) {
+          try {
+            const response = await fetch('/api/retell-get-call', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ call_id: callId }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.transcript) {
+                // Parse transcript and add messages
+                const transcriptLines = data.transcript.split('\n');
+                for (const line of transcriptLines) {
+                  if (line.trim()) {
+                    const [speaker, ...textParts] = line.split(': ');
+                    const text = textParts.join(': ');
+                    if (speaker && text) {
+                      const message: ConversationMessage = {
+                        speaker: speaker.toLowerCase() === 'user' ? 'user' : 'ai',
+                        text: text.trim(),
+                        timestamp: new Date().toLocaleTimeString(),
+                        messageId: `msg_${Date.now()}_${Math.random()}`
+                      };
+                      onMessage?.(message);
+                    }
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching transcript:', error);
+          }
+        }
+      });
+
+      retellWebClientRef.current.on("agent_start_talking", () => {
+        console.log("Agent started talking");
+      });
+
+      retellWebClientRef.current.on("agent_stop_talking", () => {
+        console.log("Agent stopped talking");
+      });
+
+      retellWebClientRef.current.on("update", (update) => {
+        console.log("Retell update:", update);
+        // Handle real-time updates if needed
+      });
+
+      retellWebClientRef.current.on("error", (error) => {
+        console.error("Retell error:", error);
+        setError(error.message || 'Retell error occurred');
+        onStateChange?.({ isConnected: false, isCalling: false, error: error.message || 'Retell error occurred' });
+        setIsCalling(false);
+        isStartingCallRef.current = false;
+      });
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (retellWebClientRef.current) {
+        console.log('Cleaning up Retell Web Client...');
+        retellWebClientRef.current.stopCall();
+        retellWebClientRef.current = null;
+      }
+      isInitializedRef.current = false;
+    };
+  }, []); // Empty dependency array to ensure it only runs once
+
+  const startCall = useCallback(async () => {
+    try {
+      // Prevent multiple simultaneous calls
+      if (isStartingCallRef.current || isCalling) {
+        console.log('Call already in progress, ignoring start request');
+        return;
+      }
+
+      setError(null);
+      isStartingCallRef.current = true;
+      
+      if (!retellWebClientRef.current) {
+        throw new Error('Retell client not initialized');
+      }
+
+      console.log('Starting Retell call...');
+
+      // Register call with backend
+      const response = await fetch('/api/retell-web-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: AGENT_ID }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to register call');
+      }
+
+      const data = await response.json();
+      setCallId(data.call_id);
+
+      // Start the call
+      await retellWebClientRef.current.startCall({
+        accessToken: data.access_token,
+      });
+
+    } catch (err: any) {
+      console.error('Error starting Retell conversation:', err);
+      setError(err.message || 'Failed to start conversation');
+      onStateChange?.({ isConnected: false, isCalling: false, error: err.message || 'Failed to start conversation' });
+      setIsCalling(false);
+      isStartingCallRef.current = false;
+    }
+  }, [onStateChange, isCalling]);
+
+  const stopCall = useCallback(() => {
+    if (retellWebClientRef.current) {
+      console.log('Stopping Retell call...');
+      retellWebClientRef.current.stopCall();
+    }
+  }, []);
+
+  const toggleMute = useCallback((mute: boolean) => {
+    setIsMuted(mute);
+    // Note: Retell SDK doesn't expose setMuted directly, so we track state locally
+    console.log('Retell mute toggled:', mute);
+  }, []);
+
+  useEffect(() => {
+    // Only set up the global object once
+    if (!(window as any).retellConversation) {
+      (window as any).retellConversation = {
+        start: startCall,
+        stop: stopCall,
+        toggleMute: toggleMute,
+        status: isCalling ? 'connected' : 'disconnected',
+        isMuted: isMuted,
+      };
+    }
+    
+    return () => {
+      if ((window as any).retellConversation) {
+        delete (window as any).retellConversation;
+      }
+    };
+  }, [startCall, stopCall, toggleMute, isCalling, isMuted]);
+
+  // Return null - this component should be invisible!
+  return null;
+};
+
+export default RetellConversation; 

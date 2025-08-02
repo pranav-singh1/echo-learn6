@@ -1,5 +1,5 @@
 // Real ElevenLabs conversation service - simplified for reliability with streaming support
-import { ConversationMessage } from '../components/ElevenLabsConversation';
+import { ConversationMessage } from '../components/RetellConversation';
 
 export interface ConversationState {
   isConnected: boolean;
