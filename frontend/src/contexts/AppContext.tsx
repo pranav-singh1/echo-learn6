@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { conversationService, ConversationState } from '../lib/conversation';
 import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
-import { ElevenLabsConversation, ConversationMessage } from '../components/ElevenLabsConversation';
+import { RetellConversation, ConversationMessage } from '../components/RetellConversation';
 import { useAuth } from './AuthContext';
 
 interface AppContextType {
@@ -374,6 +374,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     }
     // For manual stops, the "Conversation ended" message is already added by conversationService.stopConversation()
+  };
+
+  // Handle transcript completion from voice conversation
+  const handleTranscriptComplete = async (transcriptMessages: ConversationMessage[]) => {
+    if (!activeSession) return;
+    
+    try {
+      console.log('Handling transcript completion with', transcriptMessages.length, 'messages');
+      
+      // Replace existing messages with transcript messages
+      setMessages(transcriptMessages.map(m => ({ ...m, shouldTypewriter: false })));
+      
+      // Clear conversation service and set the transcript messages
+      conversationService.clearMessages();
+      conversationService.setSessionMessages(transcriptMessages);
+      
+      // Update the session with the new transcript messages
+      // This replaces all existing messages with the transcript messages
+      await supabaseConversationStorage.updateSession(activeSession.id, {
+        messages: transcriptMessages
+      });
+      
+      console.log('Transcript messages saved to session:', activeSession.id);
+    } catch (error) {
+      console.error('Error handling transcript completion:', error);
+    }
   };
 
   // Session management functions
@@ -837,6 +863,60 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Generate conversation title from transcript (for voice conversations)
+  const generateConversationTitleFromTranscript = async (transcript: string) => {
+    if (!activeSession) {
+      console.log('No active session for title generation');
+      return;
+    }
+    
+    try {
+      console.log('Generating title from transcript for session:', activeSession.id);
+      
+      // Convert transcript to messages format for the title API
+      const lines = transcript.split('\n').filter(line => line.trim());
+      const transcriptMessages = lines.map(line => {
+        const speaker = line.startsWith('EchoLearn:') ? 'ai' : 'user';
+        const text = line.replace(/^(EchoLearn|You):\s*/, '');
+        return {
+          speaker,
+          text: text.trim(),
+          timestamp: new Date().toLocaleTimeString(),
+          messageId: `msg_${Date.now()}_${Math.random()}`
+        };
+      });
+
+      console.log('Converted transcript to', transcriptMessages.length, 'messages');
+
+      const response = await fetch('/api/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: transcriptMessages }),
+      });
+
+      if (!response.ok) {
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        } catch (e) {
+            throw new Error(response.statusText || `Request failed with status ${response.status}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log('Generated title:', data.title);
+      
+      // Update session title
+      if (activeSession && data.title) {
+        await updateSessionTitle(activeSession.id, data.title);
+        console.log('Session title updated successfully');
+      }
+    } catch (error) {
+      console.error('Error generating conversation title from transcript:', error);
+      // Don't show error to user for title generation failures
+    }
+  };
+
   const toggleMute = async () => {
     await conversationService.toggleMute();
     setIsMuted(conversationService.isMicMuted());
@@ -901,11 +981,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={value}>
-      <ElevenLabsConversation
+      <RetellConversation
         onMessage={(message) => conversationService.addMessage(message)}
         onStateChange={(state) => conversationService.updateState(state)}
         onStart={() => {}}
         onStop={() => {}}
+        onGenerateTitle={generateConversationTitleFromTranscript}
+        onTranscriptComplete={handleTranscriptComplete}
       />
       {children}
     </AppContext.Provider>
