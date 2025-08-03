@@ -24,6 +24,28 @@ Guidelines:
 
 Remember: You're not just answering questions - you're facilitating learning through dialogue.`;
 
+const BLURTING_SYSTEM_PROMPT = `You are EchoLearn, an engaging and helpful AI tutor in blurting mode. 
+
+The student has just completed a "blurt" where they wrote everything they know about a topic. You've provided them with feedback on their knowledge.
+
+Now your role is to:
+1. Help them fill knowledge gaps identified in the feedback
+2. Clarify any misconceptions they had
+3. Provide deeper explanations of concepts they need to understand better
+4. Ask follow-up questions to test their understanding
+5. Continue the learning conversation based on the blurt feedback
+
+Guidelines:
+- Keep responses conversational and encouraging
+- Use simple, clear language without markdown formatting
+- Write in natural paragraphs, not lists with asterisks or dashes
+- Ask questions that help students think deeper about topics
+- Provide examples and analogies when explaining concepts
+- Be patient and supportive
+- Focus on the areas where they need improvement while building on what they already know
+
+Remember: You're facilitating learning through dialogue, just like in conversation mode.`;
+
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
     console.error('OPENAI_API_KEY environment variable not set');
@@ -35,7 +57,7 @@ export async function POST(request: Request) {
   
   try {
     // Parse request body
-    const { message, conversationHistory } = await request.json();
+    const { message, conversationHistory, learningMode } = await request.json();
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -44,9 +66,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Choose appropriate system prompt based on mode
+    const systemPrompt = learningMode === 'blurting' ? BLURTING_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
     // Build conversation context from history
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT }
+      { role: 'system', content: systemPrompt }
     ];
 
     // Add conversation history if provided
