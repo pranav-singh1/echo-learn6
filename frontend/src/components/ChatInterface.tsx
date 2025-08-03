@@ -8,7 +8,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX, Sparkles, Brain } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -21,6 +21,9 @@ import {
 import { Separator } from './ui/separator';
 import MathRenderer from './MathRenderer';
 import { TypewriterText } from './TypewriterText';
+import { LearningModeSelector } from './LearningModeSelector';
+import { BlurtingInterface } from './BlurtingInterface';
+import { runBlurtingMigration } from '../lib/migration';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -48,6 +51,22 @@ export const ChatInterface: React.FC = () => {
     voiceSessionTranscript,
     isTextInputLocked,
     hasSentFirstTextAfterVoice,
+    // Learning mode state
+    learningMode,
+    setLearningMode,
+    // New chat state
+    wantsNewChat,
+    setWantsNewChat,
+    // Blurting state
+    blurtContent,
+    setBlurtContent,
+    blurtFeedback,
+    setBlurtFeedback,
+    isBlurtCompleted,
+    setIsBlurtCompleted,
+    submitBlurt,
+    startBlurtMode,
+    createBlurtingSession,
     // Settings
     streamingEnabled,
     setStreamingEnabled
@@ -61,6 +80,7 @@ export const ChatInterface: React.FC = () => {
   const [editTitle, setEditTitle] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showModeSelector, setShowModeSelector] = useState(false);
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
@@ -98,6 +118,39 @@ export const ChatInterface: React.FC = () => {
     document.addEventListener('keydown', handleEscKey);
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [showProfileModal, showSettingsModal]);
+
+  // Show mode selector when user wants a new chat and no active session
+  useEffect(() => {
+    if (wantsNewChat && !activeSession && !showModeSelector) {
+      setShowModeSelector(true);
+    } else if (activeSession) {
+      // If we have an active session, hide the mode selector
+      setShowModeSelector(false);
+    }
+  }, [wantsNewChat, activeSession, showModeSelector]);
+
+  // Mode selection handler
+  const handleModeSelection = async (mode: 'conversation' | 'blurting') => {
+    setLearningMode(mode);
+    setShowModeSelector(false);
+    setWantsNewChat(false);
+    
+    if (mode === 'conversation') {
+      // For conversation mode, create session immediately
+      try {
+        await createNewSession();
+      } catch (error) {
+        console.error('Failed to create session for conversation mode:', error);
+      }
+    } else {
+      // For blurting mode, create dedicated blurting session (no voice session interference)
+      try {
+        await createBlurtingSession();
+      } catch (error) {
+        console.error('Failed to create session for blurting mode:', error);
+      }
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!textInput.trim()) return;
@@ -154,9 +207,13 @@ export const ChatInterface: React.FC = () => {
   const getSpeakerColor = (speaker: string) => {
     switch (speaker) {
       case 'user':
-        return 'text-blue-700 bg-blue-50 border-blue-200';
+        return isBlurtingConversation
+          ? 'text-purple-700 bg-purple-50 border-purple-200'
+          : 'text-blue-700 bg-blue-50 border-blue-200';
       case 'ai':
-        return 'text-brand bg-brand-lite border-brand/20';
+        return isBlurtingConversation
+          ? 'text-purple-700 bg-purple-50 border-purple-200'
+          : 'text-brand bg-brand-lite border-brand/20';
       case 'system':
         return 'text-gray-600 bg-gray-50 border-gray-200';
       default:
@@ -185,8 +242,16 @@ export const ChatInterface: React.FC = () => {
         );
       case 'ai':
         return (
-          <div className="w-6 h-6 bg-gradient-to-br from-brand to-brand-dark rounded-full flex items-center justify-center">
-            <Sparkles className="w-3 h-3 text-white" />
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+            isBlurtingConversation
+              ? 'bg-gradient-to-br from-purple-500 to-purple-700'
+              : 'bg-gradient-to-br from-brand to-brand-dark'
+          }`}>
+            {isBlurtingConversation ? (
+              <Brain className="w-3 h-3 text-white" />
+            ) : (
+              <Sparkles className="w-3 h-3 text-white" />
+            )}
           </div>
         );
       case 'system':
@@ -334,6 +399,37 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
+  const handleRunMigration = async () => {
+    try {
+      const success = await runBlurtingMigration();
+      if (success) {
+        alert('Migration completed successfully!');
+      } else {
+        alert('Migration failed. Check console for details.');
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      alert('Migration failed. Check console for details.');
+    }
+  };
+
+  // Show mode selector when no active session
+  if (showModeSelector && !activeSession) {
+    return <LearningModeSelector onSelectMode={handleModeSelection} />;
+  }
+
+  // Show blurting interface when in blurting mode and blurt is not completed
+  console.log('Rendering check - learningMode:', learningMode, 'isBlurtCompleted:', isBlurtCompleted, 'activeSession:', activeSession);
+  if (learningMode === 'blurting' && !isBlurtCompleted) {
+    console.log('Showing BlurtingInterface');
+    return <BlurtingInterface />;
+  } else if (learningMode === 'blurting' && isBlurtCompleted) {
+    console.log('Showing BlurtingConversation');
+  }
+
+  // Show blurting conversation interface when in blurting mode and blurt is completed
+  const isBlurtingConversation = learningMode === 'blurting' && isBlurtCompleted;
+
   return (
     <>
       <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
@@ -342,8 +438,16 @@ export const ChatInterface: React.FC = () => {
           {/* Top Row: Title + Progress + Status */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center shadow-sm">
-                <Sparkles className="h-4 w-4 text-white" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
+                isBlurtingConversation 
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-700' 
+                  : 'bg-gradient-to-br from-brand to-brand-dark'
+              }`}>
+                {isBlurtingConversation ? (
+                  <Brain className="h-4 w-4 text-white" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-white" />
+                )}
               </div>
               {isEditingTitle ? (
                 <div className="flex items-center gap-2">
@@ -365,9 +469,16 @@ export const ChatInterface: React.FC = () => {
               ) : (
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="flex flex-col min-w-0">
-                    <h2 className="text-lg font-semibold text-foreground truncate leading-tight">
-                      {activeSession?.title || 'New Conversation'}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-foreground truncate leading-tight">
+                        {activeSession?.title || 'New Conversation'}
+                      </h2>
+                      {isBlurtingConversation && (
+                        <Badge variant="outline" className="text-xs font-medium bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700">
+                          Blurting Mode
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -396,36 +507,41 @@ export const ChatInterface: React.FC = () => {
           {/* Bottom Row: Voice Controls & Actions */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button
-                size="sm"
-                onClick={handleVoiceToggle}
-                disabled={isTyping}
-                className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
-                aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
-                data-tour="start-voice"
-              >
-                {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                {isConnected ? 'Stop' : 'Start'} Voice
-              </Button>
-              
-              <Button
-                size="sm"
-                onClick={toggleMute}
-                variant="outline"
-                disabled={!isConnected}
-                className={`flex items-center gap-2 ${
-                  !isConnected 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : isMuted 
-                      ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-                aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-                data-tour="mute"
-              >
-                <VolumeX className={`h-4 w-4 ${isMuted ? 'text-red-600' : !isConnected ? 'text-gray-400' : ''}`} />
-                {isMuted ? 'Unmute' : 'Mute'}
-              </Button>
+              {/* Only show voice controls for conversation mode */}
+              {!isBlurtingConversation && (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleVoiceToggle}
+                    disabled={isTyping}
+                    className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
+                    aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
+                    data-tour="start-voice"
+                  >
+                    {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {isConnected ? 'Stop' : 'Start'} Voice
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    onClick={toggleMute}
+                    variant="outline"
+                    disabled={!isConnected}
+                    className={`flex items-center gap-2 ${
+                      !isConnected 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : isMuted 
+                          ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400' 
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                    aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                    data-tour="mute"
+                  >
+                    <VolumeX className={`h-4 w-4 ${isMuted ? 'text-red-600' : !isConnected ? 'text-gray-400' : ''}`} />
+                    {isMuted ? 'Unmute' : 'Mute'}
+                  </Button>
+                </>
+              )}
               
               <Button
                 variant="outline"
@@ -507,9 +623,13 @@ export const ChatInterface: React.FC = () => {
                       <div
                         className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 relative ${
                           message.speaker === 'user'
-                            ? 'bg-blue-50 border-blue-200 text-blue-900 shadow-md dark:bg-blue-900/20 dark:border-blue-400/30 dark:text-blue-100'
+                            ? isBlurtingConversation
+                              ? 'bg-purple-50 border-purple-200 text-purple-900 shadow-md dark:bg-purple-900/20 dark:border-purple-400/30 dark:text-purple-100'
+                              : 'bg-blue-50 border-blue-200 text-blue-900 shadow-md dark:bg-blue-900/20 dark:border-blue-400/30 dark:text-blue-100'
                             : message.speaker === 'ai'
-                            ? 'bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground'
+                            ? isBlurtingConversation
+                              ? 'bg-white border-purple-200 text-gray-900 shadow-md dark:bg-card dark:border-purple-300 dark:text-card-foreground'
+                              : 'bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground'
                             : 'bg-gray-50 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
                         }`}
                       >
@@ -556,20 +676,42 @@ export const ChatInterface: React.FC = () => {
               )}
               {isTyping && (
                 <div className="flex gap-3 justify-start my-4 animate-fade-in">
-                  <div className="max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground flex items-center gap-3"
+                  <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-200 shadow-md flex items-center gap-3 ${
+                    isBlurtingConversation
+                      ? 'bg-white border-purple-200 text-gray-900 dark:bg-card dark:border-purple-300 dark:text-card-foreground'
+                      : 'bg-white border-brand/20 text-gray-900 dark:bg-card dark:border-brand/30 dark:text-card-foreground'
+                  }`}
                     role="status" aria-live="polite"
                   >
-                    <div className="w-6 h-6 bg-gradient-to-br from-brand to-brand-dark rounded-full flex items-center justify-center">
-                      <Sparkles className="w-3 h-3 text-white" />
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      isBlurtingConversation
+                        ? 'bg-gradient-to-br from-purple-500 to-purple-700'
+                        : 'bg-gradient-to-br from-brand to-brand-dark'
+                    }`}>
+                      {isBlurtingConversation ? (
+                        <Brain className="w-3 h-3 text-white" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 text-white" />
+                      )}
                     </div>
-                    <Badge variant="outline" className="text-xs font-medium text-brand bg-brand-lite border-brand/20">
+                    <Badge variant="outline" className={`text-xs font-medium ${
+                      isBlurtingConversation
+                        ? 'text-purple-700 bg-purple-50 border-purple-200'
+                        : 'text-brand bg-brand-lite border-brand/20'
+                    }`}>
                       EchoLearn
                     </Badge>
                     <span className="text-sm text-gray-600">typing</span>
                     <div className="flex space-x-1 ml-2">
-                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${
+                        isBlurtingConversation ? 'bg-purple-500' : 'bg-brand'
+                      }`} style={{ animationDelay: '0ms' }}></div>
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${
+                        isBlurtingConversation ? 'bg-purple-500' : 'bg-brand'
+                      }`} style={{ animationDelay: '150ms' }}></div>
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${
+                        isBlurtingConversation ? 'bg-purple-500' : 'bg-brand'
+                      }`} style={{ animationDelay: '300ms' }}></div>
                     </div>
                   </div>
                 </div>

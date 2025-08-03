@@ -38,6 +38,7 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
     activeSession, 
     allSessions, 
     createNewSession, 
+    startFreshConversation,
     switchToSession, 
     deleteSession,
     updateSessionTitle,
@@ -140,7 +141,7 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
         <Button
           variant="ghost"
           size="sm"
-          onClick={createNewSession}
+          onClick={startFreshConversation}
           className="flex items-center gap-1 hover:bg-sidebar-accent text-sidebar-foreground"
           aria-label="Start a new chat"
           data-tour="new-chat"

@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     quiz_answers JSONB DEFAULT '{}'::jsonb,
     quiz_evaluations JSONB DEFAULT '{}'::jsonb,
     quiz_show_answers BOOLEAN DEFAULT false,
+    learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting')),
+    blurt_content TEXT,
+    blurt_feedback JSONB DEFAULT '{}'::jsonb,
+    blurt_completed BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_active BOOLEAN DEFAULT true
@@ -45,6 +49,30 @@ BEGIN
         ALTER TABLE public.conversations ADD COLUMN quiz_show_answers BOOLEAN DEFAULT false;
     END IF;
     
+    -- Add learning_mode column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'learning_mode') THEN
+        ALTER TABLE public.conversations ADD COLUMN learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting'));
+    END IF;
+    
+    -- Add blurt_content column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'blurt_content') THEN
+        ALTER TABLE public.conversations ADD COLUMN blurt_content TEXT;
+    END IF;
+    
+    -- Add blurt_feedback column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'blurt_feedback') THEN
+        ALTER TABLE public.conversations ADD COLUMN blurt_feedback JSONB DEFAULT '{}'::jsonb;
+    END IF;
+    
+    -- Add blurt_completed column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'blurt_completed') THEN
+        ALTER TABLE public.conversations ADD COLUMN blurt_completed BOOLEAN DEFAULT false;
+    END IF;
+    
     -- Add profile_picture column to users table if it doesn't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'users' AND column_name = 'profile_picture') THEN
@@ -56,6 +84,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON public.conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON public.conversations(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_is_active ON public.conversations(is_active);
+CREATE INDEX IF NOT EXISTS idx_conversations_learning_mode ON public.conversations(learning_mode);
 
 -- Enable Row Level Security
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;

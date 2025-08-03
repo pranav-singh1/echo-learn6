@@ -50,6 +50,10 @@ export interface Database {
           messages: any[];
           summary: string | null;
           quiz_questions: any[] | null;
+          learning_mode: 'conversation' | 'blurting';
+          blurt_content: string | null;
+          blurt_feedback: any | null;
+          blurt_completed: boolean | null;
           created_at: string;
           updated_at: string;
           is_active: boolean;
@@ -61,6 +65,10 @@ export interface Database {
           messages?: any[];
           summary?: string | null;
           quiz_questions?: any[] | null;
+          learning_mode?: 'conversation' | 'blurting';
+          blurt_content?: string | null;
+          blurt_feedback?: any | null;
+          blurt_completed?: boolean | null;
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;
@@ -72,6 +80,10 @@ export interface Database {
           messages?: any[];
           summary?: string | null;
           quiz_questions?: any[] | null;
+          learning_mode?: 'conversation' | 'blurting';
+          blurt_content?: string | null;
+          blurt_feedback?: any | null;
+          blurt_completed?: boolean | null;
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;

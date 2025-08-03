@@ -18,6 +18,27 @@ interface AppContextType {
   isTextInputLocked: boolean;
   hasSentFirstTextAfterVoice: boolean;
   
+  // Learning mode state
+  learningMode: 'conversation' | 'blurting';
+  setLearningMode: (mode: 'conversation' | 'blurting') => void;
+  
+  // New chat state
+  wantsNewChat: boolean;
+  setWantsNewChat: (wants: boolean) => void;
+  
+  // Blurting state
+  blurtContent: string;
+  setBlurtContent: (content: string) => void;
+  blurtFeedback: any;
+  setBlurtFeedback: (feedback: any) => void;
+  isBlurtCompleted: boolean;
+  setIsBlurtCompleted: (completed: boolean) => void;
+  
+  // Blurting actions
+  submitBlurt: (content: string, topic?: string) => Promise<void>;
+  startBlurtMode: () => void;
+  createBlurtingSession: () => Promise<void>;
+  
   // Session management
   activeSession: ConversationSession | null;
   allSessions: ConversationSession[];
@@ -92,6 +113,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [hasSentFirstTextAfterVoice, setHasSentFirstTextAfterVoice] = useState(false);
   const [isManuallyStoppingConversation, setIsManuallyStoppingConversation] = useState(false);
   
+  // Learning mode state
+  const [learningMode, setLearningMode] = useState<'conversation' | 'blurting'>('conversation');
+  
+  // New chat state
+  const [wantsNewChat, setWantsNewChat] = useState(false);
+  
+  // Blurting state
+  const [blurtContent, setBlurtContent] = useState('');
+  const [blurtFeedback, setBlurtFeedback] = useState<any>(null);
+  const [isBlurtCompleted, setIsBlurtCompleted] = useState(false);
+  
+
+  
   // Session management
   const [activeSession, setActiveSession] = useState<ConversationSession | null>(null);
   const [allSessions, setAllSessions] = useState<ConversationSession[]>([]);
@@ -126,9 +160,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [streamingEnabled]);
   
-  // Track initialization to prevent unnecessary reloads
-  const [initializedUserId, setInitializedUserId] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+
 
   // Only persist quiz/summary panel state if open, otherwise always default to chat/null
   useEffect(() => {
@@ -143,157 +175,31 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
 
 
-  // Load conversations when user changes - with proper ID tracking
+  // Simple initialization: Load sessions and show most recent one
   useEffect(() => {
-    const currentUserId = user?.id || null;
+    if (!user) return;
     
-    if (user && currentUserId !== initializedUserId) {
-      setInitializedUserId(currentUserId);
-      setIsInitialized(false);
-      setActivePanel(null);
-      initializeUserSession();
-    } else if (!user && initializedUserId) {
-      // Clear data when user logs out
-      setAllSessions([]);
+    const initializeApp = async () => {
+      console.log('Initializing app for user:', user.id);
+      
+      // Load all sessions
+      const storage = await supabaseConversationStorage.getConversations();
+      setAllSessions(storage.sessions);
+      
+      // Always start with mode selector, regardless of existing sessions
+      console.log('Starting with mode selector');
+      setWantsNewChat(true);
       setActiveSession(null);
       setMessages([]);
-      setQuizSummary(null);
-      setQuizQuestions([]);
-      setInitializedUserId(null);
-      setIsInitialized(false);
-    } else if (user && currentUserId === initializedUserId && isInitialized) {
-      // Same user and already initialized, don't re-initialize
-    } else if (user && currentUserId === initializedUserId && !isInitialized) {
-      // This handles the case where the user object reference changed but it's the same user
-      // and we haven't finished initialization yet
-    }
-  }, [user?.id, initializedUserId, isInitialized]);
-
-  // Initialize user session - load existing sessions and preserve active session if it exists
-  const initializeUserSession = async () => {
-    if (!user) return;
-    
-    console.log('=== initializeUserSession called ===');
-    console.log('Current activeSession:', activeSession?.id);
-    console.log('Current messages count:', messages.length);
-    console.log('User ID:', user.id);
-    console.log('Is initialized:', isInitialized);
-    
-    try {
-      // Load existing sessions first for the sidebar
-      const storage = await supabaseConversationStorage.getConversations();
-      setAllSessions(storage.sessions);
-      console.log('Loaded sessions:', storage.sessions.length);
-      
-      // If we already have an active session with messages, preserve it (e.g., from tab switching)
-      if (activeSession && messages.length > 0 && isInitialized) {
-        console.log('Preserving existing active session during tab switch:', activeSession.id);
-        // Ensure conversation service is properly initialized
-        conversationService.clearMessages();
-        conversationService.setSessionMessages(messages);
-        setIsInitialized(true);
-        return; // Don't clear the current session
-      }
-      
-      // Try to load the last active session from Supabase only if we don't have one
-      if (!activeSession || messages.length === 0) {
-        const lastActiveSession = await supabaseConversationStorage.getActiveSession();
-        if (lastActiveSession && lastActiveSession.messages.length > 0) {
-          setActiveSession(lastActiveSession);
-          // Loaded messages should never have typewriter effect
-          setMessages(lastActiveSession.messages.map(m => ({ 
-            ...m, 
-            shouldTypewriter: false 
-          })));
-          // Initialize conversation service with loaded session messages
-          conversationService.clearMessages();
-          conversationService.setSessionMessages(lastActiveSession.messages);
-          
-          setQuizSummary(lastActiveSession.summary || null);
-          setQuizQuestions(lastActiveSession.quizQuestions || []);
-          setQuizAnswers(lastActiveSession.quizAnswers || {});
-          setQuizEvaluations(lastActiveSession.quizEvaluations || {});
-          setQuizShowAnswers(lastActiveSession.quizShowAnswers || false);
-          setActivePanel(null);
-        } else {
-          // Only start fresh if there's no active session
-          setActiveSession(null);
-          setMessages([]);
-          // Clear conversation service for fresh start
-          conversationService.clearMessages();
-          
-          setQuizSummary(null);
-          setQuizQuestions([]);
-          setQuizAnswers({});
-          setQuizEvaluations({});
-          setQuizShowAnswers(false);
-          setActivePanel(null);
-        }
-      }
-      
       setIsInitialized(true);
-    } catch (error) {
-      console.error('Error initializing user session:', error);
-      setIsInitialized(true);
-    }
-  };
-
-  // Load conversations from Supabase storage
-  const loadConversations = async () => {
-    if (!user) return;
+    };
     
-    try {
-      const storage = await supabaseConversationStorage.getConversations();
-      const active = await supabaseConversationStorage.getActiveSession();
-      
-      setAllSessions(storage.sessions);
-      setActiveSession(active);
-      
-      // Load messages from active session
-      if (active) {
-        // Loaded messages should never have typewriter effect
-        setMessages(active.messages.map(m => ({ 
-          ...m, 
-          shouldTypewriter: false 
-        })));
-        // Initialize conversation service with active session messages
-        conversationService.clearMessages();
-        conversationService.setSessionMessages(active.messages);
-        
-        setQuizSummary(active.summary || null);
-        setQuizQuestions(active.quizQuestions || []);
-        
-        // Load quiz answers and evaluations if they exist
-        if (active.quizAnswers) {
-          setQuizAnswers(active.quizAnswers);
-        } else {
-          setQuizAnswers({});
-        }
-        if (active.quizEvaluations) {
-          setQuizEvaluations(active.quizEvaluations);
-        } else {
-          setQuizEvaluations({});
-        }
-        if (active.quizShowAnswers !== undefined) {
-          setQuizShowAnswers(active.quizShowAnswers);
-        } else {
-          setQuizShowAnswers(false);
-        }
-      } else {
-        setMessages([]);
-        // Clear conversation service when no active session
-        conversationService.clearMessages();
-        
-        setQuizSummary(null);
-        setQuizQuestions([]);
-        setQuizAnswers({});
-        setQuizEvaluations({});
-        setQuizShowAnswers(false);
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    }
-  };
+    initializeApp();
+  }, [user?.id]);
+
+
+
+
 
   // Subscribe to conversation service events
   useEffect(() => {
@@ -417,8 +323,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Clear conversation service messages to ensure fresh start
       conversationService.clearMessages();
       
-      // Create new session
-      const newSession = await supabaseConversationStorage.createSession();
+      // Create new session with current learning mode
+      const newSession = await supabaseConversationStorage.createSession(undefined, learningMode);
       
       setActiveSession(newSession);
       setMessages([]);
@@ -429,8 +335,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setQuizShowAnswers(false);
       setActivePanel('chat');
       
-      // Reload all sessions
-      await loadConversations();
+      // Update sessions list to show new session in sidebar
+      const updatedStorage = await supabaseConversationStorage.getConversations();
+      setAllSessions(updatedStorage.sessions);
     } catch (error) {
       console.error('Error creating new session:', error);
     }
@@ -455,6 +362,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setQuizEvaluations({});
     setQuizShowAnswers(false);
     setActivePanel('chat');
+    
+    // Reset learning mode and blurting state
+    setLearningMode('conversation');
+    setBlurtContent('');
+    setBlurtFeedback(null);
+    setIsBlurtCompleted(false);
+    
+    // Set flag to show mode selector
+    setWantsNewChat(true);
   };
 
   // Force create a fresh session (used when transitioning from landing page)
@@ -471,7 +387,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       conversationService.clearMessages();
       
       // Always create a new session regardless of existing ones
-      const newSession = await supabaseConversationStorage.createSession();
+      const newSession = await supabaseConversationStorage.createSession(undefined, learningMode);
       
       setActiveSession(newSession);
       setMessages([]);
@@ -493,6 +409,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const switchToSession = async (sessionId: string) => {
     if (!user) return;
     
+    console.log('Switching to session:', sessionId);
+    
     try {
       // Stop current conversation if active
       if (isConnected) {
@@ -502,24 +420,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Switch to session
       const session = await supabaseConversationStorage.switchToSession(sessionId);
       if (session) {
-        // Clear conversation service and set the new session's messages
-        conversationService.clearMessages();
-        conversationService.setSessionMessages(session.messages);
+        console.log('Session switched successfully:', session.id);
         
+        // Set all session data
         setActiveSession(session);
-        // Loaded messages should never have typewriter effect
-        setMessages(session.messages.map(m => ({ 
-          ...m, 
-          shouldTypewriter: false 
-        })));
+        setMessages(session.messages.map(m => ({ ...m, shouldTypewriter: false })));
         setQuizSummary(session.summary || null);
         setQuizQuestions(session.quizQuestions || []);
         setQuizAnswers(session.quizAnswers || {});
         setQuizEvaluations(session.quizEvaluations || {});
         setQuizShowAnswers(session.quizShowAnswers || false);
         setActivePanel(null);
-        // Reload all sessions
-        await loadConversations();
+        
+        // Set blurting state
+        setLearningMode(session.learningMode || 'conversation');
+        setBlurtContent(session.blurtContent || '');
+        setBlurtFeedback(session.blurtFeedback || null);
+        setIsBlurtCompleted(session.isBlurtCompleted || false);
+        
+        // Clear mode selector
+        setWantsNewChat(false);
+        
+        // Update sessions list
+        const updatedStorage = await supabaseConversationStorage.getConversations();
+        setAllSessions(updatedStorage.sessions);
+        
+        console.log('Session switch complete - activeSession:', session.id);
       }
     } catch (error) {
       console.error('Error switching session:', error);
@@ -662,7 +588,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: contextMessage,
-            conversationHistory: messages.slice(-10) // Send last 10 messages from current session only
+            conversationHistory: messages.slice(-10), // Send last 10 messages from current session only
+            learningMode
           }),
         });
 
@@ -686,7 +613,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setVoiceSessionTranscript(''); // Clear the transcript after use
       } else {
         // Normal text message - conversation service will handle the API call with proper session isolation
-        await conversationService.sendTextMessage(text);
+        await conversationService.sendTextMessage(text, learningMode);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -710,15 +637,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setQuizBlocked(null);
       try {
         // Convert messages to the format expected by the backend
-        const conversationLog = messages.map(msg => {
+        let contentForQuiz = messages.map(msg => {
           const speaker = msg.speaker === 'user' ? 'Student' : 'Tutor';
           return `${speaker}: ${msg.text}`;
         });
 
+        // Include blurt content if in blurting mode
+        if (learningMode === 'blurting' && blurtContent) {
+          contentForQuiz = [`Blurt Content:\n${blurtContent}\n\nConversation:\n${contentForQuiz.join('\n')}`];
+        }
+
         const response = await fetch('/api/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ log: conversationLog }),
+          body: JSON.stringify({ log: contentForQuiz }),
         });
 
         if (!response.ok) {
@@ -922,6 +854,100 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsMuted(conversationService.isMicMuted());
   };
 
+  // Create a dedicated blurting session (bypasses voice session logic)
+  const createBlurtingSession = async () => {
+    if (!user) {
+      return;
+    }
+    
+    try {
+      // Create new session with blurting mode (no voice session interference)
+      const newSession = await supabaseConversationStorage.createSession(undefined, 'blurting');
+      
+      console.log('Created blurting session:', newSession);
+      console.log('Session learning mode:', newSession.learningMode);
+      console.log('Session isBlurtCompleted:', newSession.isBlurtCompleted);
+      
+      setActiveSession(newSession);
+      setMessages([]);
+      setQuizSummary(null);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizEvaluations({});
+      setQuizShowAnswers(false);
+      // Don't set activePanel to 'chat' - let it stay on blurting interface
+      
+      // Reset blurting state
+      setBlurtContent('');
+      setBlurtFeedback(null);
+      setIsBlurtCompleted(false);
+      
+      // Update sessions list to show new session in sidebar
+      const updatedStorage = await supabaseConversationStorage.getConversations();
+      setAllSessions(updatedStorage.sessions);
+    } catch (error) {
+      console.error('Error creating blurting session:', error);
+    }
+  };
+
+  // Blurting functions
+  const submitBlurt = async (content: string, topic?: string) => {
+    try {
+      // Add user's blurt message to conversation first
+      const userBlurtMessage = {
+        speaker: 'user' as const,
+        text: `[Blurt about ${topic || 'topic'}]: ${content}`,
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
+      
+      // Use conversation service to add user message
+      conversationService.addMessage(userBlurtMessage);
+      
+      const response = await fetch('/api/blurt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blurtContent: content, topic })
+      });
+      
+      if (!response.ok) throw new Error('Failed to analyze blurt');
+      
+      const { feedback } = await response.json();
+      setBlurtFeedback(feedback);
+      setIsBlurtCompleted(true);
+      console.log('Blurt submitted - setting isBlurtCompleted to true');
+      
+      // Update the session in the database with blurting state
+      if (activeSession) {
+        await supabaseConversationStorage.updateSession(activeSession.id, {
+          blurtContent: content,
+          blurtFeedback: feedback,
+          isBlurtCompleted: true
+        });
+      }
+      
+      // Add feedback message to conversation using conversation service
+      const feedbackMessage = {
+        speaker: 'ai' as const,
+        text: `Great job on your blurt! Here's my analysis:\n\nWhat you know well:\n${feedback.knowledgeStrengths.join('\n')}\n\nAreas to improve:\n${feedback.knowledgeGaps.join('\n')}\n\nSuggestions:\n${feedback.suggestions.join('\n')}\n\nOverall: ${feedback.overallScore}\n\n${feedback.encouragement}\n\nLet's continue learning together! What would you like to focus on first?`,
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
+      
+      // Use conversation service to add message (this will trigger proper formatting and saving)
+      conversationService.addMessage(feedbackMessage);
+    } catch (error) {
+      console.error('Error submitting blurt:', error);
+    }
+  };
+
+  const startBlurtMode = () => {
+    setLearningMode('blurting');
+    setBlurtContent('');
+    setBlurtFeedback(null);
+    setIsBlurtCompleted(false);
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
@@ -935,6 +961,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     voiceSessionTranscript,
     isTextInputLocked,
     hasSentFirstTextAfterVoice,
+    
+    // Learning mode state
+    learningMode,
+    setLearningMode,
+    
+    // New chat state
+    wantsNewChat,
+    setWantsNewChat,
+    
+    // Blurting state
+    blurtContent,
+    setBlurtContent,
+    blurtFeedback,
+    setBlurtFeedback,
+    isBlurtCompleted,
+    setIsBlurtCompleted,
+    
+    // Blurting actions
+    submitBlurt,
+    startBlurtMode,
+    createBlurtingSession,
     
     // Session management
     activeSession,

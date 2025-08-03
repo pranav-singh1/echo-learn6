@@ -13,6 +13,10 @@ export interface ConversationSession {
   quizAnswers?: { [key: number]: string };
   quizEvaluations?: { [key: number]: any };
   quizShowAnswers?: boolean;
+  learningMode: 'conversation' | 'blurting';
+  blurtContent?: string;
+  blurtFeedback?: any;
+  isBlurtCompleted?: boolean;
   isActive: boolean;
 }
 
@@ -54,6 +58,10 @@ class SupabaseConversationStorageService {
         quizAnswers: conv.quiz_answers || {},
         quizEvaluations: conv.quiz_evaluations || {},
         quizShowAnswers: conv.quiz_show_answers,
+        learningMode: conv.learning_mode || 'conversation',
+        blurtContent: conv.blurt_content,
+        blurtFeedback: conv.blurt_feedback,
+        isBlurtCompleted: conv.blurt_completed,
         isActive: conv.is_active
       }));
 
@@ -70,7 +78,7 @@ class SupabaseConversationStorageService {
   }
 
   // Create a new conversation session
-  async createSession(title?: string): Promise<ConversationSession> {
+  async createSession(title?: string, learningMode: 'conversation' | 'blurting' = 'conversation'): Promise<ConversationSession> {
     console.log('createSession called with title:', title);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,6 +107,7 @@ class SupabaseConversationStorageService {
           user_id: user.id,
           title: title || 'New Conversation',
           messages: [],
+          learning_mode: learningMode,
           is_active: true
         })
         .select()
@@ -119,6 +128,10 @@ class SupabaseConversationStorageService {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         isActive: data.is_active,
+        learningMode: data.learning_mode || 'conversation',
+        blurtContent: data.blurt_content,
+        blurtFeedback: data.blurt_feedback,
+        isBlurtCompleted: data.blurt_completed,
         quizAnswers: data.quiz_answers || {},
         quizEvaluations: data.quiz_evaluations || {},
         quizShowAnswers: data.quiz_show_answers
@@ -159,7 +172,11 @@ class SupabaseConversationStorageService {
         quizAnswers: conversations.quiz_answers || {},
         quizEvaluations: conversations.quiz_evaluations || {},
         quizShowAnswers: conversations.quiz_show_answers,
-        isActive: conversations.is_active
+        isActive: conversations.is_active,
+        learningMode: conversations.learning_mode || 'conversation',
+        blurtContent: conversations.blurt_content,
+        blurtFeedback: conversations.blurt_feedback,
+        isBlurtCompleted: conversations.blurt_completed
       };
     } catch (error) {
       console.error('Error getting active session:', error);
@@ -195,7 +212,11 @@ class SupabaseConversationStorageService {
         quizAnswers: conversation.quiz_answers || {},
         quizEvaluations: conversation.quiz_evaluations || {},
         quizShowAnswers: conversation.quiz_show_answers,
-        isActive: conversation.is_active
+        isActive: conversation.is_active,
+        learningMode: conversation.learning_mode || 'conversation',
+        blurtContent: conversation.blurt_content,
+        blurtFeedback: conversation.blurt_feedback,
+        isBlurtCompleted: conversation.blurt_completed
       };
     } catch (error) {
       console.error('Error getting session:', error);
@@ -273,6 +294,9 @@ class SupabaseConversationStorageService {
       if (updates.quizEvaluations !== undefined) updateData.quiz_evaluations = updates.quizEvaluations;
       if (updates.quizShowAnswers !== undefined) updateData.quiz_show_answers = updates.quizShowAnswers;
       if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+      if (updates.blurtContent !== undefined) updateData.blurt_content = updates.blurtContent;
+      if (updates.blurtFeedback !== undefined) updateData.blurt_feedback = updates.blurtFeedback;
+      if (updates.isBlurtCompleted !== undefined) updateData.blurt_completed = updates.isBlurtCompleted;
 
       const { error } = await supabase
         .from('conversations')

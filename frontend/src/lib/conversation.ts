@@ -106,7 +106,7 @@ export class ConversationService {
   }
 
   // Send a text message (for when voice isn't working)
-  async sendTextMessage(text: string): Promise<void> {
+  async sendTextMessage(text: string, learningMode: 'conversation' | 'blurting' = 'conversation'): Promise<void> {
     if (!text.trim()) return;
 
     // Add user message first
@@ -126,7 +126,8 @@ export class ConversationService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          conversationHistory: this.currentSessionMessages.slice(-10)
+          conversationHistory: this.currentSessionMessages.slice(-10),
+          learningMode
         }),
       });
 
