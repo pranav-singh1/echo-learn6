@@ -93,6 +93,8 @@ interface AppContextType {
   // Settings
   streamingEnabled: boolean;
   setStreamingEnabled: (enabled: boolean) => void;
+  typewriterSpeed: 'slow' | 'regular' | 'fast';
+  setTypewriterSpeed: (speed: 'slow' | 'regular' | 'fast') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -170,6 +172,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
     return true;
   });
+
+  const [typewriterSpeed, setTypewriterSpeed] = useState<'slow' | 'regular' | 'fast'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('typewriterSpeed');
+      return (saved as 'slow' | 'regular' | 'fast') || 'regular';
+    }
+    return 'regular';
+  });
   
   // App initialization state
   const [isInitialized, setIsInitialized] = useState(false);
@@ -180,6 +190,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       localStorage.setItem('streamingEnabled', JSON.stringify(streamingEnabled));
     }
   }, [streamingEnabled]);
+
+  // Persist typewriter speed setting
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('typewriterSpeed', typewriterSpeed);
+    }
+  }, [typewriterSpeed]);
   
 
 
@@ -1093,6 +1110,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsTeachingCompleted(false);
   };
 
+  // Helper function to get typewriter speed in milliseconds
+  const getTypewriterSpeedMs = (speed: 'slow' | 'regular' | 'fast'): number => {
+    switch (speed) {
+      case 'slow': return 80;
+      case 'regular': return 50;
+      case 'fast': return 25;
+      default: return 50;
+    }
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
@@ -1182,6 +1209,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Settings
     streamingEnabled,
     setStreamingEnabled,
+    typewriterSpeed,
+    setTypewriterSpeed,
   };
 
   return (
