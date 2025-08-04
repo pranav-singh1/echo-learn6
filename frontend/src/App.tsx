@@ -10,6 +10,9 @@ import { Auth } from "./pages/Auth";
 import { ResetPassword } from "./pages/ResetPassword";
 import { TermsOfService } from "./pages/TermsOfService";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { SuccessPage } from "./pages/SuccessPage";
+import { CancelPage } from "./pages/CancelPage";
+import { StripePricing } from "./components/StripePricing";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -72,6 +75,18 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/privacy" 
         element={<PrivacyPolicy />} 
+      />
+      <Route 
+        path="/pricing" 
+        element={<StripePricing />} 
+      />
+      <Route 
+        path="/success" 
+        element={<SuccessPage />} 
+      />
+      <Route 
+        path="/cancel" 
+        element={<CancelPage />} 
       />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
