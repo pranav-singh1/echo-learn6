@@ -5,6 +5,7 @@ interface TypewriterTextProps {
   enabled: boolean;
   speed?: number;
   className?: string;
+  onComplete?: () => void;
   children?: (displayText: string) => React.ReactNode;
 }
 
@@ -13,6 +14,7 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
   enabled,
   speed = 50, // milliseconds per character
   className = '',
+  onComplete,
   children
 }) => {
   const [displayText, setDisplayText] = useState('');
@@ -43,6 +45,7 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
       } else {
         setIsComplete(true);
         clearInterval(timer);
+        onComplete?.(); // Call onComplete when typewriter finishes
       }
     }, speed);
 

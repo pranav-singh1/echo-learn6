@@ -12,7 +12,6 @@ import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut, Trash2, H
 import { useTheme } from '../contexts/ThemeContext';
 import { OnboardingTour } from '../components/OnboardingTour';
 import { useAuth } from '../contexts/AuthContext';
-import { runBlurtingMigration } from '../lib/migration';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -189,20 +188,6 @@ export const Index: React.FC = () => {
     setShowHelp(false);
   };
 
-  const handleRunMigration = async () => {
-    try {
-      const success = await runBlurtingMigration();
-      if (success) {
-        alert('Migration completed successfully!');
-      } else {
-        alert('Migration failed. Check console for details.');
-      }
-    } catch (error) {
-      console.error('Migration error:', error);
-      alert('Migration failed. Check console for details.');
-    }
-  };
-
   // Show landing page for unauthenticated users OR when showConversation is false
   if (!user || !showConversation) {
     return <LandingPage onStartConversation={handleStartConversation} />;
@@ -303,11 +288,6 @@ export const Index: React.FC = () => {
                 <DropdownMenuItem onClick={() => setShowSettingsModal(true)}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleRunMigration}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Run Migration</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleGoHome}>

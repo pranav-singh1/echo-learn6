@@ -24,7 +24,6 @@ import { TypewriterText } from './TypewriterText';
 import { LearningModeSelector } from './LearningModeSelector';
 import { BlurtingInterface } from './BlurtingInterface';
 import { TeachingInterface } from './TeachingInterface';
-import { runBlurtingMigration } from '../lib/migration';
 
 export const ChatInterface: React.FC = () => {
   const {
@@ -411,20 +410,6 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleRunMigration = async () => {
-    try {
-      const success = await runBlurtingMigration();
-      if (success) {
-        alert('Migration completed successfully!');
-      } else {
-        alert('Migration failed. Check console for details.');
-      }
-    } catch (error) {
-      console.error('Migration error:', error);
-      alert('Migration failed. Check console for details.');
-    }
-  };
-
   // Show mode selector when no active session
   if (showModeSelector && !activeSession) {
     return <LearningModeSelector onSelectMode={handleModeSelection} />;
@@ -733,7 +718,7 @@ export const ChatInterface: React.FC = () => {
                             {message.speaker === 'ai' ? (
                               <TypewriterText
                                 text={message.text}
-                                enabled={streamingEnabled && message.shouldTypewriter}
+                                enabled={message.shouldTypewriter || false}
                                 speed={30}
                                 onComplete={() => {
                                   // Scroll to bottom when typewriter completes
