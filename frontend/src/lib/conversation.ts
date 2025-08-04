@@ -106,7 +106,7 @@ export class ConversationService {
   }
 
   // Send a text message (for when voice isn't working)
-  async sendTextMessage(text: string, learningMode: 'conversation' | 'blurting' = 'conversation'): Promise<void> {
+  async sendTextMessage(text: string, learningMode: 'conversation' | 'blurting' | 'teaching' = 'conversation'): Promise<void> {
     if (!text.trim()) return;
 
     // Add user message first
@@ -121,7 +121,7 @@ export class ConversationService {
 
     try {
       // Call the chat API for an AI response
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/send-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -13,10 +13,13 @@ export interface ConversationSession {
   quizAnswers?: { [key: number]: string };
   quizEvaluations?: { [key: number]: any };
   quizShowAnswers?: boolean;
-  learningMode: 'conversation' | 'blurting';
+  learningMode: 'conversation' | 'blurting' | 'teaching';
   blurtContent?: string;
   blurtFeedback?: any;
   isBlurtCompleted?: boolean;
+  teachingContent?: string;
+  teachingFeedback?: any;
+  isTeachingCompleted?: boolean;
   isActive: boolean;
 }
 
@@ -62,6 +65,9 @@ class SupabaseConversationStorageService {
         blurtContent: conv.blurt_content,
         blurtFeedback: conv.blurt_feedback,
         isBlurtCompleted: conv.blurt_completed,
+        teachingContent: conv.teaching_content,
+        teachingFeedback: conv.teaching_feedback,
+        isTeachingCompleted: conv.teaching_completed,
         isActive: conv.is_active
       }));
 
@@ -78,7 +84,7 @@ class SupabaseConversationStorageService {
   }
 
   // Create a new conversation session
-  async createSession(title?: string, learningMode: 'conversation' | 'blurting' = 'conversation'): Promise<ConversationSession> {
+  async createSession(title?: string, learningMode: 'conversation' | 'blurting' | 'teaching' = 'conversation'): Promise<ConversationSession> {
     console.log('createSession called with title:', title);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,6 +138,9 @@ class SupabaseConversationStorageService {
         blurtContent: data.blurt_content,
         blurtFeedback: data.blurt_feedback,
         isBlurtCompleted: data.blurt_completed,
+        teachingContent: data.teaching_content,
+        teachingFeedback: data.teaching_feedback,
+        isTeachingCompleted: data.teaching_completed,
         quizAnswers: data.quiz_answers || {},
         quizEvaluations: data.quiz_evaluations || {},
         quizShowAnswers: data.quiz_show_answers

@@ -19,10 +19,13 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     quiz_answers JSONB DEFAULT '{}'::jsonb,
     quiz_evaluations JSONB DEFAULT '{}'::jsonb,
     quiz_show_answers BOOLEAN DEFAULT false,
-    learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting')),
+    learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting', 'teaching')),
     blurt_content TEXT,
     blurt_feedback JSONB DEFAULT '{}'::jsonb,
     blurt_completed BOOLEAN DEFAULT false,
+    teaching_content TEXT,
+    teaching_feedback JSONB DEFAULT '{}'::jsonb,
+    teaching_completed BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_active BOOLEAN DEFAULT true
@@ -52,7 +55,7 @@ BEGIN
     -- Add learning_mode column if it doesn't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'conversations' AND column_name = 'learning_mode') THEN
-        ALTER TABLE public.conversations ADD COLUMN learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting'));
+        ALTER TABLE public.conversations ADD COLUMN learning_mode TEXT DEFAULT 'conversation' CHECK (learning_mode IN ('conversation', 'blurting', 'teaching'));
     END IF;
     
     -- Add blurt_content column if it doesn't exist
@@ -71,6 +74,24 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'conversations' AND column_name = 'blurt_completed') THEN
         ALTER TABLE public.conversations ADD COLUMN blurt_completed BOOLEAN DEFAULT false;
+    END IF;
+    
+    -- Add teaching_content column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'teaching_content') THEN
+        ALTER TABLE public.conversations ADD COLUMN teaching_content TEXT;
+    END IF;
+    
+    -- Add teaching_feedback column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'teaching_feedback') THEN
+        ALTER TABLE public.conversations ADD COLUMN teaching_feedback JSONB DEFAULT '{}'::jsonb;
+    END IF;
+    
+    -- Add teaching_completed column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'conversations' AND column_name = 'teaching_completed') THEN
+        ALTER TABLE public.conversations ADD COLUMN teaching_completed BOOLEAN DEFAULT false;
     END IF;
     
     -- Add profile_picture column to users table if it doesn't exist
