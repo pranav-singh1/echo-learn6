@@ -889,6 +889,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                       <span className="text-neutral">Community support</span>
                     </li>
                   </ul>
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    size="lg"
+                    className="w-full bg-brand hover:bg-brand-dark text-white px-6 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    Get Started Free
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -911,7 +918,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                       </>
                     ) : (
                       <>
-                        $99<span className="text-lg text-brand-lite">/year</span>
+                        $89.99<span className="text-lg text-brand-lite">/year</span>
                       </>
                     )}
                   </div>
@@ -928,19 +935,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                       <CheckIcon className="w-5 h-5 text-brand-lite" />
                       <span>Advanced quizzes</span>
                     </li>
+                    <li className="flex items-center space-x-2">
+                      <CheckIcon className="w-5 h-5 text-brand-lite" />
+                      <span>All learning modes</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <CheckIcon className="w-5 h-5 text-brand-lite" />
+                      <span>Priority support</span>
+                    </li>
                   </ul>
+                  <Button 
+                    onClick={() => navigate('/pricing')}
+                    size="lg"
+                    className="w-full bg-white hover:bg-gray-100 text-brand px-6 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  >
+                    Subscribe Now
+                  </Button>
                 </CardContent>
               </Card>
             </div>
             <div className="text-center mt-8">
-              <Button 
-                onClick={() => navigate('/auth')}
-                size="lg"
-                className="bg-brand hover:bg-brand-dark text-white px-8 py-4 text-lg font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-              >
-                Start Free Trial
-              </Button>
-              <p className="text-brand text-sm mt-4">
+              <p className="text-brand text-sm">
+                Secure payment powered by Stripe. Cancel anytime.
+              </p>
+              <p className="text-brand text-sm mt-2">
                 Need more? <a href="#contact" className="text-brand-dark hover:text-brand font-medium">Contact us</a> for custom enterprise plans.
               </p>
             </div>
