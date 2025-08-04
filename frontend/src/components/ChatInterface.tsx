@@ -25,7 +25,7 @@ import { LearningModeSelector } from './LearningModeSelector';
 import { BlurtingInterface } from './BlurtingInterface';
 import { TeachingInterface } from './TeachingInterface';
 
-export const ChatInterface: React.FC = () => {
+export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'fast' }> = ({ typewriterSpeed = 'regular' }) => {
   const {
     isConnected,
     isListening,
@@ -89,7 +89,6 @@ export const ChatInterface: React.FC = () => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showModeSelector, setShowModeSelector] = useState(false);
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
@@ -119,15 +118,12 @@ export const ChatInterface: React.FC = () => {
         if (showProfileModal) {
           setShowProfileModal(false);
         }
-        if (showSettingsModal) {
-          setShowSettingsModal(false);
-        }
       }
     };
 
     document.addEventListener('keydown', handleEscKey);
     return () => document.removeEventListener('keydown', handleEscKey);
-  }, [showProfileModal, showSettingsModal]);
+  }, [showProfileModal]);
 
   // Show mode selector when user wants a new chat and no active session
   useEffect(() => {
@@ -719,7 +715,7 @@ export const ChatInterface: React.FC = () => {
                               <TypewriterText
                                 text={message.text}
                                 enabled={message.shouldTypewriter || false}
-                                speed={30}
+                                speed={typewriterSpeed === 'slow' ? 150 : typewriterSpeed === 'fast' ? 15 : 50}
                                 onComplete={() => {
                                   // Scroll to bottom when typewriter completes
                                   setTimeout(() => {
@@ -871,75 +867,6 @@ export const ChatInterface: React.FC = () => {
                 className="flex-1"
               >
                 Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-            <button
-              onClick={() => setShowSettingsModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                <Settings className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Customize your experience</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Data & Privacy
-                </Label>
-                <div className="mt-2 space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start text-xs" onClick={handleExportData}>
-                    <Download className="mr-2 h-3 w-3" />
-                    Export Conversation Data
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start text-xs text-red-600 hover:text-red-700" onClick={handleDeleteAllData}>
-                    <Trash2 className="mr-2 h-3 w-3" />
-                    Delete All Data
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Chat Experience
-                </Label>
-                <div className="mt-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Typewriter Effect</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Show AI text character by character as you read</p>
-                    </div>
-                    <Switch
-                      checked={streamingEnabled}
-                      onCheckedChange={setStreamingEnabled}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <Button
-                onClick={() => setShowSettingsModal(false)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Done
               </Button>
             </div>
           </div>

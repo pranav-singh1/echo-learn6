@@ -20,6 +20,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
 
 export const Index: React.FC = () => {
   const { user } = useAuth();
@@ -51,6 +53,13 @@ export const Index: React.FC = () => {
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
+  const [typewriterSpeed, setTypewriterSpeed] = useState<'slow' | 'regular' | 'fast'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('typewriterSpeed');
+      return (saved as 'slow' | 'regular' | 'fast') || 'regular';
+    }
+    return 'regular';
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update profile fields when user data changes
@@ -87,6 +96,13 @@ export const Index: React.FC = () => {
       localStorage.setItem('showConversation', showConversation ? 'true' : 'false');
     }
   }, [showConversation]);
+
+  // Persist typewriter speed setting
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('typewriterSpeed', typewriterSpeed);
+    }
+  }, [typewriterSpeed]);
 
   const handleStartConversation = () => {
     // Start fresh conversation view (no session created until user sends message)
@@ -306,7 +322,7 @@ export const Index: React.FC = () => {
         <div className="flex-1 flex min-w-0 h-full min-h-0">
           {/* Chat Interface - Main content */}
           <div className="flex-1 h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
-            <ChatInterface />
+            <ChatInterface typewriterSpeed={typewriterSpeed} />
           </div>
           
           {/* Right Side: Quiz Panel */}
@@ -486,63 +502,116 @@ export const Index: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Configure your preferences</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Customize your experience</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Theme</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark mode</p>
+            <div className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Data & Privacy
+                </Label>
+                <div className="mt-2 space-y-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs" onClick={handleDeleteAllConversations}>
+                    <Trash2 className="mr-2 h-3 w-3" />
+                    Delete All Data
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleTheme}
-                  className="flex items-center gap-2"
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {theme === 'dark' ? 'Light' : 'Dark'}
-                </Button>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Typewriter Text</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Character-by-character text display</p>
+              
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Chat Experience
+                </Label>
+                <div className="mt-2 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Typewriter Effect</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Show AI text character by character as you read</p>
+                    </div>
+                    <Switch
+                      checked={streamingEnabled}
+                      onCheckedChange={setStreamingEnabled}
+                    />
+                  </div>
+                  
+                  {streamingEnabled && (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Typewriter Speed</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setTypewriterSpeed('slow')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              typewriterSpeed === 'slow'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700'
+                                : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            Slow
+                          </button>
+                          <button
+                            onClick={() => setTypewriterSpeed('regular')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              typewriterSpeed === 'regular'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700'
+                                : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            Regular
+                          </button>
+                          <button
+                            onClick={() => setTypewriterSpeed('fast')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              typewriterSpeed === 'fast'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700'
+                                : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            Fast
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {typewriterSpeed === 'slow' && 'Relaxed pace for easy reading'}
+                          {typewriterSpeed === 'regular' && 'Balanced speed for most users'}
+                          {typewriterSpeed === 'fast' && 'Quick typing for faster conversations'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStreamingEnabled(!streamingEnabled)}
-                  className="flex items-center gap-2"
-                >
-                  {streamingEnabled ? 'On' : 'Off'}
-                </Button>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Delete All Conversations</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Permanently delete all your conversation history.</p>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Appearance
+                </Label>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Theme</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Switch between light and dark mode</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleTheme}
+                      className="flex items-center gap-2"
+                    >
+                      {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                      {theme === 'dark' ? 'Light' : 'Dark'}
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDeleteAllConversations}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete All
-                </Button>
               </div>
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex gap-3 mt-6">
               <Button
                 onClick={() => setShowSettingsModal(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
-                Close
+                Done
               </Button>
             </div>
           </div>
