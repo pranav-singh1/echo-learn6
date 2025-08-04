@@ -10,6 +10,7 @@ export interface ConversationMessage {
   timestamp: string;
   messageId: string;
   isTranscriptMessage?: boolean;
+  shouldTypewriter?: boolean;
 }
 
 interface RetellConversationProps {

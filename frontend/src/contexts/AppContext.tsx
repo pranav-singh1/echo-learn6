@@ -218,16 +218,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     initializeApp();
   }, [user?.id]);
 
-
-
+  // Helper function to load conversations
+  const loadConversations = async () => {
+    if (!user) return;
+    const storage = await supabaseConversationStorage.getConversations();
+    setAllSessions(storage.sessions);
+  };
 
 
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
-      // Since we only display transcript messages at the end now, never use typewriter animation
-      // This ensures all messages appear immediately when the transcript is displayed
-      const shouldTypewriter = false; // Disable typewriter for all messages
+      // Enable typewriter for AI messages in all modes except voice chat transcripts
+      // Voice chat transcripts are marked with isTranscriptMessage: true
+      const shouldTypewriter = streamingEnabled && 
+        message.speaker === 'ai' && 
+        !message.isTranscriptMessage;
+      
       setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
       
       // Save message to Supabase storage with session ID
@@ -310,17 +317,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       console.log('Handling transcript completion with', transcriptMessages.length, 'messages');
       
+      // Mark all transcript messages with isTranscriptMessage: true and disable typewriter
+      const markedTranscriptMessages = transcriptMessages.map(m => ({ 
+        ...m, 
+        isTranscriptMessage: true,
+        shouldTypewriter: false 
+      }));
+      
       // Replace existing messages with transcript messages
-      setMessages(transcriptMessages.map(m => ({ ...m, shouldTypewriter: false })));
+      setMessages(markedTranscriptMessages);
       
       // Clear conversation service and set the transcript messages
       conversationService.clearMessages();
-      conversationService.setSessionMessages(transcriptMessages);
+      conversationService.setSessionMessages(markedTranscriptMessages);
       
       // Update the session with the new transcript messages
       // This replaces all existing messages with the transcript messages
       await supabaseConversationStorage.updateSession(activeSession.id, {
-        messages: transcriptMessages
+        messages: markedTranscriptMessages
       });
       
       console.log('Transcript messages saved to session:', activeSession.id);
