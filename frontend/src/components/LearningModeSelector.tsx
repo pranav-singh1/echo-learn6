@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { MessageCircle, Brain, Sparkles } from 'lucide-react';
+import { MessageCircle, Brain, Sparkles, GraduationCap } from 'lucide-react';
 
 interface LearningModeSelectorProps {
-  onSelectMode: (mode: 'conversation' | 'blurting') => void;
+  onSelectMode: (mode: 'conversation' | 'blurting' | 'teaching') => void;
 }
 
 export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSelectMode }) => {
@@ -15,7 +15,7 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
         <p className="text-muted-foreground">Select how you'd like to learn today</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
         <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => onSelectMode('conversation')}>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -48,6 +48,24 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="h-4 w-4" />
               <span>Great for testing your knowledge</span>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => onSelectMode('teaching')}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <GraduationCap className="h-6 w-6 text-green-500" />
+              <CardTitle>Teaching Mode</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Explain concepts back to the AI as if you're the teacher. Solidify your understanding through teaching.
+            </p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4" />
+              <span>Great for deepening comprehension</span>
             </div>
           </CardContent>
         </Card>

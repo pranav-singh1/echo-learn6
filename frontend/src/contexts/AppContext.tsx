@@ -19,8 +19,8 @@ interface AppContextType {
   hasSentFirstTextAfterVoice: boolean;
   
   // Learning mode state
-  learningMode: 'conversation' | 'blurting';
-  setLearningMode: (mode: 'conversation' | 'blurting') => void;
+  learningMode: 'conversation' | 'blurting' | 'teaching';
+  setLearningMode: (mode: 'conversation' | 'blurting' | 'teaching') => void;
   
   // New chat state
   wantsNewChat: boolean;
@@ -38,6 +38,19 @@ interface AppContextType {
   submitBlurt: (content: string, topic?: string) => Promise<void>;
   startBlurtMode: () => void;
   createBlurtingSession: () => Promise<void>;
+  
+  // Teaching state
+  teachingContent: string;
+  setTeachingContent: (content: string) => void;
+  teachingFeedback: any;
+  setTeachingFeedback: (feedback: any) => void;
+  isTeachingCompleted: boolean;
+  setIsTeachingCompleted: (completed: boolean) => void;
+  
+  // Teaching actions
+  submitTeaching: (content: string, topic?: string) => Promise<void>;
+  startTeachingMode: () => void;
+  createTeachingSession: (topic?: string) => Promise<void>;
   
   // Session management
   activeSession: ConversationSession | null;
@@ -114,7 +127,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [isManuallyStoppingConversation, setIsManuallyStoppingConversation] = useState(false);
   
   // Learning mode state
-  const [learningMode, setLearningMode] = useState<'conversation' | 'blurting'>('conversation');
+  const [learningMode, setLearningMode] = useState<'conversation' | 'blurting' | 'teaching'>('conversation');
   
   // New chat state
   const [wantsNewChat, setWantsNewChat] = useState(false);
@@ -123,6 +136,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [blurtContent, setBlurtContent] = useState('');
   const [blurtFeedback, setBlurtFeedback] = useState<any>(null);
   const [isBlurtCompleted, setIsBlurtCompleted] = useState(false);
+  
+  // Teaching state
+  const [teachingContent, setTeachingContent] = useState('');
+  const [teachingFeedback, setTeachingFeedback] = useState<any>(null);
+  const [isTeachingCompleted, setIsTeachingCompleted] = useState(false);
   
 
   
@@ -152,6 +170,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
     return true;
   });
+  
+  // App initialization state
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Persist streaming setting
   useEffect(() => {
@@ -410,6 +431,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!user) return;
     
     console.log('Switching to session:', sessionId);
+    console.log('Current learning mode before switch:', learningMode);
     
     try {
       // Stop current conversation if active
@@ -432,11 +454,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setQuizShowAnswers(session.quizShowAnswers || false);
         setActivePanel(null);
         
-        // Set blurting state
+        // Always set learning mode from session
         setLearningMode(session.learningMode || 'conversation');
+        
+        // Set blurting state
         setBlurtContent(session.blurtContent || '');
         setBlurtFeedback(session.blurtFeedback || null);
         setIsBlurtCompleted(session.isBlurtCompleted || false);
+        
+        // Set teaching state
+        setTeachingContent(session.teachingContent || '');
+        setTeachingFeedback(session.teachingFeedback || null);
+        setIsTeachingCompleted(session.isTeachingCompleted || false);
         
         // Clear mode selector
         setWantsNewChat(false);
@@ -446,6 +475,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setAllSessions(updatedStorage.sessions);
         
         console.log('Session switch complete - activeSession:', session.id);
+        console.log('Learning mode after switch:', session.learningMode);
       }
     } catch (error) {
       console.error('Error switching session:', error);
@@ -612,8 +642,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setHasSentFirstTextAfterVoice(true);
         setVoiceSessionTranscript(''); // Clear the transcript after use
       } else {
-        // Normal text message - conversation service will handle the API call with proper session isolation
-        await conversationService.sendTextMessage(text, learningMode);
+        // Handle different learning modes
+        if (learningMode === 'teaching') {
+          // Use teaching API for interactive teaching conversation
+          await submitTeaching(text);
+        } else {
+          // Normal text message - conversation service will handle the API call with proper session isolation
+          await conversationService.sendTextMessage(text, learningMode);
+        }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -948,6 +984,101 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsBlurtCompleted(false);
   };
 
+  // Create a dedicated teaching session (bypasses voice session logic)
+  const createTeachingSession = async () => {
+    if (!user) {
+      return;
+    }
+    
+    try {
+      // Create new session with teaching mode (no voice session interference)
+      const newSession = await supabaseConversationStorage.createSession(undefined, 'teaching');
+      
+      console.log('Created teaching session:', newSession);
+      console.log('Session learning mode:', newSession.learningMode);
+      
+      setActiveSession(newSession);
+      setMessages([]);
+      setQuizSummary(null);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizEvaluations({});
+      setQuizShowAnswers(false);
+      
+      // Reset teaching state
+      setTeachingContent('');
+      setTeachingFeedback(null);
+      setIsTeachingCompleted(false);
+      
+      // Update sessions list to show new session in sidebar
+      const updatedStorage = await supabaseConversationStorage.getConversations();
+      setAllSessions(updatedStorage.sessions);
+      
+      // Start the teaching conversation with AI's opening message
+      const openingMessage = {
+        speaker: 'ai' as const,
+        text: "Alright, I'm ready to learn! Teach me whatever concept you're trying to understand, and I'll help you deepen your knowledge through our conversation.\n\nTo get started, tell me what you want to teach me. For example, you could say \"I want to teach you about photosynthesis\" or \"Let me explain how computers work\" or \"I'm going to teach you about World War II.\"\n\nThen, start explaining the concept as if I'm a curious student. I'll ask questions, point out gaps, and help you think more deeply about what you're teaching!",
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
+      
+      conversationService.addMessage(openingMessage);
+    } catch (error) {
+      console.error('Error creating teaching session:', error);
+    }
+  };
+
+  // Teaching functions
+  const submitTeaching = async (content: string, topic?: string) => {
+    try {
+      // Add user's teaching message to conversation first
+      const userTeachingMessage = {
+        speaker: 'user' as const,
+        text: content,
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
+      
+      // Use conversation service to add user message
+      conversationService.addMessage(userTeachingMessage);
+      
+      const response = await fetch('/api/teach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: content, 
+          topic,
+          conversationHistory: messages.slice(-10), // Send last 10 messages for context
+          isFirstMessage: messages.length === 1
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to get teaching response');
+      
+      const { response: aiResponse } = await response.json();
+      
+      // Add AI response to conversation
+      const aiMessage = {
+        speaker: 'ai' as const,
+        text: aiResponse,
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `msg_${Date.now()}_${Math.random()}`
+      };
+      
+      // Use conversation service to add message (this will trigger proper formatting and saving)
+      conversationService.addMessage(aiMessage);
+    } catch (error) {
+      console.error('Error in teaching conversation:', error);
+    }
+  };
+
+  const startTeachingMode = () => {
+    setLearningMode('teaching');
+    setTeachingContent('');
+    setTeachingFeedback(null);
+    setIsTeachingCompleted(false);
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
@@ -982,6 +1113,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     submitBlurt,
     startBlurtMode,
     createBlurtingSession,
+    
+    // Teaching state
+    teachingContent,
+    setTeachingContent,
+    teachingFeedback,
+    setTeachingFeedback,
+    isTeachingCompleted,
+    setIsTeachingCompleted,
+    
+    // Teaching actions
+    submitTeaching,
+    startTeachingMode,
+    createTeachingSession,
     
     // Session management
     activeSession,
