@@ -104,6 +104,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'yearly'>('monthly');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [contactForm, setContactForm] = React.useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Thank you for your message, ${contactForm.firstName}! We'll get back to you at ${contactForm.email} soon.`);
+        
+        // Reset form
+        setContactForm({
+          firstName: '',
+          lastName: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        alert(data.error || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // FAQ data
   const faqs = [
@@ -741,7 +785,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                     </div>
                     <div>
                       <h3 className="font-semibold text-neutral">Email Us</h3>
-                      <p className="text-neutral/60">hello@echolearn.ai</p>
+                      <p className="text-neutral/60">tryecholearn@gmail.com</p>
                     </div>
                   </div>
                 </Card>
@@ -765,7 +809,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                     </div>
                     <div>
                       <h3 className="font-semibold text-neutral">Phone Support</h3>
-                      <p className="text-neutral/60">+1 (555) 123-4567</p>
+                      <p className="text-neutral/60">925-791-1047</p>
                     </div>
                   </div>
                 </Card>
@@ -775,54 +819,77 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             {/* Contact Form */}
             <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-xl">
               <CardContent className="p-8">
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleContactSubmit}>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-neutral block mb-2">First Name</label>
+                      <label className="text-sm font-medium text-neutral block mb-2">First Name *</label>
                       <input 
                         type="text" 
+                        required
+                        value={contactForm.firstName}
+                        onChange={(e) => setContactForm(prev => ({ ...prev, firstName: e.target.value }))}
                         className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
                         placeholder="John"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-neutral block mb-2">Last Name</label>
+                      <label className="text-sm font-medium text-neutral block mb-2">Last Name *</label>
                       <input 
                         type="text" 
+                        required
+                        value={contactForm.lastName}
+                        onChange={(e) => setContactForm(prev => ({ ...prev, lastName: e.target.value }))}
                         className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
                         placeholder="Doe"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Email</label>
+                    <label className="text-sm font-medium text-neutral block mb-2">Email *</label>
                     <input 
                       type="email" 
+                      required
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
                       className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
                       placeholder="john@example.com"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Subject</label>
+                    <label className="text-sm font-medium text-neutral block mb-2">Subject *</label>
                     <input 
                       type="text" 
+                      required
+                      value={contactForm.subject}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, subject: e.target.value }))}
                       className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
                       placeholder="How can we help?"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Message</label>
+                    <label className="text-sm font-medium text-neutral block mb-2">Message *</label>
                     <textarea 
                       rows={4}
+                      required
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
                       className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors resize-none"
                       placeholder="Tell us more about your inquiry..."
                     ></textarea>
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isSubmitting}
+                    className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send Message
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Sending...
+                      </div>
+                    ) : (
+                      'Send Message'
+                    )}
                   </Button>
                 </form>
               </CardContent>

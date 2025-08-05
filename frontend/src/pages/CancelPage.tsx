@@ -57,7 +57,7 @@ export const CancelPage: React.FC = () => {
 
           <div className="text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Questions? Contact us at support@echolearn.ai
+              Questions? Contact us at tryecholearn@gmail.com
             </p>
           </div>
         </CardContent>
