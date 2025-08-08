@@ -84,6 +84,7 @@ interface AppContextType {
   saveQuizShowAnswers: (show: boolean) => void;
   resetQuiz: () => void;
   quizBlocked: string | null;
+  dailyQuizUsage: { current: number; max: number } | null;
   
   // UI state
   activePanel: 'chat' | 'quiz' | 'summary' | null;
@@ -166,6 +167,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [quizEvaluations, setQuizEvaluations] = useState<{ [key: number]: any }>({});
   const [quizShowAnswers, setQuizShowAnswers] = useState(false);
   const [quizBlocked, setQuizBlocked] = useState<string | null>(null);
+  const [dailyQuizUsage, setDailyQuizUsage] = useState<{ current: number; max: number } | null>(null);
   
   // UI state
   const [activePanel, setActivePanel] = useState<'chat' | 'quiz' | 'summary' | null>(null);
@@ -232,7 +234,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const initializeApp = async () => {
       console.log('Initializing app for user:', user.id);
       
-      // Load user subscription plan
+      // Load user subscription plan and daily usage
       await loadUserPlan();
       
       // Load all sessions
@@ -739,6 +741,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }),
         });
 
+        // Debug logging
+        console.log('Quiz request sent with userId:', user?.id);
+        console.log('User object:', user);
+
         if (!response.ok) {
           // Try to parse the error response, but have a fallback.
           try {
@@ -749,6 +755,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 setQuizQuestions([]);
                 setQuizSummary(null);
                 setQuizBlocked(errorData.reason || 'The conversation does not contain sufficient educational content for quiz generation. Try discussing a topic you want to learn about!');
+                setIsGeneratingQuiz(false);
+                return;
+              }
+              
+              // Handle subscription limit errors
+              if (response.status === 403 && errorData.error && errorData.error.includes('daily quiz generation limit')) {
+                // Show toast notification instead of persistent error
+                const { toast } = await import('../hooks/use-toast');
+                toast({
+                  title: "Daily Limit Reached",
+                  description: errorData.error,
+                  variant: "destructive",
+                });
                 setIsGeneratingQuiz(false);
                 return;
               }
@@ -774,6 +793,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         
         // Reload sessions to update UI
         await loadConversations();
+        
+        // Refresh daily usage count
+        await checkDailyQuizUsage();
       } catch (error) {
         console.error('Error generating quiz:', error);
         setConversationError(error instanceof Error ? error.message : 'Failed to generate quiz');
@@ -1164,8 +1186,42 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const limits = await SubscriptionService.getPlanLimits(plan);
       setUserPlan(plan);
       setPlanLimits(limits);
+      
+      // Also check current daily usage
+      await checkDailyQuizUsage();
     } catch (error) {
       console.error('Error loading user plan:', error);
+    }
+  };
+
+  const checkDailyQuizUsage = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('Checking daily quiz usage for user:', user.id);
+      const response = await fetch('/api/subscription/check-limits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feature: 'quiz_generations',
+          userId: user.id
+        })
+      });
+      
+      console.log('Daily usage check response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Daily usage check response data:', data);
+        setDailyQuizUsage({
+          current: data.currentUsage || 0,
+          max: data.maxUsage || 3
+        });
+      } else {
+        console.error('Failed to check daily usage:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error checking daily quiz usage:', error);
     }
   };
 
@@ -1248,6 +1304,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     saveQuizShowAnswers,
     resetQuiz,
     quizBlocked,
+    dailyQuizUsage,
     
     // UI state
     activePanel,

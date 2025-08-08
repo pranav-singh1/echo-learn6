@@ -46,6 +46,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     highlightTerm,
     allSessions,
     isMuted,
+    dailyQuizUsage,
     // Voice session state
     isVoiceSessionActive,
     voiceSessionTranscript,
@@ -589,7 +590,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 variant="outline"
                 size="sm"
                 onClick={quizQuestions.length > 0 ? toggleQuiz : generateQuiz}
-                disabled={isGeneratingQuiz || messages.length === 0}
+                disabled={isGeneratingQuiz || messages.length === 0 || (dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max)}
                 className="flex items-center gap-2 disabled:opacity-50 hover:bg-brand/5 hover:border-brand/30 hover:text-brand transition-all duration-200 dark:hover:bg-brand/10"
                 aria-label={quizQuestions.length > 0 ? "Open Quiz" : "Generate Quiz"}
                 data-tour="quiz"
@@ -603,6 +604,11 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                   <>
                     <Target className="h-4 w-4" />
                     {quizQuestions.length > 0 ? 'Open Quiz' : 'Generate Quiz'}
+                    {dailyQuizUsage && (
+                      <span className="text-xs ml-1">
+                        ({dailyQuizUsage.current}/{dailyQuizUsage.max})
+                      </span>
+                    )}
                   </>
                 )}
               </Button>
