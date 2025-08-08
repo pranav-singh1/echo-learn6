@@ -30,7 +30,9 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
     resetQuiz,
     setActivePanel,
     isGeneratingQuiz,
-    quizBlocked
+    quizBlocked,
+    generateQuiz,
+    dailyQuizUsage
   } = useAppContext();
 
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -266,9 +268,17 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
         <div>
           <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
-          <p className="text-sm text-muted-foreground">
-            {questions.length} questions • {Object.keys(answers).length} answered
-          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{questions.length} questions • {Object.keys(answers).length} answered</span>
+            {dailyQuizUsage && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span className={dailyQuizUsage.current >= dailyQuizUsage.max ? 'text-red-500 font-medium' : ''}>
+                  {dailyQuizUsage.current}/{dailyQuizUsage.max} quizzes today
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -405,32 +415,72 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
       <div className="px-6 py-4 border-t border-border bg-background">
         <div className="flex gap-3">
           {!showAnswers ? (
-            <Button
-              onClick={checkAnswers}
-              disabled={isEvaluating || Object.keys(answers).length === 0}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:bg-background dark:text-foreground"
-            >
-              {isEvaluating ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Evaluating...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Check Answers
-                </>
-              )}
-            </Button>
+            <>
+              <Button
+                onClick={checkAnswers}
+                disabled={isEvaluating || Object.keys(answers).length === 0}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:bg-background dark:text-foreground"
+              >
+                {isEvaluating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Evaluating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Check Answers
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={generateQuiz}
+                disabled={isGeneratingQuiz || (dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max)}
+                variant="outline"
+                className="text-primary border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Target className="w-4 h-4 mr-2" />
+                    New Quiz
+                  </>
+                )}
+              </Button>
+            </>
           ) : (
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="flex-1"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reset Quiz
-            </Button>
+            <>
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="flex-1"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset Quiz
+              </Button>
+              <Button
+                onClick={generateQuiz}
+                disabled={isGeneratingQuiz || (dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max)}
+                variant="outline"
+                className="text-primary border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGeneratingQuiz ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Target className="w-4 h-4 mr-2" />
+                    New Quiz
+                  </>
+                )}
+              </Button>
+            </>
           )}
         </div>
       </div>

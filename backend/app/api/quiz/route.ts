@@ -106,25 +106,40 @@ export async function POST(request: Request) {
     // Parse request body
     const { log, userId } = await request.json();
     
+    // Debug logging
+    console.log('Quiz API called with userId:', userId);
+    console.log('Supabase configured:', !!supabase);
+    
     // Check subscription limits for quiz generation
     if (userId && supabase) {
+      console.log('Checking subscription limits for userId:', userId);
+      
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('subscription_plan')
         .eq('id', userId)
         .single();
 
+      console.log('User lookup result:', { user, userError });
+
       if (!userError && user) {
         const plan = user.subscription_plan || 'free';
+        console.log('User plan found:', plan);
+        
         const { data: planLimits, error: planError } = await supabase
           .from('plan_limits')
           .select('can_use_quiz, max_quiz_generations_per_day')
           .eq('plan_name', plan)
           .single();
 
+        console.log('Plan limits lookup result:', { planLimits, planError });
+
         if (!planError && planLimits) {
+          console.log('Plan limits found:', planLimits);
+          
           // Check if quiz feature is enabled
           if (!planLimits.can_use_quiz) {
+            console.log('Quiz feature disabled for plan:', plan);
             return NextResponse.json({
               error: `Quiz generation is not available in your ${plan} plan. Please upgrade to use this feature.`
             }, { status: 403 });
@@ -132,6 +147,8 @@ export async function POST(request: Request) {
 
           // Check usage limits (daily)
           const currentDate = new Date().toISOString().split('T')[0];
+          console.log('Checking usage for date:', currentDate);
+          
           const { data: usage } = await supabase
             .from('subscription_usage')
             .select('usage_count')
@@ -143,12 +160,24 @@ export async function POST(request: Request) {
           const currentUsage = usage?.usage_count || 0;
           const maxUsage = planLimits.max_quiz_generations_per_day;
           
+          console.log('Usage check result:', { currentUsage, maxUsage, usage });
+          
           if (maxUsage !== -1 && currentUsage >= maxUsage) {
+            console.log('Usage limit exceeded:', { currentUsage, maxUsage });
             return NextResponse.json({
               error: `You've reached your daily quiz generation limit for the ${plan} plan. Please try again tomorrow or upgrade to generate more quizzes.`
             }, { status: 403 });
           }
+          
+          console.log('Usage check passed - proceeding with quiz generation');
+          
+          // Store current usage for later increment
+          const usageToIncrement = currentUsage;
+        } else {
+          console.log('Plan limits not found or error:', planError);
         }
+      } else {
+        console.log('User not found or error:', userError);
       }
     }
     
@@ -240,18 +269,33 @@ export async function POST(request: Request) {
       if (userId && supabase) {
         try {
           const currentDate = new Date().toISOString().split('T')[0];
+          // Get current usage again for accurate increment
+          const { data: currentUsageData } = await supabase
+            .from('subscription_usage')
+            .select('usage_count')
+            .eq('user_id', userId)
+            .eq('feature_name', 'quiz_generations')
+            .eq('reset_date', currentDate)
+            .single();
+          
+          const currentUsageCount = currentUsageData?.usage_count || 0;
+          const newUsageCount = currentUsageCount + 1;
+          console.log('Incrementing usage from', currentUsageCount, 'to', newUsageCount);
+          
           await supabase
             .from('subscription_usage')
             .upsert({
               user_id: userId,
               feature_name: 'quiz_generations',
-              usage_count: 1,
+              usage_count: newUsageCount,
               reset_date: currentDate,
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id,feature_name,reset_date',
               ignoreDuplicates: false
             });
+          
+          console.log('Usage successfully incremented to:', newUsageCount);
         } catch (error) {
           console.error('Error incrementing quiz usage:', error);
           // Don't fail the request if usage tracking fails

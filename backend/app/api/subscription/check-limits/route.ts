@@ -58,7 +58,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if feature is enabled for this plan
-    const featureEnabled = planLimits[`can_use_${feature}`];
+    let featureEnabled;
+    if (feature === 'quiz_generations') {
+      featureEnabled = planLimits.can_use_quiz;
+    } else {
+      featureEnabled = planLimits[`can_use_${feature}`];
+    }
+    
     if (!featureEnabled) {
       return NextResponse.json({
         allowed: false,
@@ -69,16 +75,24 @@ export async function POST(request: NextRequest) {
 
     // Get current usage for this feature
     const currentDate = new Date().toISOString().split('T')[0];
+    const featureName = feature === 'quiz_generations' ? 'quiz_generations' : feature;
     const { data: usage } = await supabase
       .from('subscription_usage')
       .select('usage_count')
       .eq('user_id', userId)
-      .eq('feature_name', feature)
+      .eq('feature_name', featureName)
       .eq('reset_date', currentDate)
       .single();
 
     const currentUsage = usage?.usage_count || 0;
-    const maxUsage = planLimits[`max_${feature}_per_month`];
+    
+    // Handle different limit types based on feature
+    let maxUsage;
+    if (feature === 'quiz_generations') {
+      maxUsage = planLimits.max_quiz_generations_per_day;
+    } else {
+      maxUsage = planLimits[`max_${feature}_per_month`];
+    }
 
     // Check if unlimited (-1) or within limits
     const isUnlimited = maxUsage === -1;
@@ -92,6 +106,8 @@ export async function POST(request: NextRequest) {
       reason: withinLimits ? 'within_limits' : 'usage_exceeded',
       message: withinLimits 
         ? 'Feature usage allowed'
+        : feature === 'quiz_generations'
+        ? `You've reached your daily quiz generation limit for the ${plan} plan. Please try again tomorrow or upgrade to generate more quizzes.`
         : `You've reached your monthly limit for ${feature}. Please upgrade your plan for more usage.`
     });
 
