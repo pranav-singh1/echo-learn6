@@ -3,6 +3,7 @@ import { conversationService, ConversationState } from '../lib/conversation';
 import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
 import { RetellConversation, ConversationMessage } from '../components/RetellConversation';
 import { useAuth } from './AuthContext';
+import { SubscriptionService } from '../lib/subscription';
 
 interface AppContextType {
   // Conversation state
@@ -95,6 +96,13 @@ interface AppContextType {
   setStreamingEnabled: (enabled: boolean) => void;
   typewriterSpeed: 'slow' | 'regular' | 'fast';
   setTypewriterSpeed: (speed: 'slow' | 'regular' | 'fast') => void;
+  
+  // Subscription management
+  userPlan: string;
+  planLimits: any;
+  checkFeatureAccess: (feature: string) => Promise<boolean>;
+  incrementFeatureUsage: (feature: string) => Promise<void>;
+  loadUserPlan: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -181,6 +189,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return 'regular';
   });
   
+  // Subscription state
+  const [userPlan, setUserPlan] = useState<string>('free');
+  const [planLimits, setPlanLimits] = useState<any>(null);
+  
   // App initialization state
   const [isInitialized, setIsInitialized] = useState(false);
   
@@ -219,6 +231,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     const initializeApp = async () => {
       console.log('Initializing app for user:', user.id);
+      
+      // Load user subscription plan
+      await loadUserPlan();
       
       // Load all sessions
       const storage = await supabaseConversationStorage.getConversations();
@@ -650,7 +665,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           body: JSON.stringify({
             message: contextMessage,
             conversationHistory: messages.slice(-10), // Send last 10 messages from current session only
-            learningMode
+            learningMode,
+            userId: user?.id
           }),
         });
 
@@ -717,7 +733,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const response = await fetch('/api/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ log: contentForQuiz }),
+          body: JSON.stringify({ 
+            log: contentForQuiz,
+            userId: user?.id 
+          }),
         });
 
         if (!response.ok) {
@@ -1120,6 +1139,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Subscription management functions
+  const checkFeatureAccess = async (feature: string): Promise<boolean> => {
+    try {
+      const usageInfo = await SubscriptionService.checkFeatureLimit(feature);
+      return usageInfo.allowed;
+    } catch (error) {
+      console.error('Error checking feature access:', error);
+      return false;
+    }
+  };
+
+  const incrementFeatureUsage = async (feature: string): Promise<void> => {
+    try {
+      await SubscriptionService.incrementUsage(feature);
+    } catch (error) {
+      console.error('Error incrementing usage:', error);
+    }
+  };
+
+  const loadUserPlan = async () => {
+    try {
+      const plan = await SubscriptionService.getUserPlan();
+      const limits = await SubscriptionService.getPlanLimits(plan);
+      setUserPlan(plan);
+      setPlanLimits(limits);
+    } catch (error) {
+      console.error('Error loading user plan:', error);
+    }
+  };
+
   const value: AppContextType = {
     // Conversation state
     isConnected,
@@ -1211,6 +1260,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setStreamingEnabled,
     typewriterSpeed,
     setTypewriterSpeed,
+    
+    // Subscription management
+    userPlan,
+    planLimits,
+    checkFeatureAccess,
+    incrementFeatureUsage,
+    loadUserPlan,
   };
 
   return (

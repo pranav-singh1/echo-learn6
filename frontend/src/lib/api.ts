@@ -26,14 +26,14 @@ export interface EvaluateRequest {
 }
 
 // Generate quiz from conversation log
-export async function generateQuiz(log: string[]): Promise<QuizResponse> {
+export async function generateQuiz(log: string[], userId?: string): Promise<QuizResponse> {
   try {
     const response = await fetch('/api/quiz', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ log }),
+      body: JSON.stringify({ log, userId }),
     });
 
     if (!response.ok) {

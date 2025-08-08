@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
+import { createClient } from '@supabase/supabase-js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const EDUCATIONAL_CONTENT_CHECK_PROMPT = `You are analyzing a conversation transcript to determine if it contains educational content suitable for quiz generation.
 
@@ -96,7 +102,53 @@ export async function POST(request: Request) {
   
   try {
     // Parse request body
-    const { log } = await request.json();
+    const { log, userId } = await request.json();
+    
+    // Check subscription limits for quiz generation
+    if (userId) {
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('subscription_plan')
+        .eq('id', userId)
+        .single();
+
+      if (!userError && user) {
+        const plan = user.subscription_plan || 'free';
+        const { data: planLimits, error: planError } = await supabase
+          .from('plan_limits')
+          .select('can_use_quiz, max_quiz_generations_per_day')
+          .eq('plan_name', plan)
+          .single();
+
+        if (!planError && planLimits) {
+          // Check if quiz feature is enabled
+          if (!planLimits.can_use_quiz) {
+            return NextResponse.json({
+              error: `Quiz generation is not available in your ${plan} plan. Please upgrade to use this feature.`
+            }, { status: 403 });
+          }
+
+          // Check usage limits (daily)
+          const currentDate = new Date().toISOString().split('T')[0];
+          const { data: usage, error: usageError } = await supabase
+            .from('subscription_usage')
+            .select('usage_count')
+            .eq('user_id', userId)
+            .eq('feature_name', 'quiz_generations')
+            .eq('reset_date', currentDate)
+            .single();
+
+          const currentUsage = usage?.usage_count || 0;
+          const maxUsage = planLimits.max_quiz_generations_per_day;
+          
+          if (maxUsage !== -1 && currentUsage >= maxUsage) {
+            return NextResponse.json({
+              error: `You've reached your daily quiz generation limit for the ${plan} plan. Please try again tomorrow or upgrade to generate more quizzes.`
+            }, { status: 403 });
+          }
+        }
+      }
+    }
     
     if (!Array.isArray(log) || log.length === 0) {
       return NextResponse.json(
@@ -181,6 +233,29 @@ export async function POST(request: Request) {
 
       console.log('Successfully generated quiz with summary and', result.questions.length, 'questions');
       console.log('Final response being sent:', result);
+      
+      // Increment usage after successful quiz generation
+      if (userId) {
+        try {
+          const currentDate = new Date().toISOString().split('T')[0];
+          await supabase
+            .from('subscription_usage')
+            .upsert({
+              user_id: userId,
+              feature_name: 'quiz_generations',
+              usage_count: 1,
+              reset_date: currentDate,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,feature_name,reset_date',
+              ignoreDuplicates: false
+            });
+        } catch (usageError) {
+          console.error('Error incrementing quiz usage:', usageError);
+          // Don't fail the request if usage tracking fails
+        }
+      }
+      
       return NextResponse.json(result);
     } catch (parseError) {
         console.error('Failed to parse JSON from OpenAI:', content);

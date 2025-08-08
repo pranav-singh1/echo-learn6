@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const SYSTEM_PROMPT = `You are EchoLearn, an engaging and helpful AI tutor. Your role is to:
 
@@ -57,7 +64,47 @@ export async function POST(request: Request) {
   
   try {
     // Parse request body
-    const { message, conversationHistory, learningMode } = await request.json();
+    const { message, conversationHistory, learningMode, userId } = await request.json();
+    
+    // Check subscription limits for chat feature
+    if (userId) {
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('subscription_plan')
+        .eq('id', userId)
+        .single();
+
+      if (!userError && user) {
+        const plan = user.subscription_plan || 'free';
+        const { data: planLimits, error: planError } = await supabase
+          .from('plan_limits')
+          .select('max_messages_per_month')
+          .eq('plan_name', plan)
+          .single();
+
+        if (!planError && planLimits) {
+          const maxMessages = planLimits.max_messages_per_month;
+          
+          // Get current month's usage
+          const currentDate = new Date().toISOString().split('T')[0];
+          const { data: usage, error: usageError } = await supabase
+            .from('subscription_usage')
+            .select('usage_count')
+            .eq('user_id', userId)
+            .eq('feature_name', 'messages')
+            .eq('reset_date', currentDate)
+            .single();
+
+          const currentUsage = usage?.usage_count || 0;
+          
+          if (maxMessages !== -1 && currentUsage >= maxMessages) {
+            return NextResponse.json({
+              error: `You've reached your monthly message limit for the ${plan} plan. Please upgrade to continue chatting.`
+            }, { status: 403 });
+          }
+        }
+      }
+    }
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -104,6 +151,28 @@ export async function POST(request: Request) {
 
     if (!response) {
       throw new Error('No response generated');
+    }
+
+    // Increment usage after successful chat response
+    if (userId) {
+      try {
+        const currentDate = new Date().toISOString().split('T')[0];
+        await supabase
+          .from('subscription_usage')
+          .upsert({
+            user_id: userId,
+            feature_name: 'messages',
+            usage_count: 1,
+            reset_date: currentDate,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,feature_name,reset_date',
+            ignoreDuplicates: false
+          });
+      } catch (usageError) {
+        console.error('Error incrementing message usage:', usageError);
+        // Don't fail the request if usage tracking fails
+      }
     }
 
     return NextResponse.json({ response });
