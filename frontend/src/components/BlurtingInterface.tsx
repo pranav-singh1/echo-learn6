@@ -90,14 +90,14 @@ export const BlurtingInterface: React.FC = () => {
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <Brain className="h-5 w-5 text-purple-500" />
           Blurt Everything You Know
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 text-foreground">
         <div>
-          <Label htmlFor="topic">Topic (optional)</Label>
+          <Label htmlFor="topic" className="text-foreground">Topic (optional)</Label>
           <Input
             id="topic"
             placeholder="e.g., Photosynthesis, World War II, Calculus..."
@@ -107,13 +107,13 @@ export const BlurtingInterface: React.FC = () => {
         </div>
         
         <div>
-          <Label htmlFor="blurt">Write everything you know about this topic</Label>
+          <Label htmlFor="blurt" className="text-foreground">Write everything you know about this topic</Label>
           <Textarea
             id="blurt"
             placeholder="Start typing everything you know about the topic. Don't worry about being perfect - just write what comes to mind!"
             value={blurtContent}
             onChange={(e) => setBlurtContent(e.target.value)}
-            className="min-h-[300px]"
+            className="min-h-[300px] text-foreground placeholder:text-muted-foreground"
           />
         </div>
         

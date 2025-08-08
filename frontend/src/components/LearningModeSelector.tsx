@@ -11,7 +11,7 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-2">Choose Your Learning Mode</h2>
+        <h2 className="text-2xl font-bold mb-2 text-foreground">Choose Your Learning Mode</h2>
         <p className="text-muted-foreground">Select how you'd like to learn today</p>
       </div>
       
@@ -20,7 +20,7 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
           <CardHeader>
             <div className="flex items-center gap-3">
               <MessageCircle className="h-6 w-6 text-blue-500" />
-              <CardTitle>Conversation Mode</CardTitle>
+              <CardTitle className="text-foreground">Conversation Mode</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -38,7 +38,7 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
           <CardHeader>
             <div className="flex items-center gap-3">
               <Brain className="h-6 w-6 text-purple-500" />
-              <CardTitle>Blurting Mode</CardTitle>
+              <CardTitle className="text-foreground">Blurting Mode</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -56,7 +56,7 @@ export const LearningModeSelector: React.FC<LearningModeSelectorProps> = ({ onSe
           <CardHeader>
             <div className="flex items-center gap-3">
               <GraduationCap className="h-6 w-6 text-green-500" />
-              <CardTitle>Teaching Mode</CardTitle>
+              <CardTitle className="text-foreground">Teaching Mode</CardTitle>
             </div>
           </CardHeader>
           <CardContent>

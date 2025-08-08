@@ -251,14 +251,14 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
               ? 'bg-gradient-to-br from-purple-500 to-purple-700'
               : sessionLearningMode === 'teaching'
               ? 'bg-gradient-to-br from-green-500 to-green-700'
-              : 'bg-gradient-to-br from-brand to-brand-dark'
+              : 'bg-gradient-to-br from-blue-500 to-blue-600'
           }`}>
             {sessionLearningMode === 'blurting' ? (
               <Brain className="w-3 h-3 text-white" />
             ) : sessionLearningMode === 'teaching' ? (
               <GraduationCap className="w-3 h-3 text-white" />
             ) : (
-              <Sparkles className="w-3 h-3 text-white" />
+              <MessageCircle className="w-3 h-3 text-white" />
             )}
           </div>
         );
@@ -440,11 +440,22 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   const getBackgroundColor = () => {
     const sessionLearningMode = activeSession?.learningMode;
     if (sessionLearningMode === 'blurting') {
-      return 'bg-purple-50/30'; // Subtle purple tint for blurting
+      return 'bg-gradient-to-br from-purple-50/40 via-purple-100/20 to-purple-50/40 dark:from-purple-950/30 dark:via-purple-900/20 dark:to-purple-950/30';
     } else if (sessionLearningMode === 'teaching') {
-      return 'bg-green-50/30'; // Subtle green tint for teaching
+      return 'bg-gradient-to-br from-green-50/40 via-green-100/20 to-green-50/40 dark:from-green-950/30 dark:via-green-900/20 dark:to-green-950/30';
+    } else if (sessionLearningMode === 'conversation') {
+      return 'bg-gradient-to-br from-blue-50/40 via-blue-100/20 to-blue-50/40 dark:from-blue-950/30 dark:via-blue-900/20 dark:to-blue-950/30';
     }
-    return ''; // Default for conversation mode
+    return '';
+  };
+
+  // Background tint for the main chat card (header, content)
+  const getPanelBackground = () => {
+    const sessionLearningMode = activeSession?.learningMode;
+    if (sessionLearningMode === 'blurting') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50';
+    if (sessionLearningMode === 'teaching') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200/50 dark:border-green-800/50';
+    if (sessionLearningMode === 'conversation') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-blue-200/50 dark:border-blue-800/50';
+    return 'bg-background dark:bg-gray-950';
   };
 
   // Get message styling based on mode
@@ -452,39 +463,69 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     const sessionLearningMode = activeSession?.learningMode;
     if (sessionLearningMode === 'blurting') {
       return isAI 
-        ? 'bg-purple-100/50 border-purple-200/70' 
-        : 'bg-purple-50/70 border-purple-100/70';
+        ? 'bg-gradient-to-br from-purple-100/80 to-purple-200/60 border-purple-300/70 shadow-purple-200/50 dark:from-purple-900/60 dark:to-purple-800/40 dark:border-purple-700/50 dark:shadow-purple-900/30' 
+        : 'bg-gradient-to-br from-purple-50/80 to-purple-100/60 border-purple-200/70 shadow-purple-100/50 dark:from-purple-800/40 dark:to-purple-700/30 dark:border-purple-600/50 dark:shadow-purple-800/20';
     } else if (sessionLearningMode === 'teaching') {
       return isAI 
-        ? 'bg-green-100/50 border-green-200/70' 
-        : 'bg-green-50/70 border-green-100/70';
+        ? 'bg-gradient-to-br from-green-100/80 to-green-200/60 border-green-300/70 shadow-green-200/50 dark:from-green-900/60 dark:to-green-800/40 dark:border-green-700/50 dark:shadow-green-900/30' 
+        : 'bg-gradient-to-br from-green-50/80 to-green-100/60 border-green-200/70 shadow-green-100/50 dark:from-green-800/40 dark:to-green-700/30 dark:border-green-600/50 dark:shadow-green-800/20';
+    } else if (sessionLearningMode === 'conversation') {
+      return isAI 
+        ? 'bg-gradient-to-br from-blue-100/80 to-blue-200/60 border-blue-300/70 shadow-blue-200/50 dark:from-blue-900/60 dark:to-blue-800/40 dark:border-blue-700/50 dark:shadow-blue-900/30' 
+        : 'bg-gradient-to-br from-blue-50/80 to-blue-100/60 border-blue-200/70 shadow-blue-100/50 dark:from-blue-800/40 dark:to-blue-700/30 dark:border-blue-600/50 dark:shadow-blue-800/20';
     }
     return isAI 
       ? 'bg-muted' 
       : 'bg-primary text-primary-foreground';
   };
 
+  // Get mode-specific button styling
+  const getModeButtonStyle = () => {
+    const sessionLearningMode = activeSession?.learningMode;
+    if (sessionLearningMode === 'blurting') {
+      return 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-purple-600 shadow-lg shadow-purple-500/25';
+    } else if (sessionLearningMode === 'teaching') {
+      return 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-green-600 shadow-lg shadow-green-500/25';
+    } else if (sessionLearningMode === 'conversation') {
+      return 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-blue-600 shadow-lg shadow-blue-500/25';
+    }
+    return 'bg-primary hover:bg-primary/90 text-primary-foreground';
+  };
+
+  // Get mode-specific input styling
+  const getModeInputStyle = () => {
+    const sessionLearningMode = activeSession?.learningMode;
+    if (sessionLearningMode === 'blurting') {
+      return 'border-purple-300 focus:border-purple-500 focus:ring-purple-500/20 dark:border-purple-600 dark:focus:border-purple-400';
+    } else if (sessionLearningMode === 'teaching') {
+      return 'border-green-300 focus:border-green-500 focus:ring-green-500/20 dark:border-green-600 dark:focus:border-green-400';
+    } else if (sessionLearningMode === 'conversation') {
+      return 'border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-blue-600 dark:focus:border-blue-400';
+    }
+    return '';
+  };
+
   return (
     <div className={`flex flex-col h-full ${getBackgroundColor()} transition-all duration-300 ease-in-out`}>
-      <Card className="h-full w-full flex flex-col bg-background text-foreground border-border">
+      <Card className={`h-full w-full flex flex-col ${getPanelBackground()} text-foreground border-border`}>
         {/* Sticky Header - Session Meta */}
-        <CardHeader className="sticky top-0 z-10 bg-background border-b border-border p-4 space-y-4">
+        <CardHeader className={`sticky top-0 z-10 ${getPanelBackground()} border-b border-border p-4 space-y-4`}>
           {/* Top Row: Title + Progress + Status */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg ${
                 isBlurtingConversation 
-                  ? 'bg-gradient-to-br from-purple-500 to-purple-700' 
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-700 shadow-purple-500/25' 
                   : isTeachingConversation
-                  ? 'bg-gradient-to-br from-green-500 to-green-700'
-                  : 'bg-gradient-to-br from-brand to-brand-dark'
+                  ? 'bg-gradient-to-br from-green-500 to-green-700 shadow-green-500/25'
+                  : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-500/25'
               }`}>
                 {isBlurtingConversation ? (
                   <Brain className="h-4 w-4 text-white" />
                 ) : isTeachingConversation ? (
                   <GraduationCap className="h-4 w-4 text-white" />
                 ) : (
-                  <Sparkles className="h-4 w-4 text-white" />
+                  <MessageCircle className="h-4 w-4 text-white" />
                 )}
               </div>
               {isEditingTitle ? (
@@ -508,29 +549,35 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-foreground truncate leading-tight">
+                      <h2
+                        className="text-lg font-semibold text-foreground truncate leading-tight cursor-text select-text hover:underline underline-offset-4 decoration-gray-300 dark:decoration-gray-600 transition-colors"
+                        onDoubleClick={handleStartEditTitle}
+                        title="Double-click to edit title"
+                      >
                         {activeSession?.title || 'New Conversation'}
                       </h2>
+                      
+                      {/* Removed inline edit button to avoid visual clutter; double-click title to edit */}
+                      
+                      {/* Conversation Mode Badge */}
+                      {activeSession?.learningMode === 'conversation' && (
+                        <Badge variant="outline" className="text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-sm shadow-blue-200/50 dark:from-blue-900/40 dark:to-blue-800/30 dark:text-blue-200 dark:border-blue-600 dark:shadow-blue-900/30 transition-all duration-300 ease-in-out">
+                          Conversation Mode
+                        </Badge>
+                      )}
+                      
                       {isBlurtingConversation && (
-                        <Badge variant="outline" className="text-xs font-medium bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700 transition-all duration-300 ease-in-out">
+                        <Badge variant="outline" className="text-xs font-medium bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300 shadow-sm shadow-purple-200/50 dark:from-purple-900/40 dark:to-purple-800/30 dark:text-purple-200 dark:border-purple-600 dark:shadow-purple-900/30 transition-all duration-300 ease-in-out">
                           Blurting Mode
                         </Badge>
                       )}
                       {isTeachingConversation && (
-                        <Badge variant="outline" className="text-xs font-medium bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700 transition-all duration-300 ease-in-out">
+                        <Badge variant="outline" className="text-xs font-medium bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm shadow-green-200/50 dark:from-green-900/40 dark:to-green-800/30 dark:text-green-200 dark:border-green-600 dark:shadow-green-900/30 transition-all duration-300 ease-in-out">
                           Teaching Mode
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleStartEditTitle}
-                    className="h-8 w-8 p-0 opacity-60 hover:opacity-100 hover:bg-gray-100"
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
                 </div>
               )}
             </div>
@@ -557,7 +604,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                     size="sm"
                     onClick={handleVoiceToggle}
                     disabled={isTyping}
-                    className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 border-blue-600"
+                    className={`flex items-center gap-2 ${getModeButtonStyle()}`}
                     aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
                     data-tour="start-voice"
                   >
@@ -591,7 +638,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 size="sm"
                 onClick={quizQuestions.length > 0 ? toggleQuiz : generateQuiz}
                 disabled={isGeneratingQuiz || messages.length === 0 || (dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max)}
-                className="flex items-center gap-2 disabled:opacity-50 hover:bg-brand/5 hover:border-brand/30 hover:text-brand transition-all duration-200 dark:hover:bg-brand/10"
+                className={`flex items-center gap-2 disabled:opacity-50 transition-all duration-200 ${getModeButtonStyle()}`}
                 aria-label={quizQuestions.length > 0 ? "Open Quiz" : "Generate Quiz"}
                 data-tour="quiz"
               >
@@ -618,7 +665,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col min-h-0 w-full gap-2 bg-background text-foreground p-2 md:p-3">
+        <CardContent className={`flex-1 flex flex-col min-h-0 w-full gap-2 ${getPanelBackground()} text-foreground p-2 md:p-3`}>
           {/* Error Alert */}
           {conversationError && (
             <Alert variant="destructive">
@@ -650,12 +697,26 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
 
           {/* Messages */}
           {activeSession && (
-            <div className="flex-1 min-h-0 overflow-y-auto pr-2 bg-background text-foreground scrollbar-hide">
+            <div className={`flex-1 min-h-0 overflow-y-auto pr-2 ${getPanelBackground()} text-foreground scrollbar-hide`}>
               <div className="space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gradient-to-br from-brand-lite to-brand/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <Sparkles className="h-8 w-8 text-brand" />
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 ${
+                      activeSession?.learningMode === 'blurting' 
+                        ? 'bg-gradient-to-br from-purple-500 to-purple-700 shadow-lg shadow-purple-500/25' 
+                        : activeSession?.learningMode === 'teaching'
+                        ? 'bg-gradient-to-br from-green-500 to-green-700 shadow-lg shadow-green-500/25'
+                        : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/25'
+                    }`}>
+                      {activeSession?.learningMode === 'conversation' && (
+                        <MessageCircle className="h-8 w-8 text-white" />
+                      )}
+                      {activeSession?.learningMode === 'blurting' && (
+                        <Brain className="h-8 w-8 text-white" />
+                      )}
+                      {activeSession?.learningMode === 'teaching' && (
+                        <GraduationCap className="h-8 w-8 text-white" />
+                      )}
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">Ready to learn together</h3>
                     <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
@@ -691,17 +752,9 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                         <div
                           className={`max-w-[80%] rounded-2xl p-4 shadow-sm border transition-all duration-300 ease-in-out relative ${
                             message.speaker === 'user'
-                              ? activeSession?.learningMode === 'blurting'
-                                ? 'bg-purple-100 border-purple-300 text-purple-900 shadow-md dark:bg-purple-900/30 dark:border-purple-400/50 dark:text-purple-100'
-                                : activeSession?.learningMode === 'teaching'
-                                ? 'bg-green-100 border-green-300 text-green-900 shadow-md dark:bg-green-900/30 dark:border-green-400/50 dark:text-green-100'
-                                : 'bg-blue-50 border-blue-200 text-blue-900 shadow-md dark:bg-blue-900/20 dark:border-blue-400/30 dark:text-blue-100'
+                              ? getMessageStyling(false)
                               : message.speaker === 'ai'
-                              ? activeSession?.learningMode === 'blurting'
-                                ? 'bg-white border-purple-300 text-gray-900 shadow-md dark:bg-card dark:border-purple-400 dark:text-card-foreground'
-                                : activeSession?.learningMode === 'teaching'
-                                ? 'bg-white border-green-300 text-gray-900 shadow-md dark:bg-card dark:border-green-400 dark:text-card-foreground'
-                                : 'bg-white border-brand/20 text-gray-900 shadow-md dark:bg-card dark:border-brand/30 dark:text-card-foreground'
+                              ? getMessageStyling(true)
                               : 'bg-gray-50 border-gray-200 text-gray-600 dark:bg-muted dark:border-border dark:text-muted-foreground'
                           }`}
                         >
@@ -753,14 +806,14 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 onChange={(e) => setTextInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message here..."
-                className="flex-1"
+                className={`flex-1 ${getModeInputStyle()}`}
                 disabled={isTyping || isTextInputLocked}
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={!textInput.trim() || isTyping || isTextInputLocked}
                 size="sm"
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${getModeButtonStyle()}`}
               >
                 <Send className="h-4 w-4" />
               </Button>
