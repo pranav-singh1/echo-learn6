@@ -3,10 +3,13 @@ import { stripe } from '../../../../lib/stripe';
 import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : null;
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -64,11 +67,23 @@ export async function POST(request: NextRequest) {
 async function handleSubscriptionCreated(subscription: any) {
   console.log(`Subscription created: ${subscription.id}`);
   
+  if (!supabase) {
+    console.error('Supabase not configured for webhook');
+    return;
+  }
+  
   try {
     const customerId = subscription.customer;
     const priceId = subscription.items.data[0].price.id;
     
     const customer = await stripe.customers.retrieve(customerId);
+    
+    // Check if customer is deleted
+    if (customer.deleted) {
+      console.error('Customer is deleted:', customerId);
+      return;
+    }
+    
     const email = customer.email;
     
     if (!email) {
@@ -112,6 +127,11 @@ async function handleSubscriptionCreated(subscription: any) {
 async function handleSubscriptionUpdated(subscription: any) {
   console.log(`Subscription updated: ${subscription.id}`);
   
+  if (!supabase) {
+    console.error('Supabase not configured for webhook');
+    return;
+  }
+  
   try {
     const priceId = subscription.items.data[0].price.id;
     const plan = getPlanFromPriceId(priceId);
@@ -135,6 +155,11 @@ async function handleSubscriptionUpdated(subscription: any) {
 async function handleSubscriptionDeleted(subscription: any) {
   console.log(`Subscription deleted: ${subscription.id}`);
   
+  if (!supabase) {
+    console.error('Supabase not configured for webhook');
+    return;
+  }
+  
   try {
     await supabase
       .from('users')
@@ -156,6 +181,11 @@ async function handleSubscriptionDeleted(subscription: any) {
 async function handlePaymentSucceeded(invoice: any) {
   console.log(`Payment succeeded for invoice: ${invoice.id}`);
   
+  if (!supabase) {
+    console.error('Supabase not configured for webhook');
+    return;
+  }
+  
   try {
     await supabase
       .from('users')
@@ -163,7 +193,7 @@ async function handlePaymentSucceeded(invoice: any) {
         subscription_status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_customer_id', invoice.customer);
+      .eq('subscription_id', invoice.subscription);
     
   } catch (error) {
     console.error('Error handling payment succeeded:', error);
@@ -173,6 +203,11 @@ async function handlePaymentSucceeded(invoice: any) {
 async function handlePaymentFailed(invoice: any) {
   console.log(`Payment failed for invoice: ${invoice.id}`);
   
+  if (!supabase) {
+    console.error('Supabase not configured for webhook');
+    return;
+  }
+  
   try {
     await supabase
       .from('users')
@@ -180,7 +215,7 @@ async function handlePaymentFailed(invoice: any) {
         subscription_status: 'past_due',
         updated_at: new Date().toISOString()
       })
-      .eq('stripe_customer_id', invoice.customer);
+      .eq('subscription_id', invoice.subscription);
     
   } catch (error) {
     console.error('Error handling payment failed:', error);

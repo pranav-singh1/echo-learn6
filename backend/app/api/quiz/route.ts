@@ -8,10 +8,12 @@ const openai = new OpenAI({
 });
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : null;
 
 const EDUCATIONAL_CONTENT_CHECK_PROMPT = `You are analyzing a conversation transcript to determine if it contains educational content suitable for quiz generation.
 
@@ -68,7 +70,7 @@ You MUST respond in this exact JSON format:
 }
 You must only output the JSON, with no other text before or after.`;
 
-export async function GET(request: Request) {
+export async function GET() {
   // Test endpoint to debug response format
   const testResponse = {
     summary: "This is a test summary to verify the response format is working correctly.",
@@ -105,7 +107,7 @@ export async function POST(request: Request) {
     const { log, userId } = await request.json();
     
     // Check subscription limits for quiz generation
-    if (userId) {
+    if (userId && supabase) {
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('subscription_plan')
@@ -130,7 +132,7 @@ export async function POST(request: Request) {
 
           // Check usage limits (daily)
           const currentDate = new Date().toISOString().split('T')[0];
-          const { data: usage, error: usageError } = await supabase
+          const { data: usage } = await supabase
             .from('subscription_usage')
             .select('usage_count')
             .eq('user_id', userId)
@@ -182,7 +184,7 @@ export async function POST(request: Request) {
     let educationalAnalysis;
     try {
       educationalAnalysis = JSON.parse(contentCheckResult);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse educational content check:', contentCheckResult);
       throw new Error('Invalid response format from educational content analysis');
     }
@@ -235,7 +237,7 @@ export async function POST(request: Request) {
       console.log('Final response being sent:', result);
       
       // Increment usage after successful quiz generation
-      if (userId) {
+      if (userId && supabase) {
         try {
           const currentDate = new Date().toISOString().split('T')[0];
           await supabase
@@ -250,37 +252,38 @@ export async function POST(request: Request) {
               onConflict: 'user_id,feature_name,reset_date',
               ignoreDuplicates: false
             });
-        } catch (usageError) {
-          console.error('Error incrementing quiz usage:', usageError);
+        } catch (error) {
+          console.error('Error incrementing quiz usage:', error);
           // Don't fail the request if usage tracking fails
         }
       }
       
       return NextResponse.json(result);
-    } catch (parseError) {
-        console.error('Failed to parse JSON from OpenAI:', content);
-        // Attempt to extract JSON from a string that might have ```json ... ``` markers
-        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-            try {
-                const extractedJson = JSON.parse(jsonMatch[1]);
-                 // Basic validation
-                if (!extractedJson.summary || !Array.isArray(extractedJson.questions)) {
-                    console.error('Invalid JSON structure from extracted OpenAI response:', extractedJson);
-                    throw new Error('Invalid response format from OpenAI');
-                }
-                return NextResponse.json(extractedJson);
-            } catch (e) {
-                console.error('Failed to parse extracted JSON:', e);
-                throw new Error('Could not extract valid JSON from OpenAI response.');
-            }
+    } catch {
+      console.error('Failed to parse JSON from OpenAI:', content);
+      // Attempt to extract JSON from a string that might have ```json ... ``` markers
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          const extractedJson = JSON.parse(jsonMatch[1]);
+          // Basic validation
+          if (!extractedJson.summary || !Array.isArray(extractedJson.questions)) {
+            console.error('Invalid JSON structure from extracted OpenAI response:', extractedJson);
+            throw new Error('Invalid response format from OpenAI');
+          }
+          return NextResponse.json(extractedJson);
+        } catch (e) {
+          console.error('Failed to parse extracted JSON:', e);
+          throw new Error('Could not extract valid JSON from OpenAI response.');
         }
-        throw new Error('Response from OpenAI was not valid JSON.');
+      }
+      throw new Error('Response from OpenAI was not valid JSON.');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in quiz generation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
