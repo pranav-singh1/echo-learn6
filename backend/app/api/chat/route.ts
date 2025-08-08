@@ -8,10 +8,12 @@ const openai = new OpenAI({
 });
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : null;
 
 const SYSTEM_PROMPT = `You are EchoLearn, an engaging and helpful AI tutor. Your role is to:
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
     const { message, conversationHistory, learningMode, userId } = await request.json();
     
     // Check subscription limits for chat feature
-    if (userId) {
+    if (userId && supabase) {
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('subscription_plan')
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
           
           // Get current month's usage
           const currentDate = new Date().toISOString().split('T')[0];
-          const { data: usage, error: usageError } = await supabase
+          const { data: usage } = await supabase
             .from('subscription_usage')
             .select('usage_count')
             .eq('user_id', userId)
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
 
     // Add conversation history if provided
     if (Array.isArray(conversationHistory)) {
-      conversationHistory.forEach((msg: any) => {
+      conversationHistory.forEach((msg: { speaker: string; text: string }) => {
         if (msg.speaker === 'user') {
           messages.push({ role: 'user', content: msg.text });
         } else if (msg.speaker === 'ai') {
@@ -154,7 +156,7 @@ export async function POST(request: Request) {
     }
 
     // Increment usage after successful chat response
-    if (userId) {
+    if (userId && supabase) {
       try {
         const currentDate = new Date().toISOString().split('T')[0];
         await supabase
@@ -169,17 +171,18 @@ export async function POST(request: Request) {
             onConflict: 'user_id,feature_name,reset_date',
             ignoreDuplicates: false
           });
-      } catch (usageError) {
-        console.error('Error incrementing message usage:', usageError);
+      } catch (error) {
+        console.error('Error incrementing message usage:', error);
         // Don't fail the request if usage tracking fails
       }
     }
 
     return NextResponse.json({ response });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in chat generation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

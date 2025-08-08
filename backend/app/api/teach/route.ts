@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
   
   try {
-    const { message, conversationHistory, topic, isFirstMessage } = await request.json();
+    const { message, conversationHistory } = await request.json();
     
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     // Add conversation history if provided
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      conversationHistory.forEach((msg: any) => {
+      conversationHistory.forEach((msg: { speaker: string; text: string }) => {
         if (msg.speaker === 'user') {
           messages.push({ role: 'user', content: msg.text });
         } else if (msg.speaker === 'ai') {
@@ -67,10 +67,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ response });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in teaching conversation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
