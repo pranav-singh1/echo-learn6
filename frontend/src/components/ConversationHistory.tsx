@@ -16,7 +16,9 @@ import {
   Calendar,
   Edit2,
   Check,
-  X
+  X,
+  Brain,
+  GraduationCap
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,6 +52,20 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+
+  // Function to get the appropriate icon based on learning mode
+  const getModeIcon = (learningMode: string) => {
+    switch (learningMode) {
+      case 'conversation':
+        return <MessageCircle className="w-4 h-4 flex-shrink-0 text-blue-500" />;
+      case 'blurting':
+        return <Brain className="w-4 h-4 flex-shrink-0 text-purple-500" />;
+      case 'teaching':
+        return <GraduationCap className="w-4 h-4 flex-shrink-0 text-green-500" />;
+      default:
+        return <MessageCircle className="w-4 h-4 flex-shrink-0" />;
+    }
+  };
 
   // Filter sessions based on search term
   const filteredSessions = allSessions.filter(session =>
@@ -184,7 +200,7 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
               >
                 <div className="flex flex-col flex-1 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                    {getModeIcon(session.learningMode)}
                     {editingSessionId === session.id ? (
                       <input
                         type="text"
