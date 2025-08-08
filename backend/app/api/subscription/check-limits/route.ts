@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function POST(request: NextRequest) {
+  try {
+    const { feature, userId } = await request.json();
+
+    if (!feature || !userId) {
+      return NextResponse.json(
+        { error: 'Feature and userId are required' },
+        { status: 400 }
+      );
+    }
+
+    // Get user's subscription plan
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('subscription_plan')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const plan = user.subscription_plan || 'free';
+
+    // Get plan limits
+    const { data: planLimits, error: planError } = await supabase
+      .from('plan_limits')
+      .select('*')
+      .eq('plan_name', plan)
+      .single();
+
+    if (planError || !planLimits) {
+      return NextResponse.json(
+        { error: 'Plan limits not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if feature is enabled for this plan
+    const featureEnabled = planLimits[`can_use_${feature}`];
+    if (!featureEnabled) {
+      return NextResponse.json({
+        allowed: false,
+        reason: 'feature_not_available',
+        message: `This feature is not available in your ${plan} plan. Please upgrade to use ${feature}.`
+      });
+    }
+
+    // Get current usage for this feature
+    const currentDate = new Date().toISOString().split('T')[0];
+    const { data: usage, error: usageError } = await supabase
+      .from('subscription_usage')
+      .select('usage_count')
+      .eq('user_id', userId)
+      .eq('feature_name', feature)
+      .eq('reset_date', currentDate)
+      .single();
+
+    const currentUsage = usage?.usage_count || 0;
+    const maxUsage = planLimits[`max_${feature}_per_month`];
+
+    // Check if unlimited (-1) or within limits
+    const isUnlimited = maxUsage === -1;
+    const withinLimits = isUnlimited || currentUsage < maxUsage;
+
+    return NextResponse.json({
+      allowed: withinLimits,
+      currentUsage,
+      maxUsage: isUnlimited ? 'unlimited' : maxUsage,
+      plan,
+      reason: withinLimits ? 'within_limits' : 'usage_exceeded',
+      message: withinLimits 
+        ? 'Feature usage allowed'
+        : `You've reached your monthly limit for ${feature}. Please upgrade your plan for more usage.`
+    });
+
+  } catch (error) {
+    console.error('Error checking limits:', error);
+    return NextResponse.json(
+      { error: 'Failed to check limits' },
+      { status: 500 }
+    );
+  }
+} 
