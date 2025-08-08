@@ -211,7 +211,7 @@ export const Index: React.FC = () => {
 
   // Show conversation interface
   return (
-    <div className="h-screen bg-background text-foreground flex relative">
+    <div className="h-screen bg-background dark:bg-gray-950 text-foreground flex relative">
       {showTour && <div className="fixed inset-0 z-[20000]"><OnboardingTour onClose={handleCloseTour} /></div>}
       {/* Conversation History Sidebar - Controlled by showHistory state */}
       {showHistory && (
@@ -221,9 +221,9 @@ export const Index: React.FC = () => {
       )}
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full min-h-0 bg-background text-foreground">
+      <div className="flex-1 flex flex-col h-full min-h-0 bg-background dark:bg-gray-950 text-foreground">
         {/* Header with toggle */}
-        <div className="bg-background border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="bg-background dark:bg-gray-950 border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3" style={{ height: '80px' }}>
             <Button
               variant="ghost"
@@ -319,7 +319,7 @@ export const Index: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex-1 flex min-w-0 h-full min-h-0">
+        <div className="flex-1 flex min-w-0 h-full min-h-0 bg-background dark:bg-gray-950">
           {/* Chat Interface - Main content */}
           <div className="flex-1 h-full min-h-0 flex flex-col p-2 md:p-4 transition-all duration-300">
             <ChatInterface typewriterSpeed={typewriterSpeed} />
