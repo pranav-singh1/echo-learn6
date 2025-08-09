@@ -263,9 +263,9 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-background text-foreground">
+    <div className="h-full min-h-0 max-h-full flex flex-col overflow-hidden bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background sticky top-0 z-10">
         <div>
           <h2 className="text-lg font-semibold text-card-foreground">Knowledge Check</h2>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -289,8 +289,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
           <X className="w-5 h-5" />
         </Button>
       </div>
-
-      <div className="flex-1 overflow-y-auto">
+ 
+      <div className="flex-1 min-h-0 overflow-y-auto will-change-scroll">
         {/* Conversation Summary */}
         {quizSummary && (
           <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50">
@@ -305,114 +305,114 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ onClose }) => {
             </div>
           </div>
         )}
-
-        {/* MCQ Score (only shown after answers are checked) */}
-        {showAnswers && (
-          <div className="px-6 py-4 border-b border-border bg-background">
-            {(() => {
-              const { correct, total, percentage } = calculateMCQScore();
-              return (
-                <div className="flex items-center flex-wrap gap-2 text-base">
-                  <span className="font-semibold text-blue-700 dark:text-blue-300">Multiple Choice Score:</span>
-                  <span className="font-bold text-green-700 dark:text-green-300 ml-1">{percentage}%</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-1">({correct} / {total})</span>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Quiz Content */}
-        <div ref={contentRef} className="flex-1 min-h-0 px-6 py-6 space-y-6 bg-background text-foreground">
-          {questions.map((question, index) => (
-            <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
-                  <Circle className="w-5 h-5 text-primary" />
-                  Question {index + 1}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-base font-medium text-card-foreground leading-relaxed">
-                  <MathRenderer text={question.question} className="leading-relaxed" />
-                </div>
-                {question.type === 'multiple-choice' && question.options ? (
-                  <div className="space-y-3">
-                    {question.options.map((option, optionIndex) => (
-                      <label
-                        key={optionIndex}
-                        className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
-                          answers[index] === option
-                            ? 'bg-blue-50 border-blue-300 shadow-sm text-blue-700 dark:bg-primary/20 dark:border-primary dark:text-white'
-                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 dark:bg-muted dark:border-border dark:text-white'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${index}`}
-                          value={option}
-                          onChange={(e) => handleAnswerChange(index, e.target.value)}
-                          checked={answers[index] === option}
-                          disabled={showAnswers}
-                          className="hidden"
-                        />
-                        <div className="flex-shrink-0">
-                          {showAnswers && option === question.answer ? (
-                            <CheckCircle className="w-5 h-5 text-green-500" />
-                          ) : showAnswers && answers[index] === option && option !== question.answer ? (
-                            <Circle className="w-5 h-5 text-red-500" />
-                          ) : answers[index] === option ? (
-                            <div className="w-5 h-5 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-white"></div>
-                            </div>
-                          ) : (
-                            <Circle className="w-5 h-5 text-gray-300" />
-                          )}
-                        </div>
-                        <span className="text-sm text-gray-700 dark:text-white font-medium">
-                          {option}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <textarea
-                      value={answers[index] || ''}
-                      onChange={(e) => handleAnswerChange(index, e.target.value)}
-                      placeholder="Type your answer here..."
-                      disabled={showAnswers}
-                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400 dark:bg-card dark:text-white dark:placeholder:text-muted-foreground dark:border-border"
-                      rows={3}
-                    />
-                    {showAnswers && evaluations[index] && (
-                      <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg dark:from-purple-950/50 dark:to-blue-950/50 dark:border-purple-800">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm font-semibold text-purple-800 dark:text-purple-200">
-                            AI Feedback
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-                            <MathRenderer text={evaluations[index].feedback} className="leading-relaxed" />
-                          </div>
-                          <div className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
-                            <MathRenderer text={evaluations[index].explanation} className="leading-relaxed" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
+ 
+         {/* MCQ Score (only shown after answers are checked) */}
+         {showAnswers && (
+           <div className="px-6 py-4 border-b border-border bg-background">
+             {(() => {
+               const { correct, total, percentage } = calculateMCQScore();
+               return (
+                 <div className="flex items-center flex-wrap gap-2 text-base">
+                   <span className="font-semibold text-blue-700 dark:text-blue-300">Multiple Choice Score:</span>
+                   <span className="font-bold text-green-700 dark:text-green-300 ml-1">{percentage}%</span>
+                   <span className="text-gray-500 dark:text-gray-400 ml-1">({correct} / {total})</span>
+                 </div>
+               );
+             })()}
+           </div>
+         )}
+ 
+         {/* Quiz Content */}
+         <div ref={contentRef} className="flex-1 min-h-0 px-6 py-6 space-y-6 bg-background text-foreground">
+           {questions.map((question, index) => (
+             <Card key={index} className="border border-border shadow-sm bg-card text-card-foreground">
+               <CardHeader className="pb-3">
+                 <CardTitle className="text-lg font-semibold text-card-foreground flex items-center gap-2">
+                   <Circle className="w-5 h-5 text-primary" />
+                   Question {index + 1}
+                 </CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                 <div className="text-base font-medium text-card-foreground leading-relaxed">
+                   <MathRenderer text={question.question} className="leading-relaxed" />
+                 </div>
+                 {question.type === 'multiple-choice' && question.options ? (
+                   <div className="space-y-3">
+                     {question.options.map((option, optionIndex) => (
+                       <label
+                         key={optionIndex}
+                         className={`flex items-center space-x-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 ${
+                           answers[index] === option
+                             ? 'bg-blue-50 border-blue-300 shadow-sm text-blue-700 dark:bg-primary/20 dark:border-primary dark:text-white'
+                             : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 dark:bg-muted dark:border-border dark:text-white'
+                         }`}
+                       >
+                         <input
+                           type="radio"
+                           name={`question-${index}`}
+                           value={option}
+                           onChange={(e) => handleAnswerChange(index, e.target.value)}
+                           checked={answers[index] === option}
+                           disabled={showAnswers}
+                           className="hidden"
+                         />
+                         <div className="flex-shrink-0">
+                           {showAnswers && option === question.answer ? (
+                             <CheckCircle className="w-5 h-5 text-green-500" />
+                           ) : showAnswers && answers[index] === option && option !== question.answer ? (
+                             <Circle className="w-5 h-5 text-red-500" />
+                           ) : answers[index] === option ? (
+                             <div className="w-5 h-5 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
+                               <div className="w-2 h-2 rounded-full bg-white"></div>
+                             </div>
+                           ) : (
+                             <Circle className="w-5 h-5 text-gray-300" />
+                           )}
+                         </div>
+                         <span className="text-sm text-gray-700 dark:text-white font-medium">
+                           {option}
+                         </span>
+                       </label>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="space-y-3">
+                     <textarea
+                       value={answers[index] || ''}
+                       onChange={(e) => handleAnswerChange(index, e.target.value)}
+                       placeholder="Type your answer here..."
+                       disabled={showAnswers}
+                       className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder:text-gray-400 dark:bg-card dark:text-white dark:placeholder:text-muted-foreground dark:border-border"
+                       rows={3}
+                     />
+                     {showAnswers && evaluations[index] && (
+                       <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg dark:from-purple-950/50 dark:to-blue-950/50 dark:border-purple-800">
+                         <div className="flex items-center gap-2 mb-3">
+                           <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                           <span className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                             AI Feedback
+                           </span>
+                         </div>
+                         <div className="space-y-2">
+                           <div className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+                             <MathRenderer text={evaluations[index].feedback} className="leading-relaxed" />
+                           </div>
+                           <div className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                             <MathRenderer text={evaluations[index].explanation} className="leading-relaxed" />
+                           </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </CardContent>
+             </Card>
+           ))}
+         </div>
+       </div>
+ 
       {/* Action Buttons */}
-      <div className="px-6 py-4 border-t border-border bg-background">
+      <div className="px-6 py-3 border-t border-border bg-background sticky bottom-0 z-20">
         <div className="flex gap-3">
           {!showAnswers ? (
             <>

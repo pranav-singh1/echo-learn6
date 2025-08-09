@@ -153,13 +153,13 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
   // Helper to get subtle background based on session learning mode
   const getSessionCardClasses = (session: any) => {
     if (session.id === activeSession?.id) {
-      return 'bg-blue-400/70 text-white shadow-lg dark:bg-blue-800/30 dark:hover:bg-blue-800/40 dark:text-blue-100 dark:ring-1 dark:ring-blue-700/40 dark:border-0';
+      return 'bg-blue-400/70 text-white shadow-lg dark:bg-sky-800/30 dark:hover:bg-sky-800/40 dark:text-sky-100 dark:ring-1 dark:ring-sky-700/40 dark:border-0';
     }
     const mode = session.learningMode;
     const base = 'hover:shadow-md border border-gray-100/50 dark:border-gray-800/50';
-    if (mode === 'blurting') return `bg-purple-50/50 ${base} dark:bg-purple-950/20`;
-    if (mode === 'teaching') return `bg-green-50/50 ${base} dark:bg-green-950/20`;
-    return `bg-blue-50/50 ${base} dark:bg-blue-950/20`; // conversation
+    if (mode === 'blurting') return `bg-purple-50/50 ${base} dark:bg-purple-950/25`;
+    if (mode === 'teaching') return `bg-green-50/50 ${base} dark:bg-emerald-950/25`;
+    return `bg-blue-50/50 ${base} dark:bg-slate-950/25`; // conversation
   };
 
   return (

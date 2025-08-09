@@ -710,6 +710,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setActivePanel('quiz');
     setIsGeneratingQuiz(true);
     setQuizBlocked(null);
+
+    // Clear previous quiz immediately so UI reflects a fresh generation
+    setQuizSummary(null);
+    setQuizQuestions([]);
+    setQuizAnswers({});
+    setQuizEvaluations({});
+    setQuizShowAnswers(false);
+
+    // Also clear any persisted quiz data on the session to avoid visual confusion
+    if (activeSession) {
+      try {
+        await supabaseConversationStorage.updateSession(activeSession.id, {
+          summary: null,
+          quizQuestions: [],
+          quizAnswers: {},
+          quizEvaluations: {},
+          quizShowAnswers: false
+        });
+      } catch (e) {
+        console.error('Failed clearing existing quiz from session before regeneration:', e);
+      }
+    }
+
     // Wait 1 second before checking message count or making API call
     setTimeout(async () => {
       if (messages.length < 3 || !activeSession) {
