@@ -178,7 +178,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-lite via-white to-brand-lite overflow-hidden">
+    <div className="min-h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--brand-lite) 0%, white 50%, var(--brand-lite) 100%)' }}>
+      {/* Force light visual treatment regardless of dark mode (styles below override dark variants) */}
+      {/* Fallback for when dark class applies: explicitly re-apply light colors */}
+      <style>{`
+        .bg-glass-white { background-color: rgba(255,255,255,0.8); }
+        .text-landing-foreground { color: #0f172a; }
+      `}</style>
       {/* Morphing Background Elements */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-brand/20 to-brand-dark/20 rounded-full animate-morph opacity-60"></div>
@@ -187,7 +193,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
       </div>
 
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white backdrop-blur-md border-b border-brand/20 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-brand/20 shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <nav className="flex items-center justify-between">
             {/* Logo */}
@@ -916,15 +922,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
 
           {/* Billing Toggle */}
           <div className="flex justify-center mb-10">
-            <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-900 border border-brand/10 p-1">
+            <div className="inline-flex rounded-lg bg-gray-100 border border-brand/10 p-1">
               <button
-                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'monthly' ? 'bg-white dark:bg-gray-800 text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
+                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'monthly' ? 'bg-white text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
                 onClick={() => setBillingPeriod('monthly')}
               >
                 Monthly billing
               </button>
               <button
-                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'yearly' ? 'bg-white dark:bg-gray-800 text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
+                className={`px-6 py-2 rounded-md font-medium text-sm focus:outline-none transition-all duration-200 ${billingPeriod === 'yearly' ? 'bg-white text-brand shadow' : 'text-gray-500 hover:text-brand'}`}
                 onClick={() => setBillingPeriod('yearly')}
               >
                 Yearly billing

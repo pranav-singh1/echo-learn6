@@ -440,11 +440,14 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   const getBackgroundColor = () => {
     const sessionLearningMode = activeSession?.learningMode;
     if (sessionLearningMode === 'blurting') {
-      return 'bg-gradient-to-br from-purple-50/40 via-purple-100/20 to-purple-50/40 dark:from-purple-950/30 dark:via-purple-900/20 dark:to-purple-950/30';
+      // Richer purple tint in dark
+      return 'bg-gradient-to-br from-purple-50/50 via-purple-100/30 to-purple-50/50 dark:from-purple-950/60 dark:via-purple-900/40 dark:to-purple-950/60';
     } else if (sessionLearningMode === 'teaching') {
-      return 'bg-gradient-to-br from-green-50/40 via-green-100/20 to-green-50/40 dark:from-green-950/30 dark:via-green-900/20 dark:to-green-950/30';
+      // Deeper green, better contrast in dark
+      return 'bg-gradient-to-br from-green-50/50 via-green-100/30 to-green-50/50 dark:from-emerald-950/60 dark:via-emerald-900/40 dark:to-emerald-950/60';
     } else if (sessionLearningMode === 'conversation') {
-      return 'bg-gradient-to-br from-blue-50/40 via-blue-100/20 to-blue-50/40 dark:from-blue-950/30 dark:via-blue-900/20 dark:to-blue-950/30';
+      // Calmer blue scheme
+      return 'bg-gradient-to-br from-blue-50/50 via-blue-100/30 to-blue-50/50 dark:from-slate-950/60 dark:via-slate-900/40 dark:to-slate-950/60';
     }
     return '';
   };
@@ -452,31 +455,38 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   // Background tint for the main chat card (header, content)
   const getPanelBackground = () => {
     const sessionLearningMode = activeSession?.learningMode;
-    if (sessionLearningMode === 'blurting') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50';
-    if (sessionLearningMode === 'teaching') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200/50 dark:border-green-800/50';
-    if (sessionLearningMode === 'conversation') return 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-blue-200/50 dark:border-blue-800/50';
+    if (sessionLearningMode === 'blurting') return 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border-purple-200/60 dark:border-purple-700/50';
+    if (sessionLearningMode === 'teaching') return 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border-emerald-200/60 dark:border-emerald-700/50';
+    if (sessionLearningMode === 'conversation') return 'bg-white/85 dark:bg-gray-900/85 backdrop-blur-sm border-sky-200/60 dark:border-sky-700/50';
     return 'bg-background dark:bg-gray-950';
   };
 
   // Get message styling based on mode
   const getMessageStyling = (isAI: boolean) => {
     const sessionLearningMode = activeSession?.learningMode;
+    // Helper palettes
+    const userNeutralLight = 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 shadow-slate-100/60';
+    const userNeutralDark = 'dark:from-slate-800/50 dark:to-slate-700/40 dark:border-slate-600/50 dark:shadow-slate-900/20';
+
     if (sessionLearningMode === 'blurting') {
+      // AI: purple, User: neutral
       return isAI 
-        ? 'bg-gradient-to-br from-purple-100/80 to-purple-200/60 border-purple-300/70 shadow-purple-200/50 dark:from-purple-900/60 dark:to-purple-800/40 dark:border-purple-700/50 dark:shadow-purple-900/30' 
-        : 'bg-gradient-to-br from-purple-50/80 to-purple-100/60 border-purple-200/70 shadow-purple-100/50 dark:from-purple-800/40 dark:to-purple-700/30 dark:border-purple-600/50 dark:shadow-purple-800/20';
+        ? 'bg-gradient-to-br from-purple-100/85 to-purple-200/60 border-purple-300/70 shadow-purple-200/50 dark:from-purple-900/60 dark:to-purple-800/40 dark:border-purple-700/60 dark:shadow-purple-900/30'
+        : `bg-gradient-to-br ${userNeutralLight} ${userNeutralDark}`;
     } else if (sessionLearningMode === 'teaching') {
+      // AI: emerald, User: neutral
       return isAI 
-        ? 'bg-gradient-to-br from-green-100/80 to-green-200/60 border-green-300/70 shadow-green-200/50 dark:from-green-900/60 dark:to-green-800/40 dark:border-green-700/50 dark:shadow-green-900/30' 
-        : 'bg-gradient-to-br from-green-50/80 to-green-100/60 border-green-200/70 shadow-green-100/50 dark:from-green-800/40 dark:to-green-700/30 dark:border-green-600/50 dark:shadow-green-800/20';
+        ? 'bg-gradient-to-br from-emerald-100/85 to-emerald-200/60 border-emerald-300/70 shadow-emerald-200/50 dark:from-emerald-900/60 dark:to-emerald-800/40 dark:border-emerald-700/60 dark:shadow-emerald-900/30'
+        : `bg-gradient-to-br ${userNeutralLight} ${userNeutralDark}`;
     } else if (sessionLearningMode === 'conversation') {
+      // AI: blue, User: neutral
       return isAI 
-        ? 'bg-gradient-to-br from-blue-100/80 to-blue-200/60 border-blue-300/70 shadow-blue-200/50 dark:from-blue-900/60 dark:to-blue-800/40 dark:border-blue-700/50 dark:shadow-blue-900/30' 
-        : 'bg-gradient-to-br from-blue-50/80 to-blue-100/60 border-blue-200/70 shadow-blue-100/50 dark:from-blue-800/40 dark:to-blue-700/30 dark:border-blue-600/50 dark:shadow-blue-800/20';
+        ? 'bg-gradient-to-br from-sky-100/85 to-sky-200/60 border-sky-300/70 shadow-sky-200/50 dark:from-sky-900/60 dark:to-sky-800/40 dark:border-sky-700/60 dark:shadow-sky-900/30'
+        : `bg-gradient-to-br ${userNeutralLight} ${userNeutralDark}`;
     }
     return isAI 
-      ? 'bg-muted' 
-      : 'bg-primary text-primary-foreground';
+      ? 'bg-muted'
+      : `bg-gradient-to-br ${userNeutralLight} ${userNeutralDark}`;
   };
 
   // Get mode-specific button styling
@@ -637,7 +647,11 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 variant="outline"
                 size="sm"
                 onClick={quizQuestions.length > 0 ? toggleQuiz : generateQuiz}
-                disabled={isGeneratingQuiz || messages.length === 0 || (dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max)}
+                disabled={(function(){
+                  const atLimit = !!(dailyQuizUsage && dailyQuizUsage.current >= dailyQuizUsage.max);
+                  // If a quiz already exists, allow opening it even at limit
+                  return isGeneratingQuiz || messages.length === 0 || (quizQuestions.length === 0 && atLimit);
+                })()}
                 className={`flex items-center gap-2 disabled:opacity-50 transition-all duration-200 ${getModeButtonStyle()}`}
                 aria-label={quizQuestions.length > 0 ? "Open Quiz" : "Generate Quiz"}
                 data-tour="quiz"
