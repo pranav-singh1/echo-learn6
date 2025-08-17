@@ -1,17 +1,23 @@
 import Stripe from 'stripe';
 
 // Initialize Stripe with your secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51RiOu6G7b7Dpici2f1uyYjcaSQhSL4G5ql5X8SGCo6cK5vmEMo79c3WXdAVfHfJROIgWYShTSTnVbOu1s4EBgHR100BXGbWmOA', {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  throw new Error('STRIPE_SECRET_KEY is not set. Please configure it in your environment.');
+}
+
+export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-07-30.basil',
 });
 
 // Your domain for redirects
-export const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+export const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
 
 // Price lookup keys - replace with your actual Stripe price lookup keys
 export const PRICE_LOOKUP_KEYS = {
-  PRO_MONTHLY: 'price_1RnsRsG7b7Dpici2keGXRJCE', // Replace with actual price ID from Stripe
-  PRO_YEARLY: 'price_1RsKEcG7b7Dpici2IKKgOPhH',   // Replace with actual price ID from Stripe
+  PRO_MONTHLY: process.env.STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
+  PRO_YEARLY: process.env.STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
 };
 
 // Product configuration
