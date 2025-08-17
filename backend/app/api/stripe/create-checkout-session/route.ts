@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, YOUR_DOMAIN, PRICE_LOOKUP_KEYS } from '../../../../lib/stripe';
+import { stripe, YOUR_DOMAIN } from '../../../../lib/stripe';
 
 async function resolvePriceId(input: string): Promise<string> {
   // If the input looks like a real Stripe price id, use it directly
@@ -7,12 +7,14 @@ async function resolvePriceId(input: string): Promise<string> {
     return input;
   }
 
-  // Map known alias keys to env-provided price ids
+  // Map known alias keys to env-provided price ids (read at request time)
+  const proMonthly = process.env.STRIPE_PRICE_PRO_MONTHLY;
+  const proYearly = process.env.STRIPE_PRICE_PRO_YEARLY;
   const aliasMap: Record<string, string | undefined> = {
-    price_pro_monthly: PRICE_LOOKUP_KEYS.PRO_MONTHLY,
-    price_pro_yearly: PRICE_LOOKUP_KEYS.PRO_YEARLY,
-    pro_monthly: PRICE_LOOKUP_KEYS.PRO_MONTHLY,
-    pro_yearly: PRICE_LOOKUP_KEYS.PRO_YEARLY,
+    price_pro_monthly: proMonthly,
+    price_pro_yearly: proYearly,
+    pro_monthly: proMonthly,
+    pro_yearly: proYearly,
   };
 
   const mapped = aliasMap[input];
