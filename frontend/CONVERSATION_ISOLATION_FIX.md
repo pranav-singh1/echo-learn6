@@ -4,7 +4,7 @@
 
 **Critical Bug**: When creating new conversations, the AI would continue from previous conversations instead of starting fresh. This happened because conversation history was being shared between different conversation sessions.
 
-**Secondary Issue**: After implementing the conversation isolation fix, voice chat functionality was broken because the simplified conversation service was no longer calling the ElevenLabs voice methods.
+**Secondary Issue**: After implementing the conversation isolation fix, voice chat functionality was broken because the simplified conversation service was no longer calling the Retell voice methods.
 
 ## Root Cause
 
@@ -27,10 +27,10 @@ body: JSON.stringify({
 ```
 
 ### 2. Voice Functionality Break
-When simplifying the conversation service to fix isolation, the actual ElevenLabs voice integration was broken:
+When simplifying the conversation service to fix isolation, the actual Retell voice integration was broken:
 
 ```typescript
-// Before fix - actually called ElevenLabs
+// Before fix - actually called Retell
 async startConversation() {
   const elevenLabs = (window as any).elevenLabsConversation;
   await elevenLabs.start(); // This was removed
@@ -91,12 +91,12 @@ async startConversation(): Promise<void> {
     // Update state to connecting
     this.updateState({ isConnected: false, isListening: true, error: null });
 
-    // Start the ElevenLabs session (RESTORED)
-    const elevenLabs = (window as any).elevenLabsConversation;
-    if (elevenLabs && elevenLabs.start) {
-      await elevenLabs.start();
+    // Start the Retell session (RESTORED)
+    const retell = (window as any).retellConversation;
+    if (retell && retell.start) {
+      await retell.start();
     } else {
-      throw new Error('ElevenLabs conversation not initialized');
+      throw new Error('Retell conversation not initialized');
     }
   } catch (error) {
     this.updateState({ 
@@ -151,7 +151,7 @@ const startConversation = async () => {
    - Added `clearMessages()` method
    - Added `setSessionMessages()` method
    - Updated `sendTextMessage()` to use session-specific history
-   - **Restored ElevenLabs voice integration** in `startConversation()` and `stopConversation()`
+   - **Restored Retell voice integration** in `startConversation()` and `stopConversation()`
    - **Restored mute functionality** with proper ElevenLabs delegation
 
 2. **`frontend/src/contexts/AppContext.tsx`**
@@ -183,11 +183,11 @@ const startConversation = async () => {
 **Before Fix ❌**
 1. Click "Start Voice" button
 2. Nothing happens, no voice connection
-3. Console shows no ElevenLabs integration
+3. Console shows no Retell integration
 
 **After Fix ✅**
 1. Click "Start Voice" button
-2. Voice connection established with ElevenLabs
+2. Voice connection established with Retell
 3. Can speak and receive AI responses
 4. Mute/unmute functionality works
 

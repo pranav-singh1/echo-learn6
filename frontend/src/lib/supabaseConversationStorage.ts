@@ -1,6 +1,6 @@
 // Supabase-based conversation storage and management system
 import { supabase } from './supabase';
-import { ConversationMessage } from '../components/ElevenLabsConversation';
+import { ConversationMessage } from '../components/RetellConversation';
 
 export interface ConversationSession {
   id: string;

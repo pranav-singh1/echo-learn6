@@ -92,7 +92,7 @@ ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 Frontend (Vite/React) ←→ Backend (Next.js)
      ↓                        ↓
   API Proxy              OpenAI API
-  State Management       ElevenLabs API
+  State Management       Retell API
   UI Components          Quiz Generation
   User Interactions      Answer Evaluation
 ```

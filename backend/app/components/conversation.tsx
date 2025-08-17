@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import { useConversation } from '@elevenlabs/react';
+// Removed ElevenLabs demo component; keep UI for transcript/quiz only
 import MathRenderer from './MathRenderer';
 
 // Types for quiz data
@@ -37,53 +37,15 @@ export function Conversation() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  const conversation = useConversation({
-    onConnect: () => {
-      setLog((prev) => [...prev, '[Connected]']);
-    },
-    onDisconnect: () => {
-      setLog((prev) => [...prev, '[Disconnected]']);
-    },
-    onMessage: (message) => {
-      let speaker: string;
-      let text: string;
-    
-      // message has shape: { message: string; source: 'user' | 'agent' | ... }
-      if (typeof message === 'object' && 'message' in message) {
-        text = message.message;
-        speaker = message.source === 'user' ? 'Student' : 'Tutor';
-      } else if (typeof message === 'string') {
-        // fallback case
-        text = message;
-        speaker = 'Tutor';
-      } else {
-        text = '[Unknown message format]';
-        speaker = 'System';
-      }
-    
-      setLog((prev) => [...prev, `${speaker}: ${text}`]);
-      console.log(`[${speaker}]`, text);
-    },
-    onError: (error) => {
-      setLog((prev) => [...prev, `[Error] ${error}`]);
-      console.error('Error:', error);
-    },
-  });
+  // Note: Voice demo removed
 
   const startConversation = useCallback(async () => {
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      await conversation.startSession({
-        agentId: 'agent_01jw58pna0f8tv6khmvbtsxwm9', // Replace with real ID
-      });
-    } catch (error: any) {
-      console.error('Failed to start conversation:', error);
-    }
-  }, [conversation]);
+    // Voice demo removed
+  }, []);
 
   const stopConversation = useCallback(async () => {
-    await conversation.endSession();
-  }, [conversation]);
+    // Voice demo removed
+  }, []);
 
 
   const handleAnswerChange = (questionIndex: number, answer: string) => {
@@ -147,14 +109,14 @@ export function Conversation() {
       <div className="flex gap-2">
         <button
           onClick={startConversation}
-          disabled={conversation.status === 'connected'}
+          disabled={true}
           className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
         >
           Start Conversation
         </button>
         <button
           onClick={stopConversation}
-          disabled={conversation.status !== 'connected'}
+          disabled={true}
           className="px-4 py-2 bg-red-500 text-white rounded disabled:bg-gray-300"
         >
           Stop Conversation
