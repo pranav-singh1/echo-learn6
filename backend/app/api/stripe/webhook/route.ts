@@ -73,7 +73,6 @@ async function handleSubscriptionCreated(subscription: any) {
   
   try {
     const customerId = subscription.customer;
-    const priceId = subscription.items.data[0].price.id;
     
     const customer = await stripe.customers.retrieve(customerId);
     
@@ -101,7 +100,7 @@ async function handleSubscriptionCreated(subscription: any) {
       return;
     }
     
-    const plan = getPlanFromPriceId(priceId);
+    const plan = resolvePlanFromSubscription(subscription);
     
     await supabase
       .from('users')
@@ -132,8 +131,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   }
   
   try {
-    const priceId = subscription.items.data[0].price.id;
-    const plan = getPlanFromPriceId(priceId);
+    const plan = resolvePlanFromSubscription(subscription);
     
     await supabase
       .from('users')
@@ -221,11 +219,36 @@ async function handlePaymentFailed(invoice: any) {
   }
 }
 
-function getPlanFromPriceId(priceId: string): string {
-  const priceToPlanMap: { [key: string]: string } = {
-    'price_pro_monthly': 'pro',
-    'price_pro_yearly': 'pro',
-  };
-  
-  return priceToPlanMap[priceId] || 'free';
-} 
+function resolvePlanFromSubscription(subscription: any): string {
+  try {
+    const item = subscription?.items?.data?.[0];
+    const price = item?.price;
+    if (!price) return 'free';
+
+    const envMonthlyId = process.env.STRIPE_PRICE_PRO_MONTHLY;
+    const envYearlyId = process.env.STRIPE_PRICE_PRO_YEARLY;
+
+    // 1) Prefer direct ID match with configured env price IDs
+    if (price.id && (price.id === envMonthlyId || price.id === envYearlyId)) {
+      return 'pro';
+    }
+
+    // 2) Fallback to lookup_key if present
+    const lk = price.lookup_key as string | undefined;
+    if (lk) {
+      const normalized = lk.toLowerCase();
+      if ([
+        'price_pro_monthly',
+        'pro_monthly',
+        'price_pro_yearly',
+        'pro_yearly',
+      ].includes(normalized)) {
+        return 'pro';
+      }
+    }
+
+    return 'free';
+  } catch {
+    return 'free';
+  }
+}

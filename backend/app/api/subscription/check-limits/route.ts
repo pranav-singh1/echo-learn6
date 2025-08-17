@@ -58,11 +58,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if feature is enabled for this plan
-    let featureEnabled;
+    let featureEnabled: boolean;
     if (feature === 'quiz_generations') {
-      featureEnabled = planLimits.can_use_quiz;
+      featureEnabled = !!planLimits.can_use_quiz;
+    } else if (feature === 'voice_minutes') {
+      featureEnabled = !!planLimits.can_use_voice;
+    } else if (feature === 'messages') {
+      // Chat is available on all plans by default
+      featureEnabled = true;
     } else {
-      featureEnabled = planLimits[`can_use_${feature}`];
+      featureEnabled = true;
     }
     
     if (!featureEnabled) {
@@ -73,15 +78,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get current usage for this feature
-    const currentDate = new Date().toISOString().split('T')[0];
+    // Determine reset period: daily for quizzes, monthly for others
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const isDailyFeature = feature === 'quiz_generations';
+    const resetDate = isDailyFeature ? currentDate : monthStart;
     const featureName = feature === 'quiz_generations' ? 'quiz_generations' : feature;
     const { data: usage } = await supabase
       .from('subscription_usage')
       .select('usage_count')
       .eq('user_id', userId)
       .eq('feature_name', featureName)
-      .eq('reset_date', currentDate)
+      .eq('reset_date', resetDate)
       .single();
 
     const currentUsage = usage?.usage_count || 0;
@@ -89,6 +98,7 @@ export async function POST(request: NextRequest) {
     // Handle different limit types based on feature
     let maxUsage;
     if (feature === 'quiz_generations') {
+      // Use daily limit from DB (e.g., 10 per day), not unlimited
       maxUsage = planLimits.max_quiz_generations_per_day;
     } else {
       maxUsage = planLimits[`max_${feature}_per_month`];

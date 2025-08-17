@@ -87,8 +87,9 @@ export async function POST(request: Request) {
         if (!planError && planLimits) {
           const maxMessages = planLimits.max_messages_per_month;
           
-          // Get current month's usage
-          const currentDate = new Date().toISOString().split('T')[0];
+          // Get current month's usage (use month start for reset_date)
+          const now = new Date();
+          const currentDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
           const { data: usage } = await supabase
             .from('subscription_usage')
             .select('usage_count')
@@ -155,17 +156,30 @@ export async function POST(request: Request) {
       throw new Error('No response generated');
     }
 
-    // Increment usage after successful chat response
+    // Increment usage after successful chat response (count message as 1)
     if (userId && supabase) {
       try {
-        const currentDate = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+        // Get current usage and increment by 1
+        const { data: existing } = await supabase
+          .from('subscription_usage')
+          .select('usage_count')
+          .eq('user_id', userId)
+          .eq('feature_name', 'messages')
+          .eq('reset_date', monthStart)
+          .single();
+
+        const newCount = (existing?.usage_count || 0) + 1;
+
         await supabase
           .from('subscription_usage')
           .upsert({
             user_id: userId,
             feature_name: 'messages',
-            usage_count: 1,
-            reset_date: currentDate,
+            usage_count: newCount,
+            reset_date: monthStart,
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'user_id,feature_name,reset_date',

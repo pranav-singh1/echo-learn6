@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useConversation } from '@elevenlabs/react';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface ConversationMessage {
   speaker: 'user' | 'ai' | 'system';
@@ -26,6 +27,8 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
   const [shouldReconnect, setShouldReconnect] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [originalStream, setOriginalStream] = useState<MediaStream | null>(null);
+  const { user } = useAuth();
+  const [sessionStart, setSessionStart] = useState<number | null>(null);
 
   // ElevenLabs hook configuration with streaming support
   const conversation = useConversation({
@@ -84,6 +87,24 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
 
   const startConversation = useCallback(async () => {
     try {
+      // Check voice minutes limit before starting
+      if (user?.id) {
+        try {
+          const resp = await fetch('/api/subscription/check-limits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feature: 'voice_minutes', userId: user.id })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (!data.allowed) {
+              throw new Error(data.message || 'Voice minutes limit reached');
+            }
+          }
+        } catch (e: any) {
+          throw new Error(e?.message || 'Voice minutes limit reached');
+        }
+      }
       // Store original getUserMedia
       const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
       
@@ -105,6 +126,7 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
       navigator.mediaDevices.getUserMedia = originalGetUserMedia;
       
       onStart();
+      setSessionStart(Date.now());
       
     } catch (error: any) {
       onStateChange({ 
@@ -113,7 +135,7 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
         error: error.message || 'Failed to start conversation' 
       });
     }
-  }, [conversation, onStart, onStateChange]);
+  }, [conversation, onStart, onStateChange, user?.id]);
 
   const stopConversation = useCallback(async () => {
     try {
@@ -127,6 +149,21 @@ export const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({
       setIsMuted(false);
       
       onStop();
+
+      // Increment voice minutes for session duration
+      try {
+        if (user?.id && sessionStart) {
+          const durationSeconds = Math.max(0, Math.round((Date.now() - sessionStart) / 1000));
+          const minutes = Math.max(1, Math.ceil(durationSeconds / 60));
+          await fetch('/api/subscription/increment-usage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feature: 'voice_minutes', userId: user.id, amount: minutes })
+          });
+        }
+      } catch (e) {
+        // non-blocking
+      }
     } catch (error) {
       // Handle error silently
     }
