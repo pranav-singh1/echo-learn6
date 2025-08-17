@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Security headers
+  // Redirect apex to the frontend app
+  if (request.nextUrl.pathname === '/') {
+    const appUrl = 'https://app.echolearn.ai';
+    return NextResponse.redirect(appUrl);
+  }
+
+  // Security headers for all other routes
   const response = NextResponse.next();
   
   // Prevent clickjacking
