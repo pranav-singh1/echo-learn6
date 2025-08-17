@@ -45,9 +45,9 @@ import { useNavigate } from 'react-router-dom';
 // Animated benefits component with typewriter effect
 const AnimatedBenefits: React.FC<{ className?: string }> = ({ className }) => {
   const benefits = React.useMemo(() => [
-    "Learn faster through conversation",
-    "Get instant AI feedback", 
-    "Track your progress with quizzes"
+    "Learn through conversation, teaching, and blurting",
+    "Get instant AI feedback in all modes", 
+    "Track your progress with personalized quizzes"
   ], []);
   
   const [currentBenefit, setCurrentBenefit] = React.useState(0);
@@ -104,56 +104,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [expandedFaq, setExpandedFaq] = React.useState<number | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'yearly'>('monthly');
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [contactForm, setContactForm] = React.useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-  
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactForm),
-      });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert(`Thank you for your message, ${contactForm.firstName}! We'll get back to you at ${contactForm.email} soon.`);
-        
-        // Reset form
-        setContactForm({
-          firstName: '',
-          lastName: '',
-          email: '',
-          subject: '',
-          message: ''
-        });
-      } else {
-        alert(data.error || 'Failed to send message. Please try again.');
-      }
-    } catch (error) {
-      alert('Failed to send message. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   
   // FAQ data
   const faqs = [
     {
       question: "How does EchoLearn work?",
-      answer: "EchoLearn uses advanced AI to have natural voice conversations with you about any topic you want to learn. After each conversation, it generates personalized summaries and quizzes to reinforce your understanding."
+      answer: "EchoLearn offers three powerful learning modes: Conversation mode for asking questions and exploring topics, Teaching mode for explaining concepts aloud to reinforce understanding, and Blurting mode for rapid knowledge recall. After each session, it generates personalized summaries and quizzes to reinforce your understanding."
     },
     {
       question: "Is my data secure?",
@@ -165,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
     },
     {
       question: "What subjects can I learn?",
-      answer: "EchoLearn works with any subject! Whether it's math, science, history, languages, or professional skills - our AI adapts to your learning needs."
+      answer: "EchoLearn works with any subject! Whether it's math, science, history, languages, or professional skills - our AI adapts to your learning needs across all three learning modes."
     },
     {
       question: "How much does it cost?",
@@ -321,14 +278,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                 <h1 className="text-6xl lg:text-7xl font-bold text-neutral leading-tight tracking-tight">
                   Learn by{' '}
                   <span className="bg-gradient-to-r from-brand via-brand-dark to-purple-600 bg-clip-text text-transparent">
-                    Teaching
+                    Speaking
                   </span>{' '}
                   Aloud
                 </h1>
                 
                 <p className="text-xl text-neutral/80 leading-relaxed max-w-2xl">
-                  Have natural voice conversations with AI about any topic. EchoLearn helps you learn faster 
-                  by letting you explain concepts aloud, then generates personalized quizzes to test your understanding.
+                  Master any subject through three powerful learning modes: have natural conversations with AI, 
+                  practice teaching concepts aloud, or use blurting to reinforce your knowledge. EchoLearn adapts 
+                  to your learning style and generates personalized quizzes to test your understanding.
                 </p>
               </div>
 
@@ -490,7 +448,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Badge>
             <h2 className="text-5xl font-bold text-neutral">Why Choose EchoLearn</h2>
             <p className="text-xl text-neutral/70 max-w-3xl mx-auto">
-              Our AI-powered platform combines the best of conversational learning with personalized assessment
+              Our AI-powered platform combines three learning modes with personalized assessment to match any learning style
             </p>
           </div>
 
@@ -498,13 +456,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             {[
               {
                 icon: <Microphone size={32} weight="duotone" className="text-brand" />,
-                title: "Voice-First Learning",
-                description: "Speak naturally about any topic. Our AI understands context and guides your learning through conversation."
+                title: "Multiple Learning Modes",
+                description: "Choose from Conversation, Teaching, or Blurting modes. Our AI adapts to your preferred learning style and guides you accordingly."
               },
               {
                 icon: <ChatCircle size={32} weight="duotone" className="text-brand" />,
-                title: "Interactive Dialogue",
-                description: "Engage in meaningful conversations that adapt to your learning style and pace."
+                title: "Interactive Learning",
+                description: "Whether you're asking questions, teaching concepts, or practicing recall, engage in meaningful interactions that adapt to your pace."
               },
               {
                 icon: <Sparkle size={32} weight="duotone" className="text-brand" />,
@@ -560,7 +518,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Badge>
             <h2 className="text-5xl font-bold text-neutral">How EchoLearn Works</h2>
             <p className="text-xl text-neutral/80 max-w-3xl mx-auto leading-relaxed">
-              Three simple steps to transform your learning experience
+              Choose your learning mode and follow three simple steps to transform your learning experience
             </p>
           </div>
 
@@ -568,20 +526,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             {[
               {
                 step: "01",
-                title: "Start Talking",
-                description: "Begin a voice conversation about any topic you want to learn. Just press the microphone and start explaining what you know.",
+                title: "Choose Your Mode",
+                description: "Select from Conversation (ask questions), Teaching (explain concepts), or Blurting (rapid recall). Each mode targets different learning styles.",
                 icon: <Microphone size={48} weight="duotone" className="text-white" />
               },
               {
                 step: "02",
-                title: "AI Responds",
-                description: "Our AI listens, understands your level, and provides personalized feedback and explanations to help you learn better.",
+                title: "AI Adapts",
+                description: "Our AI listens, understands your learning mode and level, then provides personalized feedback, guidance, or challenges based on your chosen approach.",
                 icon: <BrainIcon size={48} weight="duotone" className="text-white" />
               },
               {
                 step: "03",
-                title: "Test Knowledge",
-                description: "Get automatically generated quizzes based on your conversation to reinforce learning and track your progress.",
+                title: "Reinforce Learning",
+                description: "Get automatically generated quizzes and summaries based on your session to reinforce learning and track your progress across all modes.",
                 icon: <CheckIcon size={48} weight="duotone" className="text-white" />
               }
             ].map((step, index) => (
@@ -680,25 +638,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                name: "Sarah Chen",
-                role: "Computer Science Student",
-                content: "EchoLearn helped me understand algorithms by letting me explain them out loud. The AI caught gaps in my knowledge I didn't even know existed!",
+                name: "Josh Ascano",
+                role: "Computer Engineering Student",
+                content: "EchoLearn's teaching mode helped me understand algorithms by letting me explain them out loud. The AI caught gaps in my knowledge I didn't even know existed!",
                 rating: 5,
-                avatar: "👩‍💻"
+                avatar: "👨‍💻"
               },
               {
-                name: "Marcus Rodriguez",
-                role: "Medical Student",
-                content: "Studying anatomy became so much easier when I could discuss it conversationally. The personalized quizzes are incredibly helpful for retention.",
+                name: "Eli Nguyen",
+                role: "Economics Student",
+                content: "The conversation mode made complex economic theories click for me. I can ask questions naturally and get explanations that actually make sense!",
                 rating: 5,
-                avatar: "👨‍⚕️"
+                avatar: "👨‍💼"
               },
               {
-                name: "Emily Watson",
-                role: "High School Student",
-                content: "Finally, a way to study that doesn't feel like studying! I actually look forward to my learning sessions now.",
+                name: "Jaiden Banwait",
+                role: "Business Student",
+                content: "The blurting mode is perfect for memorizing business frameworks. I can quickly recall concepts and get instant feedback on what I missed!",
                 rating: 5,
-                avatar: "👩‍🎓"
+                avatar: "👨‍🎓"
               }
             ].map((testimonial, index) => (
               <Card key={index} className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -776,128 +734,60 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Badge>
             <h2 className="text-5xl font-bold text-neutral">Contact Us</h2>
             <p className="text-xl text-neutral/70 max-w-2xl mx-auto">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions? We'd love to hear from you. Reach out using any of the methods below.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-brand to-brand-dark rounded-xl flex items-center justify-center">
-                      <Envelope size={24} weight="duotone" className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-neutral">Email Us</h3>
-                      <p className="text-neutral/60">tryecholearn@gmail.com</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-brand to-brand-dark rounded-xl flex items-center justify-center">
-                      <Chat size={24} weight="duotone" className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-neutral">Live Chat</h3>
-                      <p className="text-neutral/60">Available 24/7</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-brand to-brand-dark rounded-xl flex items-center justify-center">
-                      <PhoneIcon size={24} weight="duotone" className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-neutral">Phone Support</h3>
-                      <p className="text-neutral/60">925-791-1047</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Contact Form */}
-            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-xl">
-              <CardContent className="p-8">
-                <form className="space-y-6" onSubmit={handleContactSubmit}>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-neutral block mb-2">First Name *</label>
-                      <input 
-                        type="text" 
-                        required
-                        value={contactForm.firstName}
-                        onChange={(e) => setContactForm(prev => ({ ...prev, firstName: e.target.value }))}
-                        className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
-                        placeholder="John"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-neutral block mb-2">Last Name *</label>
-                      <input 
-                        type="text" 
-                        required
-                        value={contactForm.lastName}
-                        onChange={(e) => setContactForm(prev => ({ ...prev, lastName: e.target.value }))}
-                        className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
-                        placeholder="Doe"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Email *</label>
-                    <input 
-                      type="email" 
-                      required
-                      value={contactForm.email}
-                      onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Subject *</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={contactForm.subject}
-                      onChange={(e) => setContactForm(prev => ({ ...prev, subject: e.target.value }))}
-                      className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
-                      placeholder="How can we help?"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-neutral block mb-2">Message *</label>
-                    <textarea 
-                      rows={4}
-                      required
-                      value={contactForm.message}
-                      onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
-                      className="w-full p-3 border border-brand/20 rounded-lg bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors resize-none"
-                      placeholder="Tell us more about your inquiry..."
-                    ></textarea>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full bg-brand hover:bg-brand-dark text-white py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Email Contact */}
+            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-brand to-brand-dark rounded-2xl flex items-center justify-center">
+                  <Envelope size={32} weight="duotone" className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-neutral mb-2">Email Us</h3>
+                  <p className="text-neutral/60 mb-4">Get in touch via email</p>
+                  <a 
+                    href="mailto:tryecholearn@gmail.com" 
+                    className="text-brand hover:text-brand-dark font-medium transition-colors"
                   >
-                    {isSubmitting ? (
-                      <div className="flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Sending...
-                      </div>
-                    ) : (
-                      'Send Message'
-                    )}
-                  </Button>
-                </form>
+                    tryecholearn@gmail.com
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Live Chat */}
+            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-brand-dark to-purple-600 rounded-2xl flex items-center justify-center">
+                  <Chat size={32} weight="duotone" className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-neutral mb-2">Live Chat</h3>
+                  <p className="text-neutral/60 mb-4">Chat with our support team</p>
+                  <p className="text-brand font-medium">Available 24/7</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Phone Support */}
+            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-brand rounded-2xl flex items-center justify-center">
+                  <PhoneIcon size={32} weight="duotone" className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-neutral mb-2">Phone Support</h3>
+                  <p className="text-neutral/60 mb-4">Call us directly</p>
+                  <a 
+                    href="tel:925-791-1047" 
+                    className="text-brand hover:text-brand-dark font-medium transition-colors"
+                  >
+                    925-791-1047
+                  </a>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1073,8 +963,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               <ul className="space-y-2 text-sm">
                 <li><a href="#faq" className="text-white/70 hover:text-brand transition-colors">FAQ</a></li>
                 <li><a href="#contact" className="text-white/70 hover:text-brand transition-colors">Contact</a></li>
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">Documentation</a></li>
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">Community</a></li>
               </ul>
             </div>
 
@@ -1082,21 +970,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             <div className="space-y-4">
               <h3 className="font-semibold text-white">Legal</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">Cookie Policy</a></li>
-                <li><a href="#" className="text-white/70 hover:text-brand transition-colors">GDPR</a></li>
+                <li><a href="/privacy" className="text-white/70 hover:text-brand transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="text-white/70 hover:text-brand transition-colors">Terms of Service</a></li>
               </ul>
             </div>
           </div>
 
-          <div className="pt-8 border-t border-white/20 flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+          <div className="pt-8 border-t border-white/20 text-center">
             <p className="text-white/60 text-sm">© 2024 EchoLearn. All rights reserved.</p>
-            <div className="flex items-center space-x-6 text-sm">
-              <a href="#" className="text-white/70 hover:text-brand transition-colors">Twitter</a>
-              <a href="#" className="text-white/70 hover:text-brand transition-colors">LinkedIn</a>
-              <a href="#" className="text-white/70 hover:text-brand transition-colors">GitHub</a>
-            </div>
           </div>
         </div>
       </footer>
