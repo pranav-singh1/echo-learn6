@@ -1,5 +1,5 @@
 // Conversation storage and management system
-import { ConversationMessage } from '../components/ElevenLabsConversation';
+import { ConversationMessage } from '../components/RetellConversation';
 
 export interface ConversationSession {
   id: string;

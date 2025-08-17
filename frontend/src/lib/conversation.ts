@@ -1,4 +1,4 @@
-// Real ElevenLabs conversation service - simplified for reliability with streaming support
+// Conversation service using Retell under the hood
 import { ConversationMessage } from '../components/RetellConversation';
 
 export interface ConversationState {
@@ -8,7 +8,7 @@ export interface ConversationState {
   error: string | null;
 }
 
-// This service connects to the real ElevenLabs conversation component
+// This service connects to the Retell conversation component
 export class ConversationService {
   private messageCallbacks: ((message: ConversationMessage) => void)[] = [];
   private stateCallbacks: ((state: Partial<ConversationState>) => void)[] = [];
@@ -203,7 +203,7 @@ export class ConversationService {
 // Export singleton instance
 export const conversationService = new ConversationService();
 
-// Expose globally for ElevenLabs component
+// Expose globally for Retell component
 if (typeof window !== 'undefined') {
   (window as any).conversationService = conversationService;
 } 

@@ -104,7 +104,7 @@ export const PrivacyPolicy: React.FC = () => {
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">4. Data Sharing and Disclosure</h2>
                   <p>We do not sell your personal information. We may share your data in the following circumstances:</p>
                   <ul className="list-disc pl-6 mt-2 space-y-1">
-                    <li><strong>Service Providers:</strong> With trusted third-party services that help us operate the platform (e.g., OpenAI for AI processing, ElevenLabs for voice synthesis)</li>
+                    <li><strong>Service Providers:</strong> With trusted third-party services that help us operate the platform (e.g., OpenAI for AI processing, Retell for voice)</li>
                     <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
                     <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
                     <li><strong>Consent:</strong> With your explicit consent for specific purposes</li>
