@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://echolearn-three.vercel.app/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://echolearn.ai/api/$1" }
   ]
 }
 
