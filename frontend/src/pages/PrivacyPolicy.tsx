@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Brain, ArrowLeft, Shield, Lock, Eye, Database } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, Eye, Database } from 'lucide-react';
+import { Sparkle } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PrivacyPolicy: React.FC = () => {
@@ -23,10 +24,10 @@ export const PrivacyPolicy: React.FC = () => {
             </Button>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Sparkle size={24} weight="duotone" className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               EchoLearn
             </h1>
           </div>
@@ -46,7 +47,10 @@ export const PrivacyPolicy: React.FC = () => {
                 <section>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Introduction</h2>
                   <p>
-                    EchoLearn ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered learning platform.
+                    EchoLearn, Inc. ("Company," "we," "our," or "us") is committed to protecting your privacy and personal information. This Privacy Policy describes how we collect, use, disclose, and safeguard your information when you use our AI-powered learning platform and related services (collectively, the "Service").
+                  </p>
+                  <p className="mt-3">
+                    By accessing or using our Service, you acknowledge that you have read, understood, and agree to be bound by this Privacy Policy. If you do not agree with the terms of this Privacy Policy, please do not access or use the Service.
                   </p>
                 </section>
 
@@ -61,14 +65,14 @@ export const PrivacyPolicy: React.FC = () => {
                     <li>Account credentials and authentication data</li>
                   </ul>
 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">2.2 Usage Data</h3>
-                  <p>We automatically collect:</p>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">2.2 Learning and Usage Data</h3>
+                  <p>We automatically collect information related to your use of the Service, including:</p>
                   <ul className="list-disc pl-6 mt-2 space-y-1">
-                    <li>Conversation transcripts and learning sessions</li>
-                    <li>Quiz responses and performance data</li>
-                    <li>Voice recordings (processed for AI interaction)</li>
-                    <li>Device information and browser data</li>
-                    <li>Usage patterns and feature interactions</li>
+                    <li>Learning session data from all modes (Conversation, Teaching, and Blurting)</li>
+                    <li>Voice recordings and audio interactions (processed temporarily for AI response generation)</li>
+                    <li>Quiz responses, performance metrics, and progress data</li>
+                    <li>Device information, browser data, and operating system details</li>
+                    <li>Usage patterns, feature interactions, and session analytics</li>
                   </ul>
 
                   <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">2.3 Technical Data</h3>
@@ -180,9 +184,10 @@ export const PrivacyPolicy: React.FC = () => {
                     If you have any questions about this Privacy Policy or our data practices, please contact us:
                   </p>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium">Email: privacy@echolearn.ai</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      We will respond to your inquiry within 48 hours.
+                    <p className="font-medium">Email: tryecholearn@gmail.com</p>
+                    <p className="font-medium mt-2">Phone: 925-791-1047</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      We will respond to privacy-related inquiries within 48 hours. For general inquiries, please allow up to 72 hours for a response.
                     </p>
                   </div>
                 </section>

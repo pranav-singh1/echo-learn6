@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Brain, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { Sparkle } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 
 export const TermsOfService: React.FC = () => {
@@ -23,10 +24,10 @@ export const TermsOfService: React.FC = () => {
             </Button>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Sparkle size={24} weight="duotone" className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               EchoLearn
             </h1>
           </div>
@@ -46,20 +47,21 @@ export const TermsOfService: React.FC = () => {
                 <section>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
                   <p>
-                    By accessing and using EchoLearn ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                    By accessing and using EchoLearn, Inc.'s services ("the Service"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). These Terms constitute a legally binding agreement between you ("User" or "you") and EchoLearn, Inc. ("Company," "we," "our," or "us"). If you do not agree to these Terms, you must not access or use the Service.
                   </p>
                 </section>
 
                 <section>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-4">2. Description of Service</h2>
                   <p>
-                    EchoLearn is an AI-powered learning platform that provides:
+                    EchoLearn is an AI-powered learning platform that provides multiple learning modalities including:
                   </p>
                   <ul className="list-disc pl-6 mt-2 space-y-1">
-                    <li>Voice and text conversations with AI tutors</li>
-                    <li>AI-generated summaries of learning sessions</li>
-                    <li>Personalized quiz generation</li>
-                    <li>Conversation history and progress tracking</li>
+                    <li>Conversation Mode: Interactive dialogue with AI tutors for exploring topics and asking questions</li>
+                    <li>Teaching Mode: Practice explaining concepts aloud to reinforce understanding</li>
+                    <li>Blurting Mode: Rapid knowledge recall and memory reinforcement exercises</li>
+                    <li>AI-generated summaries and personalized assessments</li>
+                    <li>Learning progress tracking and analytics</li>
                   </ul>
                 </section>
 
@@ -144,9 +146,10 @@ export const TermsOfService: React.FC = () => {
                     If you have any questions about these Terms of Service, please contact us at:
                   </p>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium">Email: legal@echolearn.ai</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      We will respond to your inquiry within 48 hours.
+                    <p className="font-medium">Email: tryecholearn@gmail.com</p>
+                    <p className="font-medium mt-2">Phone: 925-791-1047</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      We will respond to legal inquiries within 48 hours. For general inquiries, please allow up to 72 hours for a response.
                     </p>
                   </div>
                 </section>
