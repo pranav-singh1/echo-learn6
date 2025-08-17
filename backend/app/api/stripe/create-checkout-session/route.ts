@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe, YOUR_DOMAIN } from '../../../../lib/stripe';
 
 async function resolvePriceId(input: string): Promise<string> {
-  // If the input looks like a real Stripe price id, use it directly
-  if (/^price_/.test(input) && input.length > 10) {
+  // If the input looks like a real Stripe price id (alphanumeric only after prefix), use it directly
+  // This avoids treating aliases like `price_pro_monthly` as real IDs
+  if (/^price_[A-Za-z0-9]{10,}$/.test(input)) {
     return input;
   }
 
