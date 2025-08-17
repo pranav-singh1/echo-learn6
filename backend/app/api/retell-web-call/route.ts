@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { agent_id } = await request.json();
+    // Get agent_id from environment variable instead of request body for security
+    const agent_id = process.env.RETELL_AGENT_ID || process.env.REACT_APP_RETELL_AGENT_ID;
 
     if (!agent_id) {
-      return NextResponse.json({ error: 'agent_id is required' }, { status: 400 });
+      return NextResponse.json({ error: 'RETELL_AGENT_ID not configured' }, { status: 500 });
     }
 
     const retellApiKey = process.env.RETELL_API_KEY;

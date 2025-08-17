@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RetellWebClient } from 'retell-client-js-sdk';
 
-const agentId = 'agent_302093d9c369a0189b50c7de42';
 const retellWebClient = new RetellWebClient();
 
 export interface ConversationMessage {
@@ -149,7 +148,7 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       const response = await fetch('/api/retell-web-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agentId }),
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {

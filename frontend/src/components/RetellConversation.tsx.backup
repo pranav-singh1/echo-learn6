@@ -15,7 +15,7 @@ interface RetellConversationProps {
   onStop?: () => void;
 }
 
-const AGENT_ID = "agent_302093d9c369a0189b50c7de42"; // Your Retell agent ID
+// Agent ID is now securely stored in backend environment variables
 
 export const RetellConversation: React.FC<RetellConversationProps> = ({
   onMessage,
@@ -142,11 +142,11 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
 
       console.log('Starting Retell call...');
 
-      // Register call with backend
+      // Register call with backend (agent_id is now handled server-side)
       const response = await fetch('/api/retell-web-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: AGENT_ID }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
