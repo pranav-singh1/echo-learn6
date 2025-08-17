@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 // Removed ElevenLabs demo component; keep UI for transcript/quiz only
-import MathRenderer from './MathRenderer';
+// Removed MathRenderer import
 
 // Types for quiz data
 interface QuizQuestion {
@@ -143,9 +143,7 @@ export function Conversation() {
                 >
                   {speaker}:
                 </span>{' '}
-                <span className="text-gray-800">
-                  <MathRenderer text={messageText} />
-                </span>
+                <span className="text-gray-800">{messageText}</span>
               </p>
             );
           })}
