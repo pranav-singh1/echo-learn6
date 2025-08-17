@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RetellWebClient } from 'retell-client-js-sdk';
+import { useAuth } from '../contexts/AuthContext';
 
 const retellWebClient = new RetellWebClient();
 
@@ -35,6 +36,8 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
   const lastProcessedMessage = useRef<string>('');
   const currentTranscript = useRef<string>('');
   const messageBuffer = useRef<ConversationMessage[]>([]);
+  const [callId, setCallId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // State to track the full transcript (but don't send messages during conversation)
   const [fullTranscript, setFullTranscript] = useState<string>('');
@@ -148,7 +151,7 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       const response = await fetch('/api/retell-web-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ userId: user?.id || undefined }),
       });
       
       if (!response.ok) {
@@ -157,6 +160,11 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       }
       
       const data = await response.json();
+      if (data.call_id) {
+        setCallId(data.call_id);
+      } else if (data.id) {
+        setCallId(data.id);
+      }
       
       if (data.access_token) {
         await retellWebClient.startCall({ accessToken: data.access_token });
@@ -168,7 +176,7 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       setError(err.message || 'Failed to start call');
       onStateChange?.({ isConnected: false, isCalling: false, error: err.message || 'Failed to start call' });
     }
-  }, [onStateChange]);
+  }, [onStateChange, user?.id]);
 
   const stopCall = useCallback(() => {
     retellWebClient.stopCall();
@@ -212,7 +220,7 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       onStart?.();
     });
     
-    retellWebClient.on('call_ended', () => {
+    retellWebClient.on('call_ended', async () => {
       // Use the ref to get the current transcript synchronously
       const transcriptToSend = currentTranscriptRef.current;
       
@@ -239,6 +247,39 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
         
         // Generate conversation title from the transcript
         generateConversationTitle(transcriptToSend);
+      }
+      // After call ends, if we have a callId and user, fetch duration and increment minutes
+      try {
+        if (callId && user?.id) {
+          const resp = await fetch('/api/retell-get-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ call_id: callId })
+          });
+          if (resp.ok) {
+            const info = await resp.json();
+            let durationSeconds = 0;
+            // Try common fields
+            if (typeof info.duration_sec === 'number') {
+              durationSeconds = info.duration_sec;
+            } else if (info.started_at && info.ended_at) {
+              const start = new Date(info.started_at).getTime();
+              const end = new Date(info.ended_at).getTime();
+              if (!isNaN(start) && !isNaN(end) && end > start) {
+                durationSeconds = Math.round((end - start) / 1000);
+              }
+            }
+            const minutes = Math.max(1, Math.ceil(durationSeconds / 60));
+            await fetch('/api/subscription/increment-usage', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ feature: 'voice_minutes', userId: user.id, amount: minutes })
+            });
+          }
+        }
+      } catch (e) {
+        // Non-blocking
+        console.error('Failed to increment voice minutes:', e);
       }
       
       // Reset state

@@ -158,6 +158,7 @@ export async function POST(request: Request) {
             .single();
 
           const currentUsage = usage?.usage_count || 0;
+          // Use daily limit from DB (e.g., 10/day)
           const maxUsage = planLimits.max_quiz_generations_per_day;
           
           console.log('Usage check result:', { currentUsage, maxUsage, usage });
