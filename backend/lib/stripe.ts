@@ -7,9 +7,7 @@ if (!stripeSecretKey) {
   throw new Error('STRIPE_SECRET_KEY is not set. Please configure it in your environment.');
 }
 
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-06-20',
-});
+export const stripe = new Stripe(stripeSecretKey);
 
 // Your domain for redirects
 export const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
