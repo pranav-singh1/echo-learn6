@@ -1,6 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://echolearn.ai/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://echolearn.ai/api/$1" },
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
 
