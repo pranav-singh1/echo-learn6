@@ -30,7 +30,7 @@ const pricingPlans: PricingPlan[] = [
       'Conversation history and search',
       'Priority support',
     ],
-    lookup_key: 'price_1RnsRsG7b7Dpici2keGXRJCE',
+    lookup_key: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY || 'price_pro_monthly',
   },
   {
     id: 'yearly',
@@ -46,7 +46,7 @@ const pricingPlans: PricingPlan[] = [
       'Custom learning paths',
       'Premium support',
     ],
-    lookup_key: 'price_1RsKEcG7b7Dpici2IKKgOPhH',
+    lookup_key: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY || 'price_pro_yearly',
     popular: true,
   },
 ];
