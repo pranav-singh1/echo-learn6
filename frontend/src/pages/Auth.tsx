@@ -46,13 +46,22 @@ export const Auth: React.FC = () => {
           setError(error.message);
         } else {
           setSuccess('Account created! Please check your email to verify your account.');
+          // Note: For signup, we don't redirect immediately since email verification is required
+          // The redirect will happen when they verify their email and sign in
         }
       } else {
         const { error } = await signIn(email, password);
         if (error) {
           setError(error.message);
         } else {
-          navigate('/');
+          // Check if there's a stored redirect destination
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectPath) {
+            sessionStorage.removeItem('redirectAfterLogin');
+            navigate(redirectPath);
+          } else {
+            navigate('/');
+          }
         }
       }
     } catch (err) {

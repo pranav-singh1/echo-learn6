@@ -901,7 +901,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                     </li>
                   </ul>
                   <Button 
-                    onClick={() => navigate('/pricing')}
+                    onClick={() => {
+                      // Store intended destination in case user needs to login
+                      sessionStorage.setItem('redirectAfterLogin', '/pricing');
+                      navigate('/pricing');
+                    }}
                     size="lg"
                     className="w-full bg-white hover:bg-gray-100 text-brand px-6 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
