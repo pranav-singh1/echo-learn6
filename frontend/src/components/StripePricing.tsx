@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Check, Sparkles, Zap } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
+import { Check, Sparkles, Zap, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 interface PricingPlan {
   id: string;
@@ -53,20 +57,49 @@ const pricingPlans: PricingPlan[] = [
 
 export const StripePricing: React.FC = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubscribe = async (plan: PricingPlan) => {
+    // Check if user is authenticated
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
     setIsLoading(plan.id);
     
     try {
+      // Get the current session to include the access token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        alert('Authentication expired. Please log in again.');
+        navigate('/auth');
+        return;
+      }
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           lookup_key: plan.lookup_key,
         }),
       });
+
+      if (!response.ok) {
+        const { error } = await response.json();
+        if (response.status === 401) {
+          alert('Please log in to subscribe to a plan.');
+          navigate('/auth');
+          return;
+        }
+        throw new Error(error || 'Failed to create checkout session');
+      }
 
       const { url, error } = await response.json();
 
@@ -95,6 +128,20 @@ export const StripePricing: React.FC = () => {
         <p className="text-xl text-gray-600 dark:text-gray-400">
           Unlock the full potential of AI-powered learning
         </p>
+        
+        {!user && (
+          <Alert className="mt-6 max-w-2xl mx-auto border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+            <LogIn className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-300">
+              You need to <button 
+                onClick={() => navigate('/auth')} 
+                className="font-semibold underline hover:no-underline"
+              >
+                log in
+              </button> before you can subscribe to a plan.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -153,6 +200,11 @@ export const StripePricing: React.FC = () => {
                   <div className="flex items-center">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processing...
+                  </div>
+                ) : !user ? (
+                  <div className="flex items-center">
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Log in to Subscribe
                   </div>
                 ) : (
                   `Subscribe to ${plan.name}`
