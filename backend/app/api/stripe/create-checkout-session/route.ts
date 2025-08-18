@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, YOUR_DOMAIN } from '../../../../lib/stripe';
+import { createClient } from '@supabase/supabase-js';
 
 async function resolvePriceId(input: string): Promise<string> {
   // If the input looks like a real Stripe price id (alphanumeric only after prefix), use it directly
@@ -32,8 +33,39 @@ async function resolvePriceId(input: string): Promise<string> {
   throw new Error(`Unable to resolve price for key: ${input}`);
 }
 
+// Initialize Supabase client
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : null;
+
 export async function POST(request: NextRequest) {
   try {
+    // Check for authentication
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required. Please log in to subscribe.' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Verify the token with Supabase if available
+    if (supabase) {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user) {
+          return NextResponse.json({ error: 'Invalid authentication token. Please log in again.' }, { status: 401 });
+        }
+      } catch (error) {
+        return NextResponse.json({ error: 'Authentication verification failed. Please log in again.' }, { status: 401 });
+      }
+    } else {
+      // If Supabase is not configured, just check that a token was provided
+      console.warn('Supabase not configured - authentication check limited');
+    }
+
     const { lookup_key, plan } = await request.json();
 
     const key = lookup_key || plan;

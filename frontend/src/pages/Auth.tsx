@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Label } from '../components/ui/label';
-import { Brain, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Brain, Mail, Lock, User, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Auth: React.FC = () => {
@@ -62,16 +62,7 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setEmail('demo@echolearn.com');
-    setPassword('demo123456');
-    setIsSignUp(false);
-    
-    // Auto-submit after a short delay
-    setTimeout(() => {
-      handleSubmit(new Event('submit') as any);
-    }, 100);
-  };
+
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +106,17 @@ export const Auth: React.FC = () => {
   return (
     <div className="h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Back to Landing Page Button */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -126,7 +128,7 @@ export const Auth: React.FC = () => {
             </h1>
           </div>
           <p className="text-gray-600">
-            {isSignUp ? 'Create your account to start learning' : 'Welcome back to your learning journey'}
+            {isSignUp ? 'Create your free account to start learning with AI' : 'Welcome back to your learning journey'}
           </p>
         </div>
 
@@ -138,7 +140,7 @@ export const Auth: React.FC = () => {
             </CardTitle>
             <CardDescription>
               {isSignUp 
-                ? 'Join thousands of learners using AI-powered conversations'
+                ? 'Start with our free plan - no credit card required'
                 : 'Continue your personalized learning experience'
               }
             </CardDescription>
@@ -198,16 +200,7 @@ export const Auth: React.FC = () => {
                       </Button>
                     </form>
 
-                    <div className="mt-4 space-y-2">
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleDemoLogin}
-                        disabled={isSubmitting}
-                      >
-                        Try Demo Account
-                      </Button>
-                      
+                    <div className="mt-4">
                       <Button
                         variant="ghost"
                         className="w-full text-sm text-gray-600 hover:text-blue-600"
