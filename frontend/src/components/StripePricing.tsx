@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
-import { Check, Sparkles, Zap, LogIn } from 'lucide-react';
+import { Check, Sparkles, Zap, LogIn, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -60,9 +60,16 @@ export const StripePricing: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Scroll to top when component mounts (for users redirected after login)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const handleSubscribe = async (plan: PricingPlan) => {
     // Check if user is authenticated
     if (!user) {
+      // Store the intended destination (pricing page) for redirect after login
+      sessionStorage.setItem('redirectAfterLogin', '/pricing');
       navigate('/auth');
       return;
     }
@@ -121,6 +128,18 @@ export const StripePricing: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
+      {/* Back to Home Button */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Button>
+      </div>
+      
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Choose Your EchoLearn Plan
