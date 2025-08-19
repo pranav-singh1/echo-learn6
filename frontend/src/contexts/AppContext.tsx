@@ -104,6 +104,9 @@ interface AppContextType {
   checkFeatureAccess: (feature: string) => Promise<boolean>;
   incrementFeatureUsage: (feature: string) => Promise<void>;
   loadUserPlan: () => Promise<void>;
+  
+  // App initialization
+  isInitialized: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1347,6 +1350,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     checkFeatureAccess,
     incrementFeatureUsage,
     loadUserPlan,
+    
+    // App initialization
+    isInitialized,
   };
 
   return (

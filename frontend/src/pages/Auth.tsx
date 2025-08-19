@@ -60,6 +60,8 @@ export const Auth: React.FC = () => {
             sessionStorage.removeItem('redirectAfterLogin');
             navigate(redirectPath);
           } else {
+            // Set flag to indicate user just logged in and should see app interface
+            sessionStorage.setItem('justLoggedIn', 'true');
             navigate('/');
           }
         }
@@ -113,14 +115,14 @@ export const Auth: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex items-center justify-center p-4">
+    <div className="h-screen bg-white text-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to Landing Page Button */}
         <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium"
+            className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium bg-transparent border-0"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
@@ -142,7 +144,7 @@ export const Auth: React.FC = () => {
         </div>
 
         {/* Auth Card */}
-        <Card className="shadow-2xl border border-border bg-white/90 dark:bg-background/90">
+        <Card className="shadow-2xl border border-gray-200 bg-white text-gray-900">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
               {isSignUp ? 'Create Account' : 'Sign In'}
@@ -156,9 +158,9 @@ export const Auth: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(value) => setIsSignUp(value === 'signup')}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 text-gray-900">
+                <TabsTrigger value="signin" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">Sign Up</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin">
@@ -175,7 +177,7 @@ export const Auth: React.FC = () => {
                             placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 bg-white border-gray-300 text-gray-900"
                             required
                           />
                         </div>
@@ -191,13 +193,13 @@ export const Auth: React.FC = () => {
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 bg-white border-gray-300 text-gray-900"
                             required
                           />
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0" disabled={isSubmitting}>
                         {isSubmitting ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -212,7 +214,7 @@ export const Auth: React.FC = () => {
                     <div className="mt-4">
                       <Button
                         variant="ghost"
-                        className="w-full text-sm text-gray-600 hover:text-blue-600"
+                        className="w-full text-sm text-gray-600 hover:text-blue-600 bg-transparent border-0"
                         onClick={() => setIsForgotPassword(true)}
                         disabled={isSubmitting}
                       >
@@ -240,13 +242,13 @@ export const Auth: React.FC = () => {
                             placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 bg-white border-gray-300 text-gray-900"
                             required
                           />
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0" disabled={isSubmitting}>
                         {isSubmitting ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -260,7 +262,7 @@ export const Auth: React.FC = () => {
 
                     <Button
                       variant="ghost"
-                      className="w-full text-sm text-gray-600 hover:text-blue-600"
+                      className="w-full text-sm text-gray-600 hover:text-blue-600 bg-transparent border-0"
                       onClick={() => setIsForgotPassword(false)}
                       disabled={isSubmitting}
                     >
@@ -282,7 +284,7 @@ export const Auth: React.FC = () => {
                         placeholder="Enter your full name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 bg-white border-gray-300 text-gray-900"
                         required
                       />
                     </div>
@@ -298,7 +300,7 @@ export const Auth: React.FC = () => {
                         placeholder="Enter your email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 bg-white border-gray-300 text-gray-900"
                         required
                       />
                     </div>
@@ -314,7 +316,7 @@ export const Auth: React.FC = () => {
                         placeholder="Create a password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 bg-white border-gray-300 text-gray-900"
                         required
                       />
                     </div>
@@ -330,13 +332,13 @@ export const Auth: React.FC = () => {
                         placeholder="Confirm your password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 bg-white border-gray-300 text-gray-900"
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -352,15 +354,15 @@ export const Auth: React.FC = () => {
 
             {/* Error/Success Messages */}
             {error && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+              <Alert variant="destructive" className="mt-4 bg-red-50 border-red-200 text-red-800">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
-              <Alert className="mt-4">
-                <AlertDescription>{success}</AlertDescription>
+              <Alert className="mt-4 bg-green-50 border-green-200 text-green-800">
+                <AlertDescription className="text-green-800">{success}</AlertDescription>
               </Alert>
             )}
           </CardContent>

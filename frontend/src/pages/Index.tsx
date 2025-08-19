@@ -24,18 +24,19 @@ import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
 
 export const Index: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { signOut, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   
   // Only use app context when user is authenticated
   const appContext = user ? useAppContext() : null;
-  const { activePanel, setActivePanel, startFreshConversation, streamingEnabled, setStreamingEnabled } = appContext || {
+  const { activePanel, setActivePanel, startFreshConversation, streamingEnabled, setStreamingEnabled, isInitialized } = appContext || {
     activePanel: null,
     setActivePanel: () => {},
     startFreshConversation: () => {},
     streamingEnabled: true,
-    setStreamingEnabled: () => {}
+    setStreamingEnabled: () => {},
+    isInitialized: false
   };
   
   const [showConversation, setShowConversation] = useState(false);
@@ -71,6 +72,43 @@ export const Index: React.FC = () => {
     }
   }, [user]);
 
+  // Handle immediate login state (runs as soon as auth loads)
+  useEffect(() => {
+    // Handle justLoggedIn immediately when auth loads
+    if (!loading && user && typeof window !== 'undefined') {
+      const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+      if (justLoggedIn) {
+        sessionStorage.removeItem('justLoggedIn');
+        setShowConversation(true);
+        return; // Exit early to prevent further processing
+      }
+    }
+    
+    // Handle unauthenticated users
+    if (!loading && !user) {
+      setShowConversation(false);
+    }
+  }, [user, loading]);
+
+  // Handle normal state restoration (runs after app is initialized)
+  useEffect(() => {
+    // Only restore saved state after app is initialized and if user didn't just log in
+    if (isInitialized && user && typeof window !== 'undefined') {
+      const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+      
+      // Don't override if user just logged in
+      if (!justLoggedIn) {
+        const saved = localStorage.getItem('showConversation');
+        const shouldShowConversation = saved ? saved === 'true' : false;
+        
+        // Only update if different to avoid unnecessary re-renders
+        if (showConversation !== shouldShowConversation) {
+          setShowConversation(shouldShowConversation);
+        }
+      }
+    }
+  }, [isInitialized, user]); // Note: showConversation is intentionally NOT in deps to avoid loops
+
   // Handle ESC key to close modals
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -92,10 +130,11 @@ export const Index: React.FC = () => {
   }, [showProfileModal, showSettingsModal, showHelp]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    // Only save to localStorage after the app is initialized to prevent overwriting during initialization
+    if (typeof window !== 'undefined' && isInitialized) {
       localStorage.setItem('showConversation', showConversation ? 'true' : 'false');
     }
-  }, [showConversation]);
+  }, [showConversation, isInitialized]);
 
   // Persist typewriter speed setting
   useEffect(() => {
@@ -203,6 +242,23 @@ export const Index: React.FC = () => {
   const handleCloseHelp = () => {
     setShowHelp(false);
   };
+
+  // Show loading state while authentication is being resolved or app is initializing
+  // Also show loading if we're waiting to restore state that might be the app interface
+  const shouldShowLoading = loading || 
+    (user && showConversation && !isInitialized) ||
+    (user && !isInitialized && typeof window !== 'undefined' && localStorage.getItem('showConversation') === 'true');
+    
+  if (shouldShowLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show landing page for unauthenticated users OR when showConversation is false
   if (!user || !showConversation) {
