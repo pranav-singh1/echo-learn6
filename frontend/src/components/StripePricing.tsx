@@ -127,13 +127,15 @@ export const StripePricing: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-white">
+      {/* Force light mode for pricing page */}
+      <div className="max-w-6xl mx-auto px-4 py-12">
       {/* Back to Home Button */}
       <div className="mb-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium"
+          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 p-2 -ml-2 font-medium bg-transparent border-0"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
@@ -141,20 +143,20 @@ export const StripePricing: React.FC = () => {
       </div>
       
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
           Choose Your EchoLearn Plan
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">
+        <p className="text-xl text-gray-600">
           Unlock the full potential of AI-powered learning
         </p>
         
         {!user && (
-          <Alert className="mt-6 max-w-2xl mx-auto border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
-            <LogIn className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-amber-800 dark:text-amber-300">
+          <Alert className="mt-6 max-w-2xl mx-auto border-amber-200 bg-amber-50 text-amber-800">
+            <LogIn className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
               You need to <button 
                 onClick={() => navigate('/auth')} 
-                className="font-semibold underline hover:no-underline"
+                className="font-semibold underline hover:no-underline text-amber-900"
               >
                 log in
               </button> before you can subscribe to a plan.
@@ -167,10 +169,10 @@ export const StripePricing: React.FC = () => {
         {pricingPlans.map((plan) => (
           <Card 
             key={plan.id} 
-            className={`relative ${
+            className={`relative bg-white text-gray-900 ${
               plan.popular 
                 ? 'border-2 border-blue-500 shadow-lg scale-105' 
-                : 'border border-gray-200 dark:border-gray-700'
+                : 'border border-gray-200'
             }`}
           >
             {plan.popular && (
@@ -180,18 +182,18 @@ export const StripePricing: React.FC = () => {
             )}
             
             <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+              <CardTitle className="text-2xl font-bold text-gray-900">
                 {plan.name}
               </CardTitle>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                <span className="text-4xl font-bold text-gray-900">
                   {plan.price}
                 </span>
-                <span className="text-gray-600 dark:text-gray-400 ml-2">
+                <span className="text-gray-600 ml-2">
                   {plan.period}
                 </span>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-gray-600 mt-2">
                 {plan.description}
               </p>
             </CardHeader>
@@ -201,7 +203,7 @@ export const StripePricing: React.FC = () => {
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-                    <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                    <span className="text-gray-700">{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -211,8 +213,8 @@ export const StripePricing: React.FC = () => {
                 disabled={isLoading === plan.id}
                 className={`w-full py-3 text-lg font-semibold ${
                   plan.popular
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white border-0'
+                    : 'bg-gray-900 hover:bg-gray-800 text-white border-0'
                 }`}
               >
                 {isLoading === plan.id ? (
@@ -235,9 +237,10 @@ export const StripePricing: React.FC = () => {
       </div>
 
       <div className="text-center mt-12">
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
+        <p className="text-gray-600 text-sm">
           Secure payment powered by Stripe. Cancel anytime.
         </p>
+      </div>
       </div>
     </div>
   );
