@@ -10,7 +10,11 @@ if (!stripeSecretKey) {
 export const stripe = new Stripe(stripeSecretKey);
 
 // Your domain for redirects
-export const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://app.echolearn.ai';
+// In development, use localhost; in production, use the configured domain
+const isDevelopment = process.env.NODE_ENV === 'development';
+export const YOUR_DOMAIN = isDevelopment 
+  ? 'http://localhost:8080' 
+  : (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://app.echolearn.ai');
 
 // Price lookup keys - replace with your actual Stripe price lookup keys
 export const PRICE_LOOKUP_KEYS = {
