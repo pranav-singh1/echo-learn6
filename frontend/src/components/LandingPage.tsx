@@ -35,9 +35,7 @@ import {
   CheckCircle as CheckIcon,
   Star as StarIcon,
   Quotes,
-  Phone as PhoneIcon,
-  Envelope,
-  Chat
+  Envelope
 } from 'phosphor-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -727,13 +725,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             </Badge>
             <h2 className="text-5xl font-bold text-neutral">Contact Us</h2>
             <p className="text-xl text-neutral/70 max-w-2xl mx-auto">
-              Have questions? We'd love to hear from you. Reach out using any of the methods below.
+              Have questions? We'd love to hear from you. Send us an email and we'll get back to you promptly.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="flex justify-center max-w-md mx-auto">
             {/* Email Contact */}
-            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 w-full">
               <CardContent className="p-8 text-center space-y-4">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-brand to-brand-dark rounded-2xl flex items-center justify-center">
                   <Envelope size={32} weight="duotone" className="text-white" />
@@ -751,38 +749,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
               </CardContent>
             </Card>
 
-            {/* Live Chat */}
-            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-              <CardContent className="p-8 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-brand-dark to-purple-600 rounded-2xl flex items-center justify-center">
-                  <Chat size={32} weight="duotone" className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-neutral mb-2">Live Chat</h3>
-                  <p className="text-neutral/60 mb-4">Chat with our support team</p>
-                  <p className="text-brand font-medium">Available 24/7</p>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Phone Support */}
-            <Card className="bg-glass-white backdrop-blur-md border-brand/20 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-              <CardContent className="p-8 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-brand rounded-2xl flex items-center justify-center">
-                  <PhoneIcon size={32} weight="duotone" className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-neutral mb-2">Phone Support</h3>
-                  <p className="text-neutral/60 mb-4">Call us directly</p>
-                  <a 
-                    href="tel:925-791-1047" 
-                    className="text-brand hover:text-brand-dark font-medium transition-colors"
-                  >
-                    925-791-1047
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -834,19 +801,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <ul className="space-y-2">
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand" />
-                      <span className="text-neutral">10 conversations/day</span>
+                      <span className="text-neutral">50 voice minutes/month</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand" />
-                      <span className="text-neutral">Basic quizzes</span>
+                      <span className="text-neutral">300 chat messages/month</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand" />
-                      <span className="text-neutral">Community support</span>
+                      <span className="text-neutral">3 quizzes/day</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <CheckIcon className="w-5 h-5 text-brand" />
+                      <span className="text-neutral">All learning modes</span>
                     </li>
                   </ul>
                   <Button 
-                    onClick={() => navigate('/auth')}
+                    onClick={() => {
+                      if (user) {
+                        onStartConversation();
+                      } else {
+                        navigate('/auth');
+                      }
+                    }}
                     size="lg"
                     className="w-full bg-brand hover:bg-brand-dark text-white px-6 py-3 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
@@ -881,15 +858,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
                   <ul className="space-y-2">
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand-lite" />
-                      <span>Unlimited conversations</span>
+                      <span>150 voice minutes/month</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand-lite" />
-                      <span>60 voice minutes/month</span>
+                      <span>900 chat messages/month</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand-lite" />
-                      <span>Advanced quizzes</span>
+                      <span>10 quizzes/day</span>
                     </li>
                     <li className="flex items-center space-x-2">
                       <CheckIcon className="w-5 h-5 text-brand-lite" />

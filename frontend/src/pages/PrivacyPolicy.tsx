@@ -2,7 +2,6 @@ import React from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { ArrowLeft, Shield, Lock, Eye, Database } from 'lucide-react';
-import { Sparkle } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PrivacyPolicy: React.FC = () => {
@@ -24,9 +23,6 @@ export const PrivacyPolicy: React.FC = () => {
             </Button>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkle size={24} weight="duotone" className="text-white" />
-            </div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               EchoLearn
             </h1>
@@ -182,7 +178,6 @@ export const PrivacyPolicy: React.FC = () => {
                   </p>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg">
                     <p className="font-medium">Email: tryecholearn@gmail.com</p>
-                    <p className="font-medium mt-2">Phone: 925-791-1047</p>
                     <p className="text-sm text-gray-600 mt-2">
                       We will respond to privacy-related inquiries within 48 hours. For general inquiries, please allow up to 72 hours for a response.
                     </p>
