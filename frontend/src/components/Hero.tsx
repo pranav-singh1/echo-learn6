@@ -2,6 +2,7 @@
 import React from 'react';
 import { Mic, Sparkles, MessageCircle, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
 import RotatingText from './RotatingText';
 
 interface HeroProps {
@@ -22,10 +23,11 @@ const Hero: React.FC<HeroProps> = ({ onStartSpeaking }) => {
       <div className="max-w-4xl mx-auto text-center">
         {/* Logo/Brand */}
         <div className="flex items-center justify-center mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-3 mr-3">
-            <Brain className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">EchoLearn</h1>
+          <img
+            src="/logo-black.png"
+            alt="EchoLearn Logo"
+            className="h-12 w-auto"
+          />
         </div>
 
         {/* Main Tagline with Rotating Text */}

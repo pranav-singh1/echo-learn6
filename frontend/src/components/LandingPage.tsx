@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+
 import { 
   ArrowRight, 
   Play, 
@@ -153,10 +154,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
           <nav className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-brand to-brand-dark rounded-xl flex items-center justify-center shadow-lg">
-                <Sparkle size={24} weight="duotone" className="text-white" />
-              </div>
-              <span className="text-2xl font-bold text-neutral tracking-tight">EchoLearn</span>
+              <img
+                src="/logo-black.png"
+                alt="EchoLearn Logo"
+                className="h-20 w-auto"
+              />
             </div>
 
             {/* Desktop Navigation Links */}
@@ -910,10 +912,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartConversation })
             {/* Logo & Description */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-brand to-brand-dark rounded-lg flex items-center justify-center">
-                  <Sparkle size={20} weight="duotone" className="text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">EchoLearn</span>
+                <img
+                  src="/logo-white.png"
+                  alt="EchoLearn Logo"
+                  className="h-12 w-auto"
+                />
               </div>
               <p className="text-white/70 text-sm leading-relaxed">
                 Transform your learning experience with AI-powered conversations and personalized assessments.

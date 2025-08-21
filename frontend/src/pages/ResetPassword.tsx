@@ -9,6 +9,7 @@ import { Brain, Lock, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+
 export const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,12 +144,11 @@ export const ResetPassword: React.FC = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mr-3">
-                <Brain className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                EchoLearn
-              </h1>
+              <img
+                src="/logo-black.png"
+                alt="EchoLearn Logo"
+                className="h-12 w-auto"
+              />
             </div>
           </div>
           <Card className="shadow-2xl border border-border bg-white/90 dark:bg-background/90">
@@ -179,12 +179,11 @@ export const ResetPassword: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mr-3">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              EchoLearn
-            </h1>
+            <img
+              src="/logo-black.png"
+              alt="EchoLearn Logo"
+              className="h-12 w-auto"
+            />
           </div>
           <p className="text-gray-600">Reset your password</p>
         </div>
