@@ -1063,7 +1063,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Add feedback message to conversation using conversation service
       const feedbackMessage = {
         speaker: 'ai' as const,
-        text: `Great job on your blurt! Here's my analysis:\n\nWhat you know well:\n${feedback.knowledgeStrengths.join('\n')}\n\nAreas to improve:\n${feedback.knowledgeGaps.join('\n')}\n\nSuggestions:\n${feedback.suggestions.join('\n')}\n\nOverall: ${feedback.overallScore}\n\n${feedback.encouragement}\n\nLet's continue learning together! What would you like to focus on first?`,
+        text: `Great job on your blurt! Here's my analysis:\n\nWhat you know well:\n${feedback.knowledgeStrengths.join('\n')}\n\nAreas to improve:\n${feedback.knowledgeGaps.join('\n')}\n\nSuggestions:\n${feedback.suggestions.join('\n')}\n\n${feedback.encouragement}\n\nLet's continue learning together! What would you like to focus on first?`,
         timestamp: new Date().toLocaleTimeString(),
         messageId: `msg_${Date.now()}_${Math.random()}`
       };
