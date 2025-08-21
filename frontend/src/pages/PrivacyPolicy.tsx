@@ -38,9 +38,6 @@ export const PrivacyPolicy: React.FC = () => {
           <Card className="shadow-2xl border border-border bg-white/90">
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold">Privacy Policy</CardTitle>
-              <CardDescription className="text-lg">
-                Last updated: {new Date().toLocaleDateString()}
-              </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-lg max-w-none">
               <div className="space-y-6 text-gray-700">
