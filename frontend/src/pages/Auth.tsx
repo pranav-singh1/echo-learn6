@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Brain, Mail, Lock, User, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+
 export const Auth: React.FC = () => {
   const { signIn, signUp, resetPassword, loading } = useAuth();
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ export const Auth: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-white text-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white text-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to Landing Page Button */}
         <div className="mb-6">
@@ -131,12 +132,11 @@ export const Auth: React.FC = () => {
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mr-3">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              EchoLearn
-            </h1>
+            <img
+              src="/logo-black.png"
+              alt="EchoLearn Logo"
+              className="h-16 w-auto"
+            />
           </div>
           <p className="text-gray-600">
             {isSignUp ? 'Create your free account to start learning with AI' : 'Welcome back to your learning journey'}
@@ -214,7 +214,7 @@ export const Auth: React.FC = () => {
                     <div className="mt-4">
                       <Button
                         variant="ghost"
-                        className="w-full text-sm text-gray-600 hover:text-blue-600 bg-transparent border-0"
+                        className="w-full text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-200 bg-transparent border-0"
                         onClick={() => setIsForgotPassword(true)}
                         disabled={isSubmitting}
                       >

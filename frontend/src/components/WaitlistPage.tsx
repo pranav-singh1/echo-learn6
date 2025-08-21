@@ -16,7 +16,7 @@ import {
   Users,
   MessageCircle
 } from 'lucide-react';
-import Logo from './Logo';
+
 
 export const WaitlistPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -69,7 +69,11 @@ export const WaitlistPage: React.FC = () => {
         <header className="container mx-auto px-6 py-8">
           <nav className="flex items-center justify-center">
             <div className="flex items-center space-x-3 group">
-              <Logo className="h-12 w-auto group-hover:scale-105 transition-transform duration-200" />
+              <img
+                src="/logo-black.png"
+                alt="EchoLearn Logo"
+                className="h-12 w-auto group-hover:scale-105 transition-transform duration-200"
+              />
             </div>
           </nav>
         </header>
