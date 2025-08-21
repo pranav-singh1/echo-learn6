@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     strictPort: true, // This will fail if port 8080 is already in use
+    https: false, // Explicitly disable HTTPS in development
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

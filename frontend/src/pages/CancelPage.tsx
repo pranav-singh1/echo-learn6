@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -7,8 +7,20 @@ import { useNavigate } from 'react-router-dom';
 export const CancelPage: React.FC = () => {
   const navigate = useNavigate();
 
+  // Force light mode by removing dark class and adding light class to document
+  useEffect(() => {
+    const originalClass = document.documentElement.className;
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    
+    // Cleanup: restore original classes when component unmounts
+    return () => {
+      document.documentElement.className = originalClass;
+    };
+  }, []);
+
   return (
-    <div className="light min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center p-4">
       <Card className="max-w-md w-full shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
