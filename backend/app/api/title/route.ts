@@ -6,14 +6,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are an assistant that generates concise conversation titles based on the initial messages.
-Create a short, descriptive title (2-5 words) that captures the main topic or question.
+const SYSTEM_PROMPT = `You are an assistant that generates short, descriptive titles for educational conversations.
+Create a 2-3 word title that captures the main learning topic.
 Examples:
-- "Python Programming Basics"
-- "Math Homework Help"
-- "Biology Study Guide"
-- "History Essay Tips"
-- "Science Project Ideas"
+- "Calculus Basics"
+- "Physics Help"  
+- "Biology Review"
+- "Math Problems"
+- "Science Concepts"
 
 Respond with ONLY the title text, no quotes or additional formatting.`;
 

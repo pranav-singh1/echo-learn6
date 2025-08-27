@@ -1,6 +1,6 @@
 // Supabase-based conversation storage and management system
 import { supabase } from './supabase';
-import { ConversationMessage } from '../components/VapiConversation';
+import { ConversationMessage } from '../components/RetellConversation';
 
 export interface ConversationSession {
   id: string;
@@ -258,20 +258,7 @@ class SupabaseConversationStorageService {
         return;
       }
 
-      // Check if this is an update to an existing message (same messageId)
-      const existingMessageIndex = session.messages.findIndex(m => m.messageId === message.messageId);
-      
-      let updatedMessages;
-      if (existingMessageIndex !== -1) {
-        // UPDATE existing message
-        updatedMessages = [...session.messages];
-        updatedMessages[existingMessageIndex] = message;
-        console.log(`STORAGE: Updating existing message ${message.messageId}`);
-      } else {
-        // NEW message
-        updatedMessages = [...session.messages, message];
-        console.log(`STORAGE: Adding new message ${message.messageId}`);
-      }
+      const updatedMessages = [...session.messages, message];
       
       // Auto-generate title from first user message if it's still default
       let updatedTitle = session.title;

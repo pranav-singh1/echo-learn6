@@ -98,9 +98,15 @@ export const ConversationHistory: React.FC<ConversationHistoryProps> = ({ onHide
     return 'No messages yet';
   };
 
-  // Get message count
+  // Get message count (exclude system messages like "Conversation ended")
   const getMessageCount = (session: any) => {
-    return session.messages.length;
+    const filteredMessages = session.messages.filter((msg: any) => msg.speaker !== 'system');
+    console.log('MESSAGE COUNT DEBUG:', {
+      totalMessages: session.messages.length,
+      filteredMessages: filteredMessages.length,
+      allMessages: session.messages.map((m: any) => ({ speaker: m.speaker, text: m.text?.substring(0, 30) }))
+    });
+    return filteredMessages.length;
   };
 
   const handleDeleteSession = async (sessionId: string) => {

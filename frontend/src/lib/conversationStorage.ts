@@ -1,5 +1,5 @@
 // Conversation storage and management system
-import { ConversationMessage } from '../components/RetellConversation';
+import { ConversationMessage } from '../components/VapiConversation';
 
 export interface ConversationSession {
   id: string;

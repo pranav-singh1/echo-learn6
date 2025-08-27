@@ -26,10 +26,17 @@ export const Sidebar: React.FC = () => {
 
 
 
-  // Calculate conversation stats
+  // Calculate conversation stats - subtract 1 to fix the extra count
+  const totalMessages = Math.max(0, messages.length - 1);
   const userMessages = messages.filter(m => m.speaker === 'user').length;
   const aiMessages = messages.filter(m => m.speaker === 'ai').length;
-  const totalMessages = messages.length;
+  
+  console.log('SIDEBAR MESSAGE COUNT DEBUG:', {
+    totalMessages,
+    userMessages,
+    aiMessages,
+    allMessages: messages.map(m => ({ speaker: m.speaker, text: m.text?.substring(0, 30) }))
+  });
   const conversationDuration = messages.length > 0 
     ? Math.round((new Date().getTime() - new Date(messages[0].timestamp).getTime()) / 60000)
     : 0;
