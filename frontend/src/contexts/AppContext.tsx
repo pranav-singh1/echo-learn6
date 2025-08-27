@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { conversationService, ConversationState } from '../lib/conversation';
 import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
-import { RetellConversation, ConversationMessage } from '../components/RetellConversation';
+import { VapiConversation, ConversationMessage } from '../components/VapiConversation';
 import { useAuth } from './AuthContext';
 import { SubscriptionService } from '../lib/subscription';
 
@@ -266,27 +266,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscribe to conversation service events
   useEffect(() => {
     const unsubscribeMessages = conversationService.onMessage(async (message) => {
-      // Enable typewriter for AI messages in all modes except voice chat transcripts
-      // Voice chat transcripts are marked with isTranscriptMessage: true
-      const shouldTypewriter = streamingEnabled && 
-        message.speaker === 'ai' && 
-        !message.isTranscriptMessage;
-      
-      setMessages(prev => [...prev, { ...message, shouldTypewriter }]);
+      // Disable typewriter completely to prevent any potential issues
+      const shouldTypewriter = false;
+
+      // NEW BUFFER APPROACH: Handle live message updates by messageId
+      setMessages(prev => {
+        // Check if this is an update to an existing message (same messageId)
+        const existingIndex = prev.findIndex(m => m.messageId === message.messageId);
+        
+        if (existingIndex !== -1) {
+          // UPDATE existing message
+          const updatedMessages = [...prev];
+          updatedMessages[existingIndex] = { ...message, shouldTypewriter };
+          console.log(`UPDATED message: "${message.text}" from ${message.speaker}`);
+          return updatedMessages;
+        } else {
+          // NEW message
+          console.log(`NEW message: "${message.text}" from ${message.speaker}`);
+          return [...prev, { ...message, shouldTypewriter }];
+        }
+      });
       
       // Save message to Supabase storage with session ID
       if (activeSession) {
         await supabaseConversationStorage.addMessage(message, activeSession.id);
         
-        // Auto-generate title after first AI response if session has default title
-        if (message.speaker === 'ai' && 
-            activeSession.title === 'New Conversation' && 
-            messages.length >= 1) { // Ensure we have at least user message + this AI response
-          // Small delay to ensure message is saved first
-          setTimeout(() => {
-            generateConversationTitle();
-          }, 1000);
-        }
+        // COMPLETELY DISABLED: No auto-title generation during message handling
+        // Titles will ONLY be generated at conversation end for voice conversations
+        // or manually triggered for text conversations
+        console.log('Auto-title generation COMPLETELY DISABLED during message handling to prevent spam');
       } else if (!activeSession) {
         // No active session yet, message will be saved once session is created
       }
@@ -297,9 +305,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setIsConnected(state.isConnected);
         
         // If connection is lost and we were in a voice session, handle conversation end
-        // BUT only if we're not already manually stopping (to prevent duplicate messages)
         if (state.isConnected === false && isVoiceSessionActive && !isManuallyStoppingConversation) {
+          console.log('CONVERSATION DEBUG: Auto-ending conversation due to connection loss');
           handleConversationEnd(false); // Agent-initiated stop
+        } else if (state.isConnected === false && isManuallyStoppingConversation) {
+          console.log('CONVERSATION DEBUG: Skipping auto-end because manual stop is in progress');
         }
       }
       
@@ -327,24 +337,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     setVoiceSessionTranscript(voiceMessages);
     
-    // For agent-initiated stops, we need to manually add the "Conversation ended" message
-    // since the conversationService.stopConversation() is not called in this case
-    if (!isManualStop) {
-      // Check if a "Conversation ended" message already exists to prevent duplicates
-      const hasConversationEndedMessage = messages.some(msg => 
-        msg.speaker === 'system' && msg.text === 'Conversation ended'
-      );
-      
-      if (!hasConversationEndedMessage) {
-        conversationService.addMessage({
-          speaker: 'system',
-          text: 'Conversation ended',
-          timestamp: new Date().toLocaleTimeString(),
-          messageId: `msg_${Date.now()}_${Math.random()}`
-        });
-      }
+    // Add single "Conversation ended" message for both manual and agent stops
+    // Check if a "Conversation ended" message already exists to prevent duplicates
+    const hasConversationEndedMessage = messages.some(msg => 
+      msg.speaker === 'system' && msg.text === 'Conversation ended'
+    );
+    
+    console.log('🔍 CONVERSATION DEBUG: Checking for existing "Conversation ended" message');
+    console.log('🔍 CONVERSATION DEBUG: Has ended message?', hasConversationEndedMessage);
+    console.log('🔍 CONVERSATION DEBUG: Current messages count:', messages.length);
+    console.log('🔍 CONVERSATION DEBUG: Current messages:', messages.map(m => `${m.speaker}: ${m.text.substring(0, 50)}...`));
+    console.log('🔍 CONVERSATION DEBUG: Manual stop?', isManualStop);
+    
+    if (!hasConversationEndedMessage) {
+      console.log('CONVERSATION DEBUG: Adding "Conversation ended" message');
+      conversationService.addMessage({
+        speaker: 'system',
+        text: 'Conversation ended',
+        timestamp: new Date().toLocaleTimeString(),
+        messageId: `conversation_ended_${Date.now()}`
+      });
+    } else {
+      console.log('CONVERSATION DEBUG: Skipping "Conversation ended" - already exists');
     }
-    // For manual stops, the "Conversation ended" message is already added by conversationService.stopConversation()
   };
 
   // Handle transcript completion from voice conversation
@@ -352,29 +367,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!activeSession) return;
     
     try {
-      console.log('Handling transcript completion with', transcriptMessages.length, 'messages');
+      console.log('Handling transcript completion with', transcriptMessages.length, 'raw messages');
       
-      // Mark all transcript messages with isTranscriptMessage: true and disable typewriter
+      // DON'T replace the UI messages - they're already nicely grouped!
+      // Just save the raw transcript messages to session for quiz generation
       const markedTranscriptMessages = transcriptMessages.map(m => ({ 
         ...m, 
         isTranscriptMessage: true,
         shouldTypewriter: false 
       }));
       
-      // Replace existing messages with transcript messages
-      setMessages(markedTranscriptMessages);
-      
-      // Clear conversation service and set the transcript messages
-      conversationService.clearMessages();
-      conversationService.setSessionMessages(markedTranscriptMessages);
-      
-      // Update the session with the new transcript messages
-      // This replaces all existing messages with the transcript messages
+      // Update the session with transcript messages for quiz generation
+      // but keep the grouped UI messages intact
       await supabaseConversationStorage.updateSession(activeSession.id, {
-        messages: markedTranscriptMessages
+        messages: markedTranscriptMessages  // Raw transcript for quiz
       });
       
-      console.log('Transcript messages saved to session:', activeSession.id);
+      console.log('Raw transcript saved to session for quiz generation:', activeSession.id);
+      console.log('UI messages remain nicely grouped');
     } catch (error) {
       console.error('Error handling transcript completion:', error);
     }
@@ -394,6 +404,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Clear conversation service messages to ensure fresh start
       conversationService.clearMessages();
+      
+      // Reset title generation flag
+      titleGeneratedRef.current = false;
       
       // Create new session with current learning mode
       const newSession = await supabaseConversationStorage.createSession(undefined, learningMode);
@@ -495,6 +508,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (session) {
         console.log('Session switched successfully:', session.id);
         
+        // Reset title generation flag for new session
+        titleGeneratedRef.current = false;
+        
         // Set all session data
         setActiveSession(session);
         setMessages(session.messages.map(m => ({ ...m, shouldTypewriter: false })));
@@ -579,9 +595,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // Clear conversation service and initialize with empty messages
         conversationService.clearMessages();
         
-        // Reload all sessions to include the new one
-        const updatedStorage = await supabaseConversationStorage.getConversations();
-        setAllSessions(updatedStorage.sessions);
+        // Reload all sessions to include the new one (but don't await this)
+        supabaseConversationStorage.getConversations().then(updatedStorage => {
+          setAllSessions(updatedStorage.sessions);
+        }).catch(error => {
+          console.error('Error reloading sessions:', error);
+        });
       } else {
         // Set current session messages in conversation service
         conversationService.setSessionMessages(messages);
@@ -593,7 +612,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setHasSentFirstTextAfterVoice(false);
       setVoiceSessionTranscript('');
       
+      // Start the actual voice conversation
       await conversationService.startConversation();
+      
     } catch (error) {
       console.error('Failed to start conversation:', error);
       setConversationError(error instanceof Error ? error.message : 'Failed to start conversation');
@@ -614,6 +635,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Handle the conversation end with manual stop flag
       // This will add the "Conversation ended" message if needed
+      console.log('CONVERSATION DEBUG: Manual stop - calling handleConversationEnd');
       handleConversationEnd(true);
       
     } catch (error) {
@@ -929,57 +951,67 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Generate conversation title from transcript (for voice conversations)
-  const generateConversationTitleFromTranscript = async (transcript: string) => {
+  // Flag to prevent multiple title generation calls
+  const titleGeneratedRef = useRef(false);
+
+  // Simple title generation for voice conversations
+  const generateConversationTitleFromTranscript = async () => {
+    console.log('TITLE: Generating title after voice conversation');
+    
     if (!activeSession) {
-      console.log('No active session for title generation');
+      console.log('TITLE: No active session');
       return;
     }
     
+    // Prevent multiple calls for the same session
+    if (titleGeneratedRef.current) {
+      console.log('TITLE: Already generated for this session');
+      return;
+    }
+    
+    // Get conversation messages (exclude system messages)
+    const conversationMessages = messages.filter(msg => msg.speaker !== 'system');
+    
+    if (conversationMessages.length < 2) {
+      console.log('TITLE: Not enough messages for title generation');
+      return;
+    }
+    
+    // Skip if already has a custom title
+    if (activeSession.title !== 'New Conversation') {
+      console.log('TITLE: Session already has title:', activeSession.title);
+      return;
+    }
+    
+    // Set flag to prevent duplicate calls
+    titleGeneratedRef.current = true;
+    
     try {
-      console.log('Generating title from transcript for session:', activeSession.id);
+      console.log('TITLE: Calling OpenAI API...');
       
-      // Convert transcript to messages format for the title API
-      const lines = transcript.split('\n').filter(line => line.trim());
-      const transcriptMessages = lines.map(line => {
-        const speaker = line.startsWith('EchoLearn:') ? 'ai' : 'user';
-        const text = line.replace(/^(EchoLearn|You):\s*/, '');
-        return {
-          speaker,
-          text: text.trim(),
-          timestamp: new Date().toLocaleTimeString(),
-          messageId: `msg_${Date.now()}_${Math.random()}`
-        };
-      });
-
-      console.log('Converted transcript to', transcriptMessages.length, 'messages');
-
       const response = await fetch('/api/title', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: transcriptMessages }),
+        body: JSON.stringify({ messages: conversationMessages }),
       });
 
       if (!response.ok) {
-        try {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Request failed with status ${response.status}`);
-        } catch (e) {
-            throw new Error(response.statusText || `Request failed with status ${response.status}`);
-        }
+        throw new Error(`Title API failed: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Generated title:', data.title);
+      console.log('TITLE: Generated:', data.title);
       
-      // Update session title
-      if (activeSession && data.title) {
+      // Update the session title
+      if (data.title) {
         await updateSessionTitle(activeSession.id, data.title);
-        console.log('Session title updated successfully');
+        
+        // Refresh sessions list
+        const updatedStorage = await supabaseConversationStorage.getConversations();
+        setAllSessions(updatedStorage.sessions);
       }
     } catch (error) {
-      console.error('Error generating conversation title from transcript:', error);
-      // Don't show error to user for title generation failures
+      console.error('TITLE: Failed to generate title:', error);
     }
   };
 
@@ -1357,13 +1389,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={value}>
-      <RetellConversation
+      <VapiConversation
         onMessage={(message) => conversationService.addMessage(message)}
         onStateChange={(state) => conversationService.updateState(state)}
         onStart={() => {}}
         onStop={() => {}}
         onGenerateTitle={generateConversationTitleFromTranscript}
-        onTranscriptComplete={handleTranscriptComplete}
+        onTranscriptComplete={undefined}
       />
       {children}
     </AppContext.Provider>

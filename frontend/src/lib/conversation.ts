@@ -1,5 +1,5 @@
 // Conversation service using Retell under the hood
-import { ConversationMessage } from '../components/RetellConversation';
+import { ConversationMessage } from '../components/VapiConversation';
 
 export interface ConversationState {
   isConnected: boolean;
@@ -62,15 +62,23 @@ export class ConversationService {
   async startConversation(): Promise<void> {
     try {
       console.log('ConversationService: Starting conversation...');
+      
+      // Check if already starting/connected (now using Vapi)
+      const vapi = (window as any).vapiConversation;
+      if (vapi && vapi.isStarting && vapi.isStarting()) {
+        console.log('Conversation already starting, skipping...');
+        return;
+      }
+      
       this.updateState({ isConnected: false, isListening: true, error: null });
-      // Start the Retell session
-      const retell = (window as any).retellConversation;
-      if (retell && retell.start) {
-        console.log('Starting Retell session...');
-        await retell.start();
-        console.log('Retell session started successfully');
+      
+      // Start the Vapi session
+      if (vapi && vapi.start) {
+        console.log('Starting Vapi session...');
+        await vapi.start();
+        console.log('Vapi session started successfully');
       } else {
-        throw new Error('Retell conversation not initialized');
+        throw new Error('Vapi conversation not initialized. Please refresh the page and try again.');
       }
     } catch (error) {
       console.error('Failed to start conversation:', error);
@@ -86,22 +94,30 @@ export class ConversationService {
   // Stop conversation
   async stopConversation(): Promise<void> {
     try {
-      const retell = (window as any).retellConversation;
-      if (retell && retell.stop) {
-        await retell.stop();
+      console.log('ConversationService: Stopping conversation...');
+      const vapi = (window as any).vapiConversation;
+      if (vapi && vapi.stop) {
+        vapi.stop();
       }
-      this.updateState({ isConnected: false, isListening: false });
+      
+      // Immediately update state to reflect disconnection
+      this.updateState({ isConnected: false, isListening: false, error: null });
+      
+      // DON'T add "Conversation ended" here - AppContext will handle it
+      console.log('ConversationService: Conversation stopped, letting AppContext handle end message');
     } catch (error) {
       console.error('Failed to stop conversation:', error);
-      this.updateState({ isConnected: false, isListening: false });
+      // Still update state even if stop failed
+      this.updateState({ isConnected: false, isListening: false, error: null });
     }
   }
 
   // Mute/unmute
   async toggleMute(): Promise<void> {
-    const retell = (window as any).retellConversation;
-    if (retell && retell.toggleMute) {
-      await retell.toggleMute(!retell.isMuted);
+    const vapi = (window as any).vapiConversation;
+    if (vapi && vapi.toggleMute) {
+      const currentMuted = vapi.isMuted();
+      vapi.toggleMute(!currentMuted);
     }
   }
 

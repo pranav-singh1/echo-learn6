@@ -45,6 +45,10 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
   
   // Ref to track the current transcript synchronously
   const currentTranscriptRef = useRef<string>('');
+  
+  // Prevent multiple simultaneous calls and track initialization
+  const isStartingCallRef = useRef(false);
+  const isInitializedRef = useRef(false);
 
   // Parse a transcript line to extract speaker and text
   const parseTranscriptLine = (line: string): ConversationMessage | null => {
@@ -87,44 +91,50 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
   };
 
   // Handle transcript updates to build the full transcript
-  const handleTranscriptUpdate = (transcript: any) => {
-    // Handle array of transcript objects
-    if (Array.isArray(transcript)) {
-      // Create a unique key for this transcript update
-      const transcriptKey = JSON.stringify(transcript);
-      if (transcriptKey === lastProcessedTranscript) {
-        return; // No change
-      }
-      
-      // Build the full transcript from the array
-      let transcriptText = '';
-      for (let i = 0; i < transcript.length; i++) {
-        const item = transcript[i];
-        if (item.role && item.content) {
-          const speaker = item.role === 'agent' ? 'EchoLearn' : 'You';
-          transcriptText += `${speaker}: ${item.content.trim()}\n`;
+  const handleTranscriptUpdate = useCallback((transcript: any) => {
+    try {
+      // Handle array of transcript objects
+      if (Array.isArray(transcript)) {
+        // Create a unique key for this transcript update
+        const transcriptKey = JSON.stringify(transcript);
+        if (transcriptKey === lastProcessedTranscript) {
+          return; // No change
         }
+        
+        // Build the full transcript from the array
+        let transcriptText = '';
+        for (let i = 0; i < transcript.length; i++) {
+          const item = transcript[i];
+          if (item && item.role && item.content && typeof item.content === 'string') {
+            const speaker = item.role === 'agent' ? 'EchoLearn' : 'You';
+            transcriptText += `${speaker}: ${item.content.trim()}\n`;
+          }
+        }
+        
+        // Update the full transcript
+        const trimmedTranscript = transcriptText.trim();
+        if (trimmedTranscript !== currentTranscriptRef.current) {
+          setFullTranscript(trimmedTranscript);
+          currentTranscriptRef.current = trimmedTranscript; // Update ref synchronously
+          setLastProcessedTranscript(transcriptKey);
+        }
+        return;
       }
       
-      // Update the full transcript
-      const trimmedTranscript = transcriptText.trim();
-      setFullTranscript(trimmedTranscript);
-      currentTranscriptRef.current = trimmedTranscript; // Update ref synchronously
-      setLastProcessedTranscript(transcriptKey);
-      return;
-    }
-    
-    // Handle string transcript (legacy format) - just store it, don't send individual messages
-    if (typeof transcript === 'string') {
-      if (transcript === currentTranscriptRef.current) {
-        return; // No change
+      // Handle string transcript (legacy format) - just store it, don't send individual messages
+      if (typeof transcript === 'string' && transcript.trim()) {
+        if (transcript === currentTranscriptRef.current) {
+          return; // No change
+        }
+        
+        // Just update the current transcript without sending individual messages
+        // Messages will be sent all at once when the call ends
+        currentTranscriptRef.current = transcript;
       }
-      
-      // Just update the current transcript without sending individual messages
-      // Messages will be sent all at once when the call ends
-      currentTranscriptRef.current = transcript;
+    } catch (error) {
+      console.error('Error handling transcript update:', error);
     }
-  };
+  }, [lastProcessedTranscript]);
 
   // Generate conversation title from transcript
   const generateConversationTitle = async (transcript: string) => {
@@ -146,6 +156,14 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
 
   const startCall = useCallback(async () => {
     try {
+      // Prevent multiple simultaneous calls
+      if (isStartingCallRef.current || isCalling) {
+        console.log('Call already in progress, ignoring start request');
+        return;
+      }
+
+      console.log('Starting Retell call...');
+      isStartingCallRef.current = true;
       setError(null);
       
       const response = await fetch('/api/retell-web-call', {
@@ -171,16 +189,26 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       } else {
         throw new Error('No access_token received');
       }
+      
+      console.log('Retell call started successfully');
     } catch (err: any) {
       console.error('Error starting call:', err);
       setError(err.message || 'Failed to start call');
       onStateChange?.({ isConnected: false, isCalling: false, error: err.message || 'Failed to start call' });
+    } finally {
+      isStartingCallRef.current = false;
     }
-  }, [onStateChange, user?.id]);
+  }, [onStateChange, user?.id, isCalling]);
 
   const stopCall = useCallback(() => {
-    retellWebClient.stopCall();
+    console.log('Stopping Retell call...');
+    try {
+      retellWebClient.stopCall();
+    } catch (err) {
+      console.error('Error stopping call:', err);
+    }
     setIsCalling(false);
+    isStartingCallRef.current = false;
     onStop?.();
   }, [onStop]);
 
@@ -198,7 +226,8 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       stop: stopCall,
       toggleMute: (muted: boolean) => toggleMute(muted),
       isMuted: () => isMuted,
-      status: isCalling ? 'connected' : 'disconnected'
+      status: isCalling ? 'connected' : 'disconnected',
+      isStarting: () => isStartingCallRef.current
     };
 
     // Cleanup function to remove the global object
@@ -208,7 +237,15 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
   }, [startCall, stopCall, toggleMute, isMuted, isCalling]);
 
   useEffect(() => {
+    if (isInitializedRef.current) {
+      return; // Already initialized
+    }
+    
+    console.log('Initializing Retell Web Client...');
+    isInitializedRef.current = true;
+    
     retellWebClient.on('call_started', () => {
+      console.log('Retell call started event received');
       // Reset transcript state
       setFullTranscript('');
       currentTranscriptRef.current = '';
@@ -216,70 +253,107 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       
       setIsCalling(true);
       setError(null);
+      isStartingCallRef.current = false; // Call successfully started
       onStateChange?.({ isConnected: true, isCalling: true, error: null });
       onStart?.();
     });
     
     retellWebClient.on('call_ended', async () => {
-      // Use the ref to get the current transcript synchronously
-      const transcriptToSend = currentTranscriptRef.current;
+      console.log('Retell call ended event received');
       
-      // Send the full transcript as messages when call ends
-      if (transcriptToSend.trim()) {
-        // Convert our built transcript to messages
-        const lines = transcriptToSend.split('\n').filter(line => line.trim());
-        const transcriptMessages: ConversationMessage[] = [];
-        
-        lines.forEach((line, index) => {
-          const message = parseTranscriptLine(line);
-          if (message) {
-            // Mark this as a transcript message so it doesn't get typewriter animation
-            const transcriptMessage = { ...message, isTranscriptMessage: true };
-            transcriptMessages.push(transcriptMessage);
-          }
-        });
-        
-        // Send all transcript messages at once to replace existing messages
-        if (transcriptMessages.length > 0 && onTranscriptComplete) {
-          console.log('Sending complete transcript with', transcriptMessages.length, 'messages');
-          onTranscriptComplete(transcriptMessages);
-        }
-        
-        // Generate conversation title from the transcript
-        generateConversationTitle(transcriptToSend);
-      }
-      // After call ends, if we have a callId and user, fetch duration and increment minutes
-      try {
-        if (callId && user?.id) {
-          const resp = await fetch('/api/retell-get-call', {
+      // Fetch complete transcript from Retell API (single request for both transcript and usage)
+      if (callId) {
+        try {
+          console.log('Fetching call data from Retell API for call:', callId);
+          const response = await fetch('/api/retell-get-call', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ call_id: callId })
+            body: JSON.stringify({ call_id: callId }),
           });
-          if (resp.ok) {
-            const info = await resp.json();
-            let durationSeconds = 0;
-            // Try common fields
-            if (typeof info.duration_sec === 'number') {
-              durationSeconds = info.duration_sec;
-            } else if (info.started_at && info.ended_at) {
-              const start = new Date(info.started_at).getTime();
-              const end = new Date(info.ended_at).getTime();
-              if (!isNaN(start) && !isNaN(end) && end > start) {
-                durationSeconds = Math.round((end - start) / 1000);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Received call data:', data);
+            
+            // Process transcript if available
+            if (data.transcript && Array.isArray(data.transcript)) {
+              // Parse API transcript into messages
+              const transcriptMessages: ConversationMessage[] = [];
+              
+              data.transcript.forEach((item: any, index: number) => {
+                if (item && item.role && item.content && typeof item.content === 'string') {
+                  const speaker = item.role === 'agent' ? 'ai' : 'user';
+                  const message: ConversationMessage = {
+                    speaker,
+                    text: item.content.trim(),
+                    timestamp: new Date().toLocaleTimeString(),
+                    messageId: `transcript_${index}_${Date.now()}`,
+                    isTranscriptMessage: true,
+                    shouldTypewriter: false
+                  };
+                  transcriptMessages.push(message);
+                }
+              });
+              
+              // Send transcript messages to UI
+              if (transcriptMessages.length > 0 && onTranscriptComplete) {
+                console.log('Sending API transcript with', transcriptMessages.length, 'messages');
+                onTranscriptComplete(transcriptMessages);
+              }
+              
+              // Generate conversation title from the full transcript
+              const transcriptText = data.transcript.map((item: any) => {
+                if (item && item.role && item.content) {
+                  const speaker = item.role === 'agent' ? 'EchoLearn' : 'You';
+                  return `${speaker}: ${item.content.trim()}`;
+                }
+                return '';
+              }).filter(line => line).join('\n');
+              
+              if (transcriptText.trim()) {
+                await generateConversationTitle(transcriptText);
+              }
+            } else {
+              console.log('No transcript found in API response');
+            }
+            
+            // Increment voice minutes usage using the same API response
+            if (user?.id) {
+              try {
+                let durationSeconds = 0;
+                
+                // Try common fields for duration
+                if (typeof data.duration_sec === 'number') {
+                  durationSeconds = data.duration_sec;
+                } else if (data.started_at && data.ended_at) {
+                  const start = new Date(data.started_at).getTime();
+                  const end = new Date(data.ended_at).getTime();
+                  if (!isNaN(start) && !isNaN(end) && end > start) {
+                    durationSeconds = Math.round((end - start) / 1000);
+                  }
+                }
+                
+                const minutes = Math.max(1, Math.ceil(durationSeconds / 60));
+                await fetch('/api/subscription/increment-usage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ feature: 'voice_minutes', userId: user.id, amount: minutes })
+                });
+                
+                console.log(`Incremented voice minutes usage: ${minutes} minutes`);
+              } catch (e) {
+                // Non-blocking error - don't interrupt transcript processing
+                console.error('Failed to increment voice minutes:', e);
               }
             }
-            const minutes = Math.max(1, Math.ceil(durationSeconds / 60));
-            await fetch('/api/subscription/increment-usage', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ feature: 'voice_minutes', userId: user.id, amount: minutes })
-            });
+          } else {
+            console.error('Failed to fetch call data from API:', response.status);
           }
+        } catch (error) {
+          console.error('Error fetching call data from API:', error);
         }
-      } catch (e) {
-        // Non-blocking
-        console.error('Failed to increment voice minutes:', e);
+      } else {
+        console.log('No call ID available for call data fetch');
       }
       
       // Reset state
@@ -288,24 +362,28 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       setLastProcessedTranscript('');
       
       setIsCalling(false);
+      isStartingCallRef.current = false;
       onStateChange?.({ isConnected: false, isCalling: false, error: null });
       onStop?.();
     });
     
     // Handle all Retell events
     retellWebClient.on('update', (update: any) => {
-      // Handle different event types based on event_type
-      if (update.event_type === 'update') {
-        // Only handle transcript updates - disable other handlers to prevent duplicates
-        if (update.transcript) {
+      try {
+        // Handle different event types based on event_type
+        if (update.event_type === 'update') {
+          // Only handle transcript updates - disable other handlers to prevent duplicates
+          if (update.transcript) {
+            handleTranscriptUpdate(update.transcript);
+          }
+        }
+        
+        // Also handle direct transcript updates without event_type
+        if (update.transcript && !update.event_type) {
           handleTranscriptUpdate(update.transcript);
         }
-      }
-      
-      // Also handle direct transcript updates without event_type
-      if (update.transcript && !update.event_type) {
-        console.log('Direct transcript update:', update.transcript);
-        handleTranscriptUpdate(update.transcript);
+      } catch (error) {
+        console.error('Error handling Retell update:', error);
       }
     });
     
@@ -320,17 +398,25 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
     
     // Handle metadata events
     retellWebClient.on('metadata', (metadata: any) => {
-      // Handle any metadata that might contain transcript info
-      if (metadata.transcript) {
-        handleTranscriptUpdate(metadata.transcript);
+      try {
+        // Handle any metadata that might contain transcript info
+        if (metadata && metadata.transcript) {
+          handleTranscriptUpdate(metadata.transcript);
+        }
+      } catch (error) {
+        console.error('Error handling metadata:', error);
       }
     });
     
     // Handle node transition events
     retellWebClient.on('node_transition', (transition: any) => {
-      // Handle any transcript info in transitions
-      if (transition.transcript) {
-        handleTranscriptUpdate(transition.transcript);
+      try {
+        // Handle any transcript info in transitions
+        if (transition && transition.transcript) {
+          handleTranscriptUpdate(transition.transcript);
+        }
+      } catch (error) {
+        console.error('Error handling node transition:', error);
       }
     });
     
@@ -338,13 +424,30 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
       console.error('Retell error:', err);
       setError(err?.message || 'Unknown error');
       onStateChange?.({ isConnected: false, isCalling: false, error: err?.message || 'Unknown error' });
-      retellWebClient.stopCall();
+      isStartingCallRef.current = false;
+      setIsCalling(false);
+      try {
+        retellWebClient.stopCall();
+      } catch (stopError) {
+        console.error('Error stopping call after error:', stopError);
+      }
+    });
+    
+    // Prevent automatic reconnection attempts by overriding reconnect behavior
+    retellWebClient.on('disconnect', () => {
+      console.log('Retell disconnected - preventing auto-reconnect');
+      isStartingCallRef.current = false;
+      setIsCalling(false);
     });
     
     return () => {
-      retellWebClient.removeAllListeners && retellWebClient.removeAllListeners();
+      console.log('Cleaning up Retell Web Client...');
+      if (retellWebClient.removeAllListeners) {
+        retellWebClient.removeAllListeners();
+      }
+      isInitializedRef.current = false;
     };
-  }, [onMessage, onStateChange, onStart, onStop, lastProcessedTranscript]);
+  }, []); // Empty dependency array to prevent re-initialization
 
   // Return null - this component should be invisible!
   return null;
