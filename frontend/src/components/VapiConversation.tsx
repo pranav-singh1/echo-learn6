@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Vapi from '@vapi-ai/web';
 import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionService } from '../lib/subscription';
 
 export interface ConversationMessage {
   speaker: 'user' | 'ai' | 'system';
@@ -43,6 +44,10 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
   // Message tracking
   const messageCounterRef = useRef(0);
 
+  // Voice minute tracking
+  const callStartTimeRef = useRef<number | null>(null);
+  const callDurationRef = useRef<number>(0);
+
   // Deduplication and message grouping for final transcripts
   const lastTranscriptRef = useRef<string>('');
   const lastSpeakerRef = useRef<string>('');
@@ -53,6 +58,62 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
   const transcriptionBufferRef = useRef<{ [speaker: string]: string }>({});
   const sentenceEndings = ['.', '!', '?', '。', '！', '？'];
 
+  // Check voice minute limits before starting call
+  const checkVoiceLimits = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      console.error('No user ID available for voice limit check');
+      return false;
+    }
+
+    try {
+      console.log('🔍 Checking voice minute limits...');
+      const usageInfo = await SubscriptionService.checkFeatureLimit('voice_minutes');
+      
+      if (!usageInfo.allowed) {
+        console.warn('Voice minute limit exceeded:', usageInfo.message);
+        setError(usageInfo.message);
+        return false;
+      }
+      
+      console.log(`✅ Voice limits OK - ${usageInfo.currentUsage}/${usageInfo.maxUsage} minutes used`);
+      return true;
+    } catch (error) {
+      console.error('Error checking voice limits:', error);
+      setError('Failed to check voice limits. Please try again.');
+      return false;
+    }
+  }, [user?.id]);
+
+  // Increment voice minute usage
+  const incrementVoiceUsage = useCallback(async (minutes: number) => {
+    if (!user?.id || minutes <= 0) {
+      console.log('Skipping voice usage increment - no user or invalid duration');
+      return;
+    }
+
+    try {
+      console.log(`📊 Incrementing voice usage by ${minutes} minutes`);
+      await SubscriptionService.incrementUsage('voice_minutes', minutes);
+      console.log(`✅ Voice usage incremented successfully`);
+    } catch (error) {
+      console.error('Error incrementing voice usage:', error);
+      // Don't fail the call if usage tracking fails
+    }
+  }, [user?.id]);
+
+  // Calculate call duration in minutes
+  const calculateCallDuration = useCallback((): number => {
+    if (!callStartTimeRef.current) {
+      return 0;
+    }
+    
+    const durationMs = Date.now() - callStartTimeRef.current;
+    const durationSeconds = Math.floor(durationMs / 1000);
+    const durationMinutes = Math.max(1, Math.ceil(durationSeconds / 60)); // Minimum 1 minute
+    
+    console.log(`📏 Call duration: ${durationSeconds}s (${durationMinutes} minutes)`);
+    return durationMinutes;
+  }, []);
 
 
   // Initialize Vapi instance
@@ -95,6 +156,11 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       setError(null);
       isStartingCallRef.current = false;
       
+      // Start voice minute tracking
+      callStartTimeRef.current = Date.now();
+      callDurationRef.current = 0;
+      console.log('⏱️ Voice minute tracking started');
+      
       // Reset transcript state
       messageCounterRef.current = 0;
       lastTranscriptRef.current = '';
@@ -102,8 +168,6 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
 
       // Reset transcription buffers
       transcriptionBufferRef.current = {};
-
-
 
       // Reset speaker tracking
       lastSpeakerStateRef.current = null;
@@ -129,6 +193,18 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       console.log('🔚 Vapi call ended - processing end logic');
       setIsCalling(false);
       isStartingCallRef.current = false;
+
+      // Calculate and track voice minute usage
+      const callDurationMinutes = calculateCallDuration();
+      callDurationRef.current = callDurationMinutes;
+      
+      if (callDurationMinutes > 0) {
+        console.log(`📊 Call ended - tracking ${callDurationMinutes} minutes of voice usage`);
+        await incrementVoiceUsage(callDurationMinutes);
+      }
+      
+      // Reset voice tracking
+      callStartTimeRef.current = null;
 
       // Flush any remaining buffered transcriptions
       Object.entries(transcriptionBufferRef.current).forEach(([speaker, bufferedText]) => {
@@ -270,6 +346,9 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
     messageCounterRef.current = 0;
     transcriptionBufferRef.current = {};
 
+    // Reset voice tracking
+    callStartTimeRef.current = null;
+    callDurationRef.current = 0;
 
   }, []);
 
@@ -446,6 +525,14 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
         throw new Error('Vapi client not initialized. Please refresh the page and try again.');
       }
 
+      // Check voice minute limits before starting call
+      const limitsOk = await checkVoiceLimits();
+      if (!limitsOk) {
+        console.log('Voice limits check failed - not starting call');
+        isStartingCallRef.current = false;
+        return;
+      }
+
       console.log('Starting Vapi call...');
       isStartingCallRef.current = true;
       setError(null);
@@ -462,7 +549,7 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       isStartingCallRef.current = false;
       onStateChange?.({ isConnected: false, isCalling: false, error: err.message || 'Failed to start voice call' });
     }
-  }, [isCalling, onStateChange]);
+  }, [isCalling, onStateChange, checkVoiceLimits]);
 
   // Stop voice call
   const stopCall = useCallback(() => {

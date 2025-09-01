@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { SubscriptionService } from '../lib/subscription';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -96,6 +97,19 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
   const [isStartingVoice, setIsStartingVoice] = useState(false);
+  
+  // Usage limits state
+  const [usageData, setUsageData] = useState<{
+    voice: { current: number; max: number } | null;
+    messages: { current: number; max: number } | null;
+    quizzes: { current: number; max: number } | null;
+  }>({
+    voice: null,
+    messages: null,
+    quizzes: null
+  });
+  const [loadingUsage, setLoadingUsage] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +134,13 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
       setProfilePicture(user.user_metadata?.profile_picture || '');
     }
   }, [user]);
+
+  // Load usage data when profile modal opens
+  useEffect(() => {
+    if (showProfileModal && user?.id) {
+      loadUsageData();
+    }
+  }, [showProfileModal, user?.id]);
 
   // Handle ESC key to close profile modal
   useEffect(() => {
@@ -351,6 +372,38 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
 
   const handleRemoveProfilePicture = () => {
     setProfilePicture('');
+  };
+
+  const loadUsageData = async () => {
+    if (!user?.id) return;
+    
+    setLoadingUsage(true);
+    try {
+      const [voiceUsage, messagesUsage, quizzesUsage] = await Promise.all([
+        SubscriptionService.checkFeatureLimit('voice_minutes'),
+        SubscriptionService.checkFeatureLimit('messages'),
+        SubscriptionService.checkFeatureLimit('quiz_generations')
+      ]);
+
+      setUsageData({
+        voice: {
+          current: voiceUsage.currentUsage,
+          max: typeof voiceUsage.maxUsage === 'number' ? voiceUsage.maxUsage : 0
+        },
+        messages: {
+          current: messagesUsage.currentUsage,
+          max: typeof messagesUsage.maxUsage === 'number' ? messagesUsage.maxUsage : 0
+        },
+        quizzes: {
+          current: quizzesUsage.currentUsage,
+          max: typeof quizzesUsage.maxUsage === 'number' ? quizzesUsage.maxUsage : 0
+        }
+      });
+    } catch (error) {
+      console.error('Error loading usage data:', error);
+    } finally {
+      setLoadingUsage(false);
+    }
   };
 
   const handleExportData = async () => {
@@ -945,6 +998,84 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                   Member since: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
                 </p>
               </div>
+            </div>
+
+            {/* Usage Limits Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Usage Limits
+                </h3>
+                <button
+                  onClick={loadUsageData}
+                  disabled={loadingUsage}
+                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingUsage ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
+              
+              {loadingUsage ? (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading usage data...
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Voice Minutes */}
+                  {usageData.voice && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Voice Minutes (Monthly)
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        usageData.voice.current >= usageData.voice.max 
+                          ? 'text-red-500' 
+                          : usageData.voice.current >= usageData.voice.max * 0.8 
+                            ? 'text-yellow-500' 
+                            : 'text-green-500'
+                      }`}>
+                        {usageData.voice.current}/{usageData.voice.max}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Messages */}
+                  {usageData.messages && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Chat Messages (Monthly)
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        usageData.messages.current >= usageData.messages.max 
+                          ? 'text-red-500' 
+                          : usageData.messages.current >= usageData.messages.max * 0.8 
+                            ? 'text-yellow-500' 
+                            : 'text-green-500'
+                      }`}>
+                        {usageData.messages.current}/{usageData.messages.max}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Quizzes */}
+                  {usageData.quizzes && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Quiz Generations (Daily)
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        usageData.quizzes.current >= usageData.quizzes.max 
+                          ? 'text-red-500' 
+                          : usageData.quizzes.current >= usageData.quizzes.max * 0.8 
+                            ? 'text-yellow-500' 
+                            : 'text-green-500'
+                      }`}>
+                        {usageData.quizzes.current}/{usageData.quizzes.max}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
