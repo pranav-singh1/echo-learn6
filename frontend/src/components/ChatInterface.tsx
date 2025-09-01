@@ -8,7 +8,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX, Sparkles, Brain, GraduationCap } from 'lucide-react';
+import { Mic, MicOff, Send, MessageCircle, AlertCircle, Plus, Edit2, Check, X, LogOut, User, Target, BookOpen, Settings, Download, Trash2, VolumeX, Sparkles, Brain, GraduationCap, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import {
   DropdownMenu,
@@ -46,6 +46,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     highlightTerm,
     allSessions,
     isMuted,
+
     dailyQuizUsage,
     // Voice session state
     isVoiceSessionActive,
@@ -94,6 +95,7 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   const [profileName, setProfileName] = useState(user?.user_metadata?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [profilePicture, setProfilePicture] = useState(user?.user_metadata?.profile_picture || '');
+  const [isStartingVoice, setIsStartingVoice] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +104,13 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Clear loading state when voice connects
+  useEffect(() => {
+    if (isConnected) {
+      setIsStartingVoice(false);
+    }
+  }, [isConnected]);
 
   // Update profile fields when user data changes
   useEffect(() => {
@@ -170,7 +179,12 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     if (isConnected) {
       await stopConversation();
     } else {
-      await startConversation();
+      setIsStartingVoice(true);
+      try {
+        await startConversation();
+      } catch (error) {
+        setIsStartingVoice(false);
+      }
     }
   };
 
@@ -613,13 +627,19 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                   <Button
                     size="sm"
                     onClick={handleVoiceToggle}
-                    disabled={isTyping}
+                    disabled={isTyping || isStartingVoice}
                     className={`flex items-center gap-2 ${getModeButtonStyle()}`}
                     aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
                     data-tour="start-voice"
                   >
-                    {isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                    {isConnected ? 'Stop' : 'Start'} Voice
+                    {isStartingVoice ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isConnected ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                    {isStartingVoice ? 'Starting...' : isConnected ? 'Stop' : 'Start'} Voice
                   </Button>
                   
                   <Button

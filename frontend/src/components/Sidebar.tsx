@@ -26,10 +26,10 @@ export const Sidebar: React.FC = () => {
 
 
 
-  // Calculate conversation stats - subtract 1 to fix the extra count
-  const totalMessages = Math.max(0, messages.length - 1);
+  // Calculate conversation stats - count only user and AI messages
   const userMessages = messages.filter(m => m.speaker === 'user').length;
   const aiMessages = messages.filter(m => m.speaker === 'ai').length;
+  const totalMessages = userMessages + aiMessages;
   
   console.log('SIDEBAR MESSAGE COUNT DEBUG:', {
     totalMessages,
