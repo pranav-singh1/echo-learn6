@@ -26,7 +26,7 @@ export const SubscriptionTest: React.FC = () => {
       setPlanLimits(limits);
 
       // Load current usage
-      const features = ['messages', 'quiz_generations'];
+      const features = ['messages', 'quiz_generations', 'voice_minutes'];
       const usageData: any = {};
 
       for (const feature of features) {
@@ -102,12 +102,15 @@ export const SubscriptionTest: React.FC = () => {
 
         <div className="space-y-2">
           <h3 className="font-semibold">Test Features</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={() => testFeatureAccess('messages')} size="sm">
               Test Messages
             </Button>
             <Button onClick={() => testFeatureAccess('quiz_generations')} size="sm">
               Test Quiz
+            </Button>
+            <Button onClick={() => testFeatureAccess('voice_minutes')} size="sm">
+              Test Voice
             </Button>
           </div>
         </div>

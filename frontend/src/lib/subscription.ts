@@ -27,7 +27,12 @@ export class SubscriptionService {
       throw new Error('User not authenticated');
     }
 
-    const response = await fetch('/api/subscription/check-limits', {
+    // Use voice-specific endpoint for voice minutes
+    const endpoint = feature === 'voice_minutes' 
+      ? '/api/voice/check-limits' 
+      : '/api/subscription/check-limits';
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,7 +50,7 @@ export class SubscriptionService {
     return response.json();
   }
 
-  static async incrementUsage(feature: string): Promise<void> {
+  static async incrementUsage(feature: string, amount?: number): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('User not authenticated');
@@ -59,6 +64,7 @@ export class SubscriptionService {
       body: JSON.stringify({
         feature,
         userId: user.id,
+        amount,
       }),
     });
 
@@ -117,5 +123,19 @@ export class SubscriptionService {
     }
 
     return data;
+  }
+
+  static async getVoiceUsage(): Promise<{ currentUsage: number; maxUsage: number; plan: string } | null> {
+    try {
+      const usageInfo = await this.checkFeatureLimit('voice_minutes');
+      return {
+        currentUsage: usageInfo.currentUsage,
+        maxUsage: typeof usageInfo.maxUsage === 'number' ? usageInfo.maxUsage : 0,
+        plan: usageInfo.plan
+      };
+    } catch (error) {
+      console.error('Error getting voice usage:', error);
+      return null;
+    }
   }
 } 

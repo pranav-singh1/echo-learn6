@@ -101,9 +101,11 @@ interface AppContextType {
   // Subscription management
   userPlan: string;
   planLimits: any;
+  voiceUsage: { currentUsage: number; maxUsage: number; plan: string } | null;
   checkFeatureAccess: (feature: string) => Promise<boolean>;
   incrementFeatureUsage: (feature: string) => Promise<void>;
   loadUserPlan: () => Promise<void>;
+  loadVoiceUsage: () => Promise<void>;
   
   // App initialization
   isInitialized: boolean;
@@ -197,6 +199,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Subscription state
   const [userPlan, setUserPlan] = useState<string>('free');
   const [planLimits, setPlanLimits] = useState<any>(null);
+  const [voiceUsage, setVoiceUsage] = useState<{ currentUsage: number; maxUsage: number; plan: string } | null>(null);
   
   // App initialization state
   const [isInitialized, setIsInitialized] = useState(false);
@@ -1248,8 +1251,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setUserPlan(plan);
       setPlanLimits(limits);
       
-      // Also check current daily usage
-      await checkDailyQuizUsage();
+      // Also check current daily usage and voice usage
+      await Promise.all([
+        checkDailyQuizUsage(),
+        loadVoiceUsage()
+      ]);
     } catch (error) {
       console.error('Error loading user plan:', error);
     }
@@ -1283,6 +1289,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking daily quiz usage:', error);
+    }
+  };
+
+  const loadVoiceUsage = async () => {
+    try {
+      const usage = await SubscriptionService.getVoiceUsage();
+      setVoiceUsage(usage);
+    } catch (error) {
+      console.error('Error loading voice usage:', error);
     }
   };
 
@@ -1382,9 +1397,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Subscription management
     userPlan,
     planLimits,
+    voiceUsage,
     checkFeatureAccess,
     incrementFeatureUsage,
     loadUserPlan,
+    loadVoiceUsage,
     
     // App initialization
     isInitialized,
