@@ -326,6 +326,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Shared function to handle conversation ending (both manual and agent-initiated)
   const handleConversationEnd = (isManualStop: boolean = false) => {
+    // Prevent multiple calls
+    if (conversationEndedRef.current) {
+      console.log('CONVERSATION DEBUG: Already handled conversation end');
+      return;
+    }
+    conversationEndedRef.current = true;
+    
     // End voice session and unlock text input
     setIsVoiceSessionActive(false);
     setIsTextInputLocked(false);
@@ -337,29 +344,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     setVoiceSessionTranscript(voiceMessages);
     
-    // Add single "Conversation ended" message for both manual and agent stops
-    // Check if a "Conversation ended" message already exists to prevent duplicates
-    const hasConversationEndedMessage = messages.some(msg => 
-      msg.speaker === 'system' && msg.text === 'Conversation ended'
-    );
-    
-    console.log('🔍 CONVERSATION DEBUG: Checking for existing "Conversation ended" message');
-    console.log('🔍 CONVERSATION DEBUG: Has ended message?', hasConversationEndedMessage);
-    console.log('🔍 CONVERSATION DEBUG: Current messages count:', messages.length);
-    console.log('🔍 CONVERSATION DEBUG: Current messages:', messages.map(m => `${m.speaker}: ${m.text.substring(0, 50)}...`));
-    console.log('🔍 CONVERSATION DEBUG: Manual stop?', isManualStop);
-    
-    if (!hasConversationEndedMessage) {
-      console.log('CONVERSATION DEBUG: Adding "Conversation ended" message');
-      conversationService.addMessage({
-        speaker: 'system',
-        text: 'Conversation ended',
-        timestamp: new Date().toLocaleTimeString(),
-        messageId: `conversation_ended_${Date.now()}`
-      });
-    } else {
-      console.log('CONVERSATION DEBUG: Skipping "Conversation ended" - already exists');
-    }
+    console.log('CONVERSATION DEBUG: Adding "Conversation ended" message');
+    conversationService.addMessage({
+      speaker: 'system',
+      text: 'Conversation ended',
+      timestamp: new Date().toLocaleTimeString(),
+      messageId: `conversation_ended_${Date.now()}`
+    });
   };
 
   // Handle transcript completion from voice conversation
@@ -407,6 +398,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Reset title generation flag
       titleGeneratedRef.current = false;
+      
+      // Reset conversation ended flag
+      conversationEndedRef.current = false;
       
       // Create new session with current learning mode
       const newSession = await supabaseConversationStorage.createSession(undefined, learningMode);
@@ -511,6 +505,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // Reset title generation flag for new session
         titleGeneratedRef.current = false;
         
+        // Reset conversation ended flag for new session
+        conversationEndedRef.current = false;
+        
         // Set all session data
         setActiveSession(session);
         setMessages(session.messages.map(m => ({ ...m, shouldTypewriter: false })));
@@ -611,6 +608,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setIsTextInputLocked(true);
       setHasSentFirstTextAfterVoice(false);
       setVoiceSessionTranscript('');
+      
+      // Reset conversation ended flag for new conversation
+      conversationEndedRef.current = false;
       
       // Start the actual voice conversation
       await conversationService.startConversation();
@@ -953,6 +953,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Flag to prevent multiple title generation calls
   const titleGeneratedRef = useRef(false);
+  
+  // Flag to prevent multiple "conversation ended" messages
+  const conversationEndedRef = useRef(false);
 
   // Simple title generation for voice conversations
   const generateConversationTitleFromTranscript = async () => {
