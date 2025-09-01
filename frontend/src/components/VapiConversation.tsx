@@ -109,7 +109,10 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
     
     const durationMs = Date.now() - callStartTimeRef.current;
     const durationSeconds = Math.floor(durationMs / 1000);
-    const durationMinutes = Math.max(1, Math.ceil(durationSeconds / 60)); // Minimum 1 minute
+    
+    // More accurate minute calculation - round to nearest minute instead of ceiling
+    // This prevents very short calls from being rounded up to 1 minute
+    const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
     
     console.log(`📏 Call duration: ${durationSeconds}s (${durationMinutes} minutes)`);
     return durationMinutes;
@@ -200,6 +203,9 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       
       if (callDurationMinutes > 0) {
         console.log(`📊 Call ended - tracking ${callDurationMinutes} minutes of voice usage`);
+        console.log(`🔍 DEBUG: Call start time was ${new Date(callStartTimeRef.current!).toISOString()}`);
+        console.log(`🔍 DEBUG: Call end time is ${new Date().toISOString()}`);
+        console.log(`🔍 DEBUG: Total duration in seconds: ${Math.floor((Date.now() - callStartTimeRef.current!) / 1000)}`);
         await incrementVoiceUsage(callDurationMinutes);
       }
       
