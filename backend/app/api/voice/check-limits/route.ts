@@ -71,18 +71,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get current month's usage
+    // Get current period's usage (use subscription period start instead of calendar month)
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split('T')[0];
+    
+    // Get user's subscription period start for monthly billing cycle
+    const { data: userData } = await supabase
+      .from('users')
+      .select('current_period_start')
+      .eq('id', userId)
+      .single();
+    
+    let resetDate;
+    if (userData?.current_period_start) {
+      // Use subscription period start date
+      resetDate = new Date(userData.current_period_start).toISOString().split('T')[0];
+    } else {
+      // Fallback to calendar month for free users
+      resetDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    }
 
     const { data: usage } = await supabase
       .from('subscription_usage')
       .select('usage_count')
       .eq('user_id', userId)
       .eq('feature_name', 'voice_minutes')
-      .eq('reset_date', monthStart)
+      .eq('reset_date', resetDate)
       .single();
 
     const currentUsage = usage?.usage_count || 0;
