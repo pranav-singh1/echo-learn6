@@ -29,12 +29,29 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const currentDate = now.toISOString().split('T')[0];
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split('T')[0];
-
+    
+    // For monthly features, use subscription period start instead of calendar month
+    let resetDate;
     const isDailyFeature = feature === 'quiz_generations';
-    const resetDate = isDailyFeature ? currentDate : monthStart;
+    
+    if (isDailyFeature) {
+      resetDate = currentDate;
+    } else {
+      // Get user's subscription period start for monthly billing cycle
+      const { data: userData } = await supabase
+        .from('users')
+        .select('current_period_start')
+        .eq('id', userId)
+        .single();
+      
+      if (userData?.current_period_start) {
+        // Use subscription period start date
+        resetDate = new Date(userData.current_period_start).toISOString().split('T')[0];
+      } else {
+        // Fallback to calendar month for free users
+        resetDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      }
+    }
 
     const incrementBy = typeof amount === 'number' && amount > 0 ? amount : 1;
 

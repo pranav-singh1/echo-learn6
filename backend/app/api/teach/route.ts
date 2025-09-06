@@ -63,15 +63,31 @@ export async function POST(request: Request) {
 
           const maxMessages = planLimits.max_messages_per_month;
           
-          // Get current month's usage (use month start for reset_date)
+          // Get current period's usage (use subscription period start instead of calendar month)
           const now = new Date();
-          const currentDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+          
+          // Get user's subscription period start for monthly billing cycle
+          const { data: userData } = await supabase
+            .from('users')
+            .select('current_period_start')
+            .eq('id', userId)
+            .single();
+          
+          let resetDate;
+          if (userData?.current_period_start) {
+            // Use subscription period start date
+            resetDate = new Date(userData.current_period_start).toISOString().split('T')[0];
+          } else {
+            // Fallback to calendar month for free users
+            resetDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+          }
+          
           const { data: usage } = await supabase
             .from('subscription_usage')
             .select('usage_count')
             .eq('user_id', userId)
             .eq('feature_name', 'messages')
-            .eq('reset_date', currentDate)
+            .eq('reset_date', resetDate)
             .single();
 
           const currentUsage = usage?.usage_count || 0;
@@ -127,12 +143,27 @@ export async function POST(request: Request) {
     if (userId && supabase) {
       try {
         const now = new Date();
-        const currentDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        
+        // Get user's subscription period start for monthly billing cycle
+        const { data: userData } = await supabase
+          .from('users')
+          .select('current_period_start')
+          .eq('id', userId)
+          .single();
+        
+        let resetDate;
+        if (userData?.current_period_start) {
+          // Use subscription period start date
+          resetDate = new Date(userData.current_period_start).toISOString().split('T')[0];
+        } else {
+          // Fallback to calendar month for free users
+          resetDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        }
         
         await supabase.rpc('increment_usage', {
           p_user_id: userId,
           p_feature_name: 'messages',
-          p_reset_date: currentDate,
+          p_reset_date: resetDate,
           p_increment: 1
         });
       } catch (error) {

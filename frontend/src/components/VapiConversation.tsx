@@ -47,6 +47,9 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
   // Voice minute tracking
   const callStartTimeRef = useRef<number | null>(null);
   const callDurationRef = useRef<number>(0);
+  const callIdRef = useRef<string | null>(null);
+  const usageIncrementedRef = useRef<boolean>(false);
+  const callEndProcessedRef = useRef<boolean>(false);
 
   // Deduplication and message grouping for final transcripts
   const lastTranscriptRef = useRef<string>('');
@@ -91,30 +94,152 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       return;
     }
 
+    // Prevent duplicate increments for the same call
+    if (usageIncrementedRef.current) {
+      console.log('⚠️ Voice usage already incremented for this call, skipping duplicate');
+      return;
+    }
+
     try {
-      console.log(`📊 Incrementing voice usage by ${minutes} minutes`);
-      await SubscriptionService.incrementUsage('voice_minutes', minutes);
+      // Round to 2 decimal places for precision but avoid rounding errors
+      const roundedMinutes = Math.round(minutes * 100) / 100;
+      console.log(`📊 Incrementing voice usage by ${roundedMinutes} minutes (original: ${minutes})`);
+      await SubscriptionService.incrementUsage('voice_minutes', roundedMinutes);
       console.log(`✅ Voice usage incremented successfully`);
+      
+      // Mark as incremented to prevent duplicates
+      usageIncrementedRef.current = true;
     } catch (error) {
       console.error('Error incrementing voice usage:', error);
       // Don't fail the call if usage tracking fails
     }
   }, [user?.id]);
 
-  // Calculate call duration in minutes
-  const calculateCallDuration = useCallback((): number => {
+  // Get accurate call duration from Vapi API using backend proxy
+  const getAccurateCallDuration = useCallback(async (callId: string): Promise<number> => {
+    try {
+      console.log(`🔍 Fetching accurate call duration for call ID: ${callId}`);
+      
+      // Use our backend to proxy the Vapi API call (since we need private key on server side)
+      const response = await fetch('/api/vapi/get-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ callId })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch call data from backend:', response.status);
+        return calculateCallDurationFallback();
+      }
+
+      const callData = await response.json();
+      console.log('Vapi call data from backend:', callData);
+
+      // Use the accurate duration from Vapi API
+      if (callData.startedAt && callData.endedAt) {
+        console.log('🔍 Raw timestamps from Vapi:', {
+          startedAt: callData.startedAt,
+          endedAt: callData.endedAt,
+          startedAtType: typeof callData.startedAt,
+          endedAtType: typeof callData.endedAt
+        });
+        
+        // Validate timestamp format
+        const startTime = new Date(callData.startedAt);
+        const endTime = new Date(callData.endedAt);
+        
+        // Check if dates are valid
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          console.error('❌ Invalid timestamps from VAPI - dates are NaN:', {
+            startedAt: callData.startedAt,
+            endedAt: callData.endedAt,
+            startTimeValid: !isNaN(startTime.getTime()),
+            endTimeValid: !isNaN(endTime.getTime())
+          });
+          return calculateCallDurationFallback();
+        }
+        
+        console.log('🔍 Parsed dates:', {
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          startTimeMs: startTime.getTime(),
+          endTimeMs: endTime.getTime(),
+          startTimeLocal: startTime.toString(),
+          endTimeLocal: endTime.toString()
+        });
+        
+        const durationMs = endTime.getTime() - startTime.getTime();
+        const durationSeconds = Math.floor(durationMs / 1000);
+        
+        // Check for invalid durations
+        if (durationMs <= 0) {
+          console.warn('⚠️ VAPI timestamps are identical or invalid - API may not be ready yet, using fallback calculation');
+          console.log('🔍 VAPI call data:', callData);
+          return calculateCallDurationFallback();
+        }
+        
+        // Check for unreasonably long durations (more than 24 hours)
+        if (durationMs > 24 * 60 * 60 * 1000) {
+          console.error('❌ Unreasonably long call duration detected:', {
+            durationMs,
+            durationHours: durationMs / (1000 * 60 * 60),
+            startedAt: callData.startedAt,
+            endedAt: callData.endedAt
+          });
+          return calculateCallDurationFallback();
+        }
+        
+        // Use precise decimal minutes instead of rounding to whole minutes
+        const durationMinutes = Math.max(0, durationSeconds / 60);
+        
+        console.log('🔍 Duration calculation:', {
+          durationMs,
+          durationSeconds,
+          durationMinutes,
+          durationHours: durationMinutes / 60,
+          calculation: `${durationSeconds}s = ${durationMinutes.toFixed(2)} minutes`
+        });
+        
+        console.log(`📏 Accurate call duration from Vapi API: ${durationSeconds}s (${durationMinutes.toFixed(2)} minutes)`);
+        return durationMinutes;
+      } else {
+        console.warn('No startedAt/endedAt in Vapi call data, falling back to client calculation');
+        console.log('🔍 Available call data:', callData);
+        return calculateCallDurationFallback();
+      }
+    } catch (error) {
+      console.error('Error fetching call duration from backend:', error);
+      return calculateCallDurationFallback();
+    }
+  }, []);
+
+  // Fallback calculation if Vapi API fails
+  const calculateCallDurationFallback = useCallback((): number => {
     if (!callStartTimeRef.current) {
+      console.warn('⚠️ No call start time available for fallback calculation');
       return 0;
     }
     
-    const durationMs = Date.now() - callStartTimeRef.current;
+    const now = Date.now();
+    const durationMs = now - callStartTimeRef.current;
     const durationSeconds = Math.floor(durationMs / 1000);
     
-    // More accurate minute calculation - round to nearest minute instead of ceiling
-    // This prevents very short calls from being rounded up to 1 minute
-    const durationMinutes = Math.max(1, Math.round(durationSeconds / 60));
+    // Use precise decimal minutes instead of rounding to whole minutes
+    // This gives accurate duration tracking for short calls
+    const durationMinutes = Math.max(0, durationSeconds / 60);
     
-    console.log(`📏 Call duration: ${durationSeconds}s (${durationMinutes} minutes)`);
+    console.log('🔍 Fallback duration calculation:', {
+      callStartTime: new Date(callStartTimeRef.current).toISOString(),
+      currentTime: new Date(now).toISOString(),
+      durationMs,
+      durationSeconds,
+      durationMinutes,
+      durationHours: durationMinutes / 60
+    });
+    
+    console.log(`📏 Fallback call duration: ${durationSeconds}s (${durationMinutes.toFixed(2)} minutes)`);
     return durationMinutes;
   }, []);
 
@@ -153,15 +278,32 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
     const vapi = vapiRef.current;
     
     // Call started
-    vapi.on('call-start', () => {
-      console.log('Vapi call started');
+    vapi.on('call-start', (data?: any) => {
+      console.log('🔍 Vapi call started with data:', JSON.stringify(data, null, 2));
       setIsCalling(true);
       setError(null);
       isStartingCallRef.current = false;
       
+      // Store call ID if provided - check multiple possible locations
+      if (data?.call?.id) {
+        callIdRef.current = data.call.id;
+        console.log('📞 Call ID stored from data.call.id:', callIdRef.current);
+      } else if (data?.id) {
+        callIdRef.current = data.id;
+        console.log('📞 Call ID stored from data.id:', callIdRef.current);
+      } else if (data?.callId) {
+        callIdRef.current = data.callId;
+        console.log('📞 Call ID stored from data.callId:', callIdRef.current);
+      } else {
+        console.log('📞 No call ID found in call-start data. Full data:', data);
+        console.log('📞 Available keys:', data ? Object.keys(data) : 'no data');
+      }
+      
       // Start voice minute tracking
       callStartTimeRef.current = Date.now();
       callDurationRef.current = 0;
+      usageIncrementedRef.current = false; // Reset usage increment flag
+      callEndProcessedRef.current = false; // Reset call end processed flag
       console.log('⏱️ Voice minute tracking started');
       
       // Reset transcript state
@@ -194,19 +336,52 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
     // Call ended
     vapi.on('call-end', async () => {
       console.log('🔚 Vapi call ended - processing end logic');
+      
       setIsCalling(false);
       isStartingCallRef.current = false;
 
-      // Calculate and track voice minute usage
-      const callDurationMinutes = calculateCallDuration();
-      callDurationRef.current = callDurationMinutes;
-      
-      if (callDurationMinutes > 0) {
-        console.log(`📊 Call ended - tracking ${callDurationMinutes} minutes of voice usage`);
-        console.log(`🔍 DEBUG: Call start time was ${new Date(callStartTimeRef.current!).toISOString()}`);
-        console.log(`🔍 DEBUG: Call end time is ${new Date().toISOString()}`);
-        console.log(`🔍 DEBUG: Total duration in seconds: ${Math.floor((Date.now() - callStartTimeRef.current!) / 1000)}`);
-        await incrementVoiceUsage(callDurationMinutes);
+      // Wait 60 seconds for Vapi to process call data, then get accurate duration
+      if (callIdRef.current) {
+        console.log(`📊 Call ended - waiting 60 seconds for Vapi to process call data...`);
+        
+        // Wait 60 seconds before fetching call data (Vapi needs time to process)
+        setTimeout(async () => {
+          // Prevent multiple usage increments for the same call
+          if (callEndProcessedRef.current) {
+            console.log('⚠️ Usage already processed for this call, skipping duplicate');
+            return;
+          }
+          callEndProcessedRef.current = true;
+          
+          try {
+            const callDurationMinutes = await getAccurateCallDuration(callIdRef.current!);
+            callDurationRef.current = callDurationMinutes;
+            
+            if (callDurationMinutes > 0) {
+              console.log(`📊 Tracking ${callDurationMinutes} minutes of voice usage (after 60s delay)`);
+              await incrementVoiceUsage(callDurationMinutes);
+            }
+          } catch (error) {
+            console.error('Error tracking voice usage after delay:', error);
+          }
+        }, 60000); // 60 seconds delay
+      } else {
+        console.warn('No call ID available, using fallback duration calculation');
+        
+        // Prevent multiple usage increments for the same call
+        if (callEndProcessedRef.current) {
+          console.log('⚠️ Usage already processed for this call, skipping duplicate fallback');
+          return;
+        }
+        callEndProcessedRef.current = true;
+        
+        const callDurationMinutes = calculateCallDurationFallback();
+        callDurationRef.current = callDurationMinutes;
+        
+        if (callDurationMinutes > 0) {
+          console.log(`📊 Call ended - tracking ${callDurationMinutes} minutes of voice usage (fallback)`);
+          await incrementVoiceUsage(callDurationMinutes);
+        }
       }
       
       // Reset voice tracking
@@ -284,10 +459,19 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       onStop?.();
     });
 
+    // Check for call ID in message events
+    // Note: We'll look for call ID in message events as a fallback
+
     // Real-time messages (including transcripts)
     vapi.on('message', (message: any) => {
       try {
         console.log('Vapi message received:', message);
+        
+        // Check for call ID in message data as fallback
+        if (message.callId && !callIdRef.current) {
+          callIdRef.current = message.callId;
+          console.log('📞 Call ID stored from message.callId:', callIdRef.current);
+        }
         
         if (message.type === 'transcript') {
           console.log('Vapi transcript message:', message);
@@ -355,6 +539,8 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
     // Reset voice tracking
     callStartTimeRef.current = null;
     callDurationRef.current = 0;
+    usageIncrementedRef.current = false;
+    callEndProcessedRef.current = false;
 
   }, []);
 

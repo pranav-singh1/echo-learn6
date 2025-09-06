@@ -317,35 +317,9 @@ export const RetellConversation: React.FC<RetellConversationProps> = ({
               console.log('No transcript found in API response');
             }
             
-            // Increment voice minutes usage using the same API response
-            if (user?.id) {
-              try {
-                let durationSeconds = 0;
-                
-                // Try common fields for duration
-                if (typeof data.duration_sec === 'number') {
-                  durationSeconds = data.duration_sec;
-                } else if (data.started_at && data.ended_at) {
-                  const start = new Date(data.started_at).getTime();
-                  const end = new Date(data.ended_at).getTime();
-                  if (!isNaN(start) && !isNaN(end) && end > start) {
-                    durationSeconds = Math.round((end - start) / 1000);
-                  }
-                }
-                
-                const minutes = Math.max(1, Math.ceil(durationSeconds / 60));
-                await fetch('/api/subscription/increment-usage', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ feature: 'voice_minutes', userId: user.id, amount: minutes })
-                });
-                
-                console.log(`Incremented voice minutes usage: ${minutes} minutes`);
-              } catch (e) {
-                // Non-blocking error - don't interrupt transcript processing
-                console.error('Failed to increment voice minutes:', e);
-              }
-            }
+            // NOTE: Voice usage tracking is now handled by VapiConversation component
+            // This prevents double-counting when both Retell and Vapi are used
+            console.log('Retell call ended - voice usage tracking handled by VapiConversation');
           } else {
             console.error('Failed to fetch call data from API:', response.status);
           }
