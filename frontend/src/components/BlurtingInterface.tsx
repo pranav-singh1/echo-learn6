@@ -15,13 +15,15 @@ export const BlurtingInterface: React.FC = () => {
     isBlurtCompleted, 
     blurtFeedback,
     createNewSession,
-    activeSession
+    activeSession,
+    isMessageLimitReached,
+    messageUsage
   } = useAppContext();
   const [topic, setTopic] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!blurtContent.trim()) return;
+    if (!blurtContent.trim() || isMessageLimitReached) return;
     
     setIsSubmitting(true);
     await submitBlurt(blurtContent, topic);
@@ -118,13 +120,21 @@ export const BlurtingInterface: React.FC = () => {
         </div>
         
         <div className="flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            {blurtContent.length} characters
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              {blurtContent.length} characters
+            </p>
+            {messageUsage && (
+              <p className={`text-xs ${messageUsage.maxUsage !== -1 && messageUsage.currentUsage >= messageUsage.maxUsage ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                Messages: {messageUsage.currentUsage}/{messageUsage.maxUsage === -1 ? '∞' : messageUsage.maxUsage}
+              </p>
+            )}
+          </div>
           <Button 
             onClick={handleSubmit}
-            disabled={!blurtContent.trim() || isSubmitting}
-            className="flex items-center gap-2"
+            disabled={!blurtContent.trim() || isSubmitting || isMessageLimitReached}
+            className={`flex items-center gap-2 ${isMessageLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isMessageLimitReached ? "Message limit reached - please upgrade to continue" : "Submit your blurt"}
           >
             {isSubmitting ? (
               <>
