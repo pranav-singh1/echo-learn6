@@ -47,8 +47,14 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     highlightTerm,
     allSessions,
     isMuted,
-
+    quizBlocked,
     dailyQuizUsage,
+    // Limit state
+    messageUsage,
+    voiceUsage,
+    isMessageLimitReached,
+    isVoiceLimitReached,
+    refreshUsageLimits,
     // Voice session state
     isVoiceSessionActive,
     voiceSessionTranscript,
@@ -183,9 +189,20 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
   const handleSendMessage = async () => {
     if (!textInput.trim()) return;
     
+    // Check message limits before sending
+    if (isMessageLimitReached) {
+      return; // UI should already be blocked, but prevent any attempts
+    }
+    
     setIsTyping(true);
-    await sendTextMessage(textInput);
-    setTextInput('');
+    try {
+      await sendTextMessage(textInput);
+      setTextInput('');
+      // Refresh usage limits after sending message
+      await refreshUsageLimits();
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
     setIsTyping(false);
   };
 
@@ -200,10 +217,18 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
     if (isConnected) {
       await stopConversation();
     } else {
+      // Check voice limits before starting
+      if (isVoiceLimitReached) {
+        return; // UI should already be blocked, but prevent any attempts
+      }
+      
       setIsStartingVoice(true);
       try {
         await startConversation();
+        // Refresh usage limits after starting voice conversation
+        await refreshUsageLimits();
       } catch (error) {
+        console.error('Error starting conversation:', error);
         setIsStartingVoice(false);
       }
     }
@@ -661,13 +686,31 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
 
             {/* Status indicators and controls */}
             <div className="flex items-center gap-3">
-              {/* Connection Status */}
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-              </div>
+              {/* Connection Status - only show for conversation mode */}
+              {!isBlurtingConversation && !isTeachingConversation && (
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+              )}
+              
+              {/* Usage Limits Display */}
+              {(messageUsage || voiceUsage) && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {messageUsage && (
+                    <span className={messageUsage.maxUsage !== -1 && messageUsage.currentUsage >= messageUsage.maxUsage ? 'text-red-500 font-medium' : ''}>
+                      Messages: {messageUsage.currentUsage}/{messageUsage.maxUsage === -1 ? '∞' : messageUsage.maxUsage}
+                    </span>
+                  )}
+                  {voiceUsage && !isBlurtingConversation && !isTeachingConversation && (
+                    <span className={voiceUsage.maxUsage !== 'unlimited' && voiceUsage.currentUsage >= voiceUsage.maxUsage ? 'text-red-500 font-medium' : ''}>
+                      Voice: {voiceUsage.currentUsage}/{voiceUsage.maxUsage === 'unlimited' ? '∞' : voiceUsage.maxUsage} min
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
@@ -680,10 +723,11 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                   <Button
                     size="sm"
                     onClick={handleVoiceToggle}
-                    disabled={isTyping || isStartingVoice}
-                    className={`flex items-center gap-2 ${getModeButtonStyle()}`}
+                    disabled={isTyping || isStartingVoice || isVoiceLimitReached}
+                    className={`flex items-center gap-2 ${getModeButtonStyle()} ${isVoiceLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                     aria-label={isConnected ? 'Stop voice conversation' : 'Start voice conversation'}
                     data-tour="start-voice"
+                    title={isVoiceLimitReached ? "Voice minute limit reached" : (isConnected ? 'Stop voice conversation' : 'Start voice conversation')}
                   >
                     {isStartingVoice ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -892,15 +936,16 @@ export const ChatInterface: React.FC<{ typewriterSpeed?: 'slow' | 'regular' | 'f
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message here..."
-                className={`flex-1 ${getModeInputStyle()}`}
-                disabled={isTyping || isTextInputLocked}
+                placeholder={isMessageLimitReached ? "Message limit reached - please upgrade to continue" : "Type your message here..."}
+                className={`flex-1 ${getModeInputStyle()} ${isMessageLimitReached ? 'opacity-50' : ''}`}
+                disabled={isTyping || isTextInputLocked || isMessageLimitReached}
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={!textInput.trim() || isTyping || isTextInputLocked}
+                disabled={!textInput.trim() || isTyping || isTextInputLocked || isMessageLimitReached}
                 size="sm"
-                className={`flex items-center gap-2 ${getModeButtonStyle()}`}
+                className={`flex items-center gap-2 ${getModeButtonStyle()} ${isMessageLimitReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={isMessageLimitReached ? "Message limit reached" : "Send message"}
               >
                 <Send className="h-4 w-4" />
               </Button>

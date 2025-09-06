@@ -102,10 +102,15 @@ interface AppContextType {
   userPlan: string;
   planLimits: any;
   voiceUsage: { currentUsage: number; maxUsage: number; plan: string } | null;
+  messageUsage: { currentUsage: number; maxUsage: number; plan: string } | null;
+  isMessageLimitReached: boolean;
+  isVoiceLimitReached: boolean;
   checkFeatureAccess: (feature: string) => Promise<boolean>;
   incrementFeatureUsage: (feature: string) => Promise<void>;
   loadUserPlan: () => Promise<void>;
   loadVoiceUsage: () => Promise<void>;
+  loadMessageUsage: () => Promise<void>;
+  refreshUsageLimits: () => Promise<void>;
   
   // App initialization
   isInitialized: boolean;
@@ -200,6 +205,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [userPlan, setUserPlan] = useState<string>('free');
   const [planLimits, setPlanLimits] = useState<any>(null);
   const [voiceUsage, setVoiceUsage] = useState<{ currentUsage: number; maxUsage: number; plan: string } | null>(null);
+  const [messageUsage, setMessageUsage] = useState<{ currentUsage: number; maxUsage: number; plan: string } | null>(null);
+  const [isMessageLimitReached, setIsMessageLimitReached] = useState(false);
+  const [isVoiceLimitReached, setIsVoiceLimitReached] = useState(false);
   
   // App initialization state
   const [isInitialized, setIsInitialized] = useState(false);
@@ -655,6 +663,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const sendTextMessage = async (text: string) => {
     try {
+      // Check message limits before sending
+      if (user?.id) {
+        const usageInfo = await SubscriptionService.checkFeatureLimit('messages');
+        if (!usageInfo.allowed) {
+          setConversationError(usageInfo.message);
+          return;
+        }
+      }
+
       // Create new session if none exists (when user sends first message)
       if (!activeSession) {
         const newSession = await supabaseConversationStorage.createSession();
@@ -1065,6 +1082,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Blurting functions
   const submitBlurt = async (content: string, topic?: string) => {
     try {
+      // Check message limits before submitting blurt
+      if (user?.id) {
+        const usageInfo = await SubscriptionService.checkFeatureLimit('messages');
+        if (!usageInfo.allowed) {
+          setConversationError(usageInfo.message);
+          return;
+        }
+      }
+
       // Add user's blurt message to conversation first
       const userBlurtMessage = {
         speaker: 'user' as const,
@@ -1079,7 +1105,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const response = await fetch('/api/blurt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blurtContent: content, topic })
+        body: JSON.stringify({ blurtContent: content, topic, userId: user?.id })
       });
       
       if (!response.ok) throw new Error('Failed to analyze blurt');
@@ -1167,6 +1193,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Teaching functions
   const submitTeaching = async (content: string, topic?: string) => {
     try {
+      // Check message limits before submitting teaching content
+      if (user?.id) {
+        const usageInfo = await SubscriptionService.checkFeatureLimit('messages');
+        if (!usageInfo.allowed) {
+          setConversationError(usageInfo.message);
+          return;
+        }
+      }
+
       // Add user's teaching message to conversation first
       const userTeachingMessage = {
         speaker: 'user' as const,
@@ -1185,7 +1220,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           message: content, 
           topic,
           conversationHistory: messages.slice(-10), // Send last 10 messages for context
-          isFirstMessage: messages.length === 1
+          isFirstMessage: messages.length === 1,
+          userId: user?.id
         })
       });
       
@@ -1251,10 +1287,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setUserPlan(plan);
       setPlanLimits(limits);
       
-      // Also check current daily usage and voice usage
+      // Also check current daily usage, voice usage, and message usage
       await Promise.all([
         checkDailyQuizUsage(),
-        loadVoiceUsage()
+        loadVoiceUsage(),
+        loadMessageUsage()
       ]);
     } catch (error) {
       console.error('Error loading user plan:', error);
@@ -1296,9 +1333,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       const usage = await SubscriptionService.getVoiceUsage();
       setVoiceUsage(usage);
+      setIsVoiceLimitReached(usage.maxUsage !== 'unlimited' && usage.currentUsage >= usage.maxUsage);
     } catch (error) {
       console.error('Error loading voice usage:', error);
     }
+  };
+
+  const loadMessageUsage = async () => {
+    try {
+      const usageInfo = await SubscriptionService.checkFeatureLimit('messages');
+      if (usageInfo) {
+        const messageUsageData = {
+          currentUsage: usageInfo.currentUsage,
+          maxUsage: usageInfo.maxUsage === 'unlimited' ? -1 : usageInfo.maxUsage,
+          plan: usageInfo.plan
+        };
+        setMessageUsage(messageUsageData);
+        setIsMessageLimitReached(!usageInfo.allowed);
+      }
+    } catch (error) {
+      console.error('Error loading message usage:', error);
+    }
+  };
+
+  const refreshUsageLimits = async () => {
+    await Promise.all([
+      loadVoiceUsage(),
+      loadMessageUsage(),
+      checkDailyQuizUsage()
+    ]);
   };
 
   const value: AppContextType = {
@@ -1398,10 +1461,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     userPlan,
     planLimits,
     voiceUsage,
+    messageUsage,
+    isMessageLimitReached,
+    isVoiceLimitReached,
     checkFeatureAccess,
     incrementFeatureUsage,
     loadUserPlan,
     loadVoiceUsage,
+    loadMessageUsage,
+    refreshUsageLimits,
     
     // App initialization
     isInitialized,
