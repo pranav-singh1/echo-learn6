@@ -1,5 +1,6 @@
 // Conversation service using Retell under the hood
 import { ConversationMessage } from '../components/VapiConversation';
+import { supabase } from './supabase';
 
 export interface ConversationState {
   isConnected: boolean;
@@ -137,13 +138,16 @@ export class ConversationService {
 
     try {
       // Call the chat API for an AI response
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
           conversationHistory: this.currentSessionMessages.slice(-10),
-          learningMode
+          learningMode,
+          userId
         }),
       });
 
