@@ -26,4 +26,5 @@ RETELL_AGENT_ID=agent_...
 
 # Vapi
 VAPI_PRIVATE_API_KEY=your_vapi_private_key
+VAPI_ASSISTANT_ID=6c66fa89-7edc-495d-9a4a-91530e131883
 ```

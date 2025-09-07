@@ -729,8 +729,12 @@ export const VapiConversation: React.FC<VapiConversationProps> = ({
       isStartingCallRef.current = true;
       setError(null);
 
-      // Your agent ID
-      const assistantId = '6c66fa89-7edc-495d-9a4a-91530e131883';
+      // Your agent ID from environment variable
+      const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
+      
+      if (!assistantId) {
+        throw new Error('VITE_VAPI_ASSISTANT_ID environment variable is not configured');
+      }
       
       await vapiRef.current.start(assistantId);
       console.log('Vapi call start request sent');
