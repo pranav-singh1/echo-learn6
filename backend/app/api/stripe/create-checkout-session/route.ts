@@ -52,12 +52,14 @@ export async function POST(request: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     
     // Verify the token with Supabase if available
+    let userEmail = null;
     if (supabase) {
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
         if (authError || !user) {
           return NextResponse.json({ error: 'Invalid authentication token. Please log in again.' }, { status: 401 });
         }
+        userEmail = user.email;
       } catch (error) {
         return NextResponse.json({ error: 'Authentication verification failed. Please log in again.' }, { status: 401 });
       }
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const priceId = await resolvePriceId(String(key));
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: any = {
       billing_address_collection: 'auto',
       line_items: [
         {
@@ -89,7 +91,14 @@ export async function POST(request: NextRequest) {
       metadata: {
         product_name: 'EchoLearn Pro',
       },
-    });
+    };
+
+    // Pre-fill customer email if available
+    if (userEmail) {
+      sessionConfig.customer_email = userEmail;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

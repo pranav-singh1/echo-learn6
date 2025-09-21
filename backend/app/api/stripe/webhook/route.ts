@@ -96,13 +96,13 @@ async function handleSubscriptionCreated(subscription: any) {
       .single();
     
     if (userError || !user) {
-      console.error('User not found for email:', email);
+      console.error('User not found for email:', email, 'Error:', userError);
       return;
     }
     
     const plan = resolvePlanFromSubscription(subscription);
     
-    await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('users')
       .update({
         stripe_customer_id: customerId,
@@ -114,6 +114,11 @@ async function handleSubscriptionCreated(subscription: any) {
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Failed to update user subscription in database:', updateError);
+      return;
+    }
     
     console.log(`Updated user ${user.id} with subscription ${subscription.id}`);
     
@@ -133,7 +138,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   try {
     const plan = resolvePlanFromSubscription(subscription);
     
-    await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('users')
       .update({
         subscription_status: subscription.status,
@@ -143,6 +148,13 @@ async function handleSubscriptionUpdated(subscription: any) {
         updated_at: new Date().toISOString()
       })
       .eq('subscription_id', subscription.id);
+
+    if (updateError) {
+      console.error('Failed to update subscription in database:', updateError);
+      return;
+    }
+
+    console.log(`Successfully updated subscription ${subscription.id} in database`);
     
   } catch (error) {
     console.error('Error handling subscription updated:', error);
@@ -184,13 +196,20 @@ async function handlePaymentSucceeded(invoice: any) {
   }
   
   try {
-    await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('users')
       .update({
         subscription_status: 'active',
         updated_at: new Date().toISOString()
       })
       .eq('subscription_id', invoice.subscription);
+
+    if (updateError) {
+      console.error('Failed to update payment succeeded in database:', updateError);
+      return;
+    }
+
+    console.log(`Successfully updated subscription ${invoice.subscription} status to active`);
     
   } catch (error) {
     console.error('Error handling payment succeeded:', error);

@@ -12,6 +12,7 @@ import { TermsOfService } from "./pages/TermsOfService";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { SuccessPage } from "./pages/SuccessPage";
 import { CancelPage } from "./pages/CancelPage";
+import { AdminFix } from "./pages/AdminFix";
 import { StripePricing } from "./components/StripePricing";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -87,6 +88,10 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/cancel" 
         element={<CancelPage />} 
+      />
+      <Route 
+        path="/admin-fix" 
+        element={<AdminFix />} 
       />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
