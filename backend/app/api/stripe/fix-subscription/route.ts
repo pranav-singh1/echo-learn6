@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
         subscription_id: activeSubscription.id,
         subscription_status: activeSubscription.status,
         subscription_plan: plan,
-        current_period_start: new Date(activeSubscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+        current_period_start: new Date((activeSubscription as any).current_period_start * 1000).toISOString(),
+        current_period_end: new Date((activeSubscription as any).current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id)
@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
         id: activeSubscription.id,
         status: activeSubscription.status,
         plan: plan,
-        current_period_start: activeSubscription.current_period_start,
-        current_period_end: activeSubscription.current_period_end
+        current_period_start: (activeSubscription as any).current_period_start,
+        current_period_end: (activeSubscription as any).current_period_end
       }
     });
 
