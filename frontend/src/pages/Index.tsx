@@ -1,18 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import Logo from '../components/Logo';
 import { LandingPage } from '../components/LandingPage';
-import { ChatInterface } from '../components/ChatInterface';
-import { QuizPanel } from '../components/QuizPanel';
-import { SummaryPanel } from '../components/SummaryPanel';
-import { ConversationHistory } from '../components/ConversationHistory';
 import { useAppContext } from '../contexts/AppContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Menu, X, Home, Moon, Sun, HelpCircle, User, Settings, LogOut, Trash2, History } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { OnboardingTour } from '../components/OnboardingTour';
 import { useAuth } from '../contexts/AuthContext';
 import { SubscriptionService } from '../lib/subscription';
+
+// Chat shell components only load when the user enters a conversation —
+// landing page visitors don't pay for ChatInterface / QuizPanel / etc.
+const ChatInterface = lazy(() =>
+  import('../components/ChatInterface').then(m => ({ default: m.ChatInterface }))
+);
+const QuizPanel = lazy(() =>
+  import('../components/QuizPanel').then(m => ({ default: m.QuizPanel }))
+);
+const SummaryPanel = lazy(() =>
+  import('../components/SummaryPanel').then(m => ({ default: m.SummaryPanel }))
+);
+const ConversationHistory = lazy(() =>
+  import('../components/ConversationHistory').then(m => ({ default: m.ConversationHistory }))
+);
+const OnboardingTour = lazy(() =>
+  import('../components/OnboardingTour').then(m => ({ default: m.OnboardingTour }))
+);
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -296,11 +309,14 @@ export const Index: React.FC = () => {
     setShowHelp(false);
   };
 
-  // Show loading state while authentication is being resolved or app is initializing
-  // Also show loading if we're waiting to restore state that might be the app interface
-  const shouldShowLoading = loading || 
+  // Don't gate the landing page on auth — `getSession()` can refresh a stale
+  // token and stall first paint. Only show "Loading..." for returning users
+  // who are about to land in the chat shell.
+  const wasInChat = typeof window !== 'undefined' && localStorage.getItem('showConversation') === 'true';
+  const shouldShowLoading =
+    (loading && wasInChat) ||
     (user && showConversation && !isInitialized) ||
-    (user && !isInitialized && typeof window !== 'undefined' && localStorage.getItem('showConversation') === 'true');
+    (user && wasInChat && !isInitialized);
     
   if (shouldShowLoading) {
     return (
@@ -320,6 +336,14 @@ export const Index: React.FC = () => {
 
   // Show conversation interface
   return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
     <div className="h-screen bg-background dark:bg-gray-950 text-foreground flex relative">
       {showTour && <div className="fixed inset-0 z-[20000]"><OnboardingTour onClose={handleCloseTour} /></div>}
       {/* Conversation History Sidebar - Controlled by showHistory state */}
@@ -805,5 +829,6 @@ export const Index: React.FC = () => {
         </div>
       )}
     </div>
+    </Suspense>
   );
 };

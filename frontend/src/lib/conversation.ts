@@ -1,5 +1,5 @@
 // Conversation service using Retell under the hood
-import { ConversationMessage } from '../components/VapiConversation';
+import type { ConversationMessage } from '../components/VapiConversation';
 import { supabase } from './supabase';
 
 export interface ConversationState {

@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, lazy, Suspense } from 'react';
 import { conversationService, ConversationState } from '../lib/conversation';
 import { supabaseConversationStorage, ConversationSession } from '../lib/supabaseConversationStorage';
-import { VapiConversation, ConversationMessage } from '../components/VapiConversation';
+import type { ConversationMessage } from '../components/VapiConversation';
 import { useAuth } from './AuthContext';
 import { SubscriptionService } from '../lib/subscription';
+
+// Defer @vapi-ai/web SDK (large WebRTC bundle) until an authenticated user
+// actually needs it. Unauthenticated landing-page visitors never pay this cost.
+const VapiConversation = lazy(() =>
+  import('../components/VapiConversation').then(m => ({ default: m.VapiConversation }))
+);
 
 interface AppContextType {
   // Conversation state
@@ -247,14 +253,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     const initializeApp = async () => {
       console.log('Initializing app for user:', user.id);
-      
-      // Load user subscription plan and daily usage
-      await loadUserPlan();
-      
+
+      // Fire-and-forget: plan + usage chips are display-only and the backend
+      // re-checks limits on every action, so don't gate the UI on them.
+      loadUserPlan();
+
       // Load all sessions
       const storage = await supabaseConversationStorage.getConversations();
       setAllSessions(storage.sessions);
-      
+
       // Always start with mode selector, regardless of existing sessions
       console.log('Starting with mode selector');
       setWantsNewChat(true);
@@ -1477,14 +1484,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   return (
     <AppContext.Provider value={value}>
-      <VapiConversation
-        onMessage={(message) => conversationService.addMessage(message)}
-        onStateChange={(state) => conversationService.updateState(state)}
-        onStart={() => {}}
-        onStop={() => {}}
-        onGenerateTitle={generateConversationTitleFromTranscript}
-        onTranscriptComplete={undefined}
-      />
+      {user && (
+        <Suspense fallback={null}>
+          <VapiConversation
+            onMessage={(message) => conversationService.addMessage(message)}
+            onStateChange={(state) => conversationService.updateState(state)}
+            onStart={() => {}}
+            onStop={() => {}}
+            onGenerateTitle={generateConversationTitleFromTranscript}
+            onTranscriptComplete={undefined}
+          />
+        </Suspense>
+      )}
       {children}
     </AppContext.Provider>
   );

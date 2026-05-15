@@ -44,26 +44,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Routes>
-      <Route 
-        path="/" 
-        element={<Index />} 
+      <Route
+        path="/"
+        element={<Index />}
       />
-      <Route 
-        path="/auth" 
-        element={user ? <Navigate to="/" replace /> : <Auth />} 
+      <Route
+        path="/auth"
+        element={loading ? null : user ? <Navigate to="/" replace /> : <Auth />}
       />
       <Route 
         path="/reset-password" 

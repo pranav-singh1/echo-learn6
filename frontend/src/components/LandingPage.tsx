@@ -25,19 +25,20 @@ import {
   X,
   Menu
 } from 'lucide-react';
-import { 
-  Microphone,
-  ChatCircle,
-  Sparkle,
-  BookBookmark,
-  Target as TargetIcon,
-  Brain as BrainIcon,
-  Users as UsersIcon,
-  CheckCircle as CheckIcon,
-  Star as StarIcon,
-  Quotes,
-  Envelope
-} from 'phosphor-react';
+// Deep imports: phosphor-react v1's main entry is 6.4 MB pre-bundled in dev
+// because Vite can't tree-shake it. Importing per-icon files keeps the cost
+// to just the icons we actually use.
+import Microphone from 'phosphor-react/dist/icons/Microphone.esm.js';
+import ChatCircle from 'phosphor-react/dist/icons/ChatCircle.esm.js';
+import Sparkle from 'phosphor-react/dist/icons/Sparkle.esm.js';
+import BookBookmark from 'phosphor-react/dist/icons/BookBookmark.esm.js';
+import TargetIcon from 'phosphor-react/dist/icons/Target.esm.js';
+import BrainIcon from 'phosphor-react/dist/icons/Brain.esm.js';
+import UsersIcon from 'phosphor-react/dist/icons/Users.esm.js';
+import CheckIcon from 'phosphor-react/dist/icons/CheckCircle.esm.js';
+import StarIcon from 'phosphor-react/dist/icons/Star.esm.js';
+import Quotes from 'phosphor-react/dist/icons/Quotes.esm.js';
+import Envelope from 'phosphor-react/dist/icons/Envelope.esm.js';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
