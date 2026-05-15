@@ -11,7 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.54.0",
     "express-rate-limit": "^8.0.1",
-    "next": "15.3.4",
+    "next": "^15.5.18",
     "openai": "^5.5.1",
     "react": "^19.1.0",
     "react-dom": "^19.0.0",
@@ -24,7 +24,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.3.4",
+    "eslint-config-next": "^15.5.18",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
